@@ -287,20 +287,14 @@ public final class WTinyLFUReadCache implements OReadCache {
   private void afterWrite(Runnable command) {
     writeBuffer.offer(command);
 
-    if (drainStatus.get() == DrainStatus.IDLE) {
-      drainStatus.compareAndSet(DrainStatus.IDLE, DrainStatus.REQUIRED);
-    }
-
+    drainStatus.lazySet(DrainStatus.REQUIRED);
     tryToDrainBuffers();
   }
 
   private void checkWriteBuffer() {
     if (!writeBuffer.isEmpty()) {
 
-      if (drainStatus.get() == DrainStatus.IDLE) {
-        drainStatus.compareAndSet(DrainStatus.IDLE, DrainStatus.REQUIRED);
-      }
-
+      drainStatus.lazySet(DrainStatus.REQUIRED);
       tryToDrainBuffers();
     }
   }
