@@ -71,63 +71,61 @@ public final class WTinyLFU {
   }
 
   public void onAdd(OCacheEntry cacheEntry) {
-    //it is always alive because we remove pages only inside of eviction lock,
-    //and always pin only added pages
-    assert cacheEntry.isAlive();
+    if (cacheEntry.isAlive()) {
+      assert !eden.contains(cacheEntry);
+      assert !probation.contains(cacheEntry);
+      assert !protection.contains(cacheEntry);
 
-    assert !eden.contains(cacheEntry);
-    assert !probation.contains(cacheEntry);
-    assert !protection.contains(cacheEntry);
+      admittor.increment(new PageKey(cacheEntry.getFileId(), (int) cacheEntry.getPageIndex()));
+      eden.moveToTheTail(cacheEntry);
 
-    admittor.increment(new PageKey(cacheEntry.getFileId(), (int) cacheEntry.getPageIndex()));
-    eden.moveToTheTail(cacheEntry);
+      while (eden.size() > maxEdenSize) {
+        final OCacheEntry candidate = eden.poll();
+        assert candidate != null;
 
-    while (eden.size() > maxEdenSize) {
-      final OCacheEntry candidate = eden.poll();
-      assert candidate != null;
-
-      if (probation.size() < maxProbationarySize) {
-        probation.moveToTheTail(candidate);
-      } else {
-        final OCacheEntry victim = probation.peek();
-
-        final PageKey candidateKey = new PageKey(candidate.getFileId(), (int) candidate.getPageIndex());
-        final PageKey victimKey = new PageKey(victim.getFileId(), (int) victim.getPageIndex());
-
-        final int candidateFrequency = admittor.frequency(candidateKey);
-        final int victimFrequency = admittor.frequency(victimKey);
-
-        if (candidateFrequency > victimFrequency) {
-          probation.poll();
-
-          if (victim.freeze()) {
-            data.remove(victimKey, victim);
-            victim.makeDead();
-
-            //noinspection NonAtomicOperationOnVolatileField
-            size -= victim.getSize();
-
-            final OCachePointer pointer = victim.getCachePointer();
-
-            pointer.decrementReadersReferrer();
-            victim.clearCachePointer();
-          } else {
-            eden.moveToTheTail(victim);
-          }
+        if (probation.size() < maxProbationarySize) {
+          probation.moveToTheTail(candidate);
         } else {
-          if (candidate.freeze()) {
-            data.remove(candidateKey, candidate);
-            candidate.makeDead();
+          final OCacheEntry victim = probation.peek();
 
-            //noinspection NonAtomicOperationOnVolatileField
-            size -= candidate.getSize();
+          final PageKey candidateKey = new PageKey(candidate.getFileId(), (int) candidate.getPageIndex());
+          final PageKey victimKey = new PageKey(victim.getFileId(), (int) victim.getPageIndex());
 
-            final OCachePointer pointer = candidate.getCachePointer();
+          final int candidateFrequency = admittor.frequency(candidateKey);
+          final int victimFrequency = admittor.frequency(victimKey);
 
-            pointer.decrementReadersReferrer();
-            candidate.clearCachePointer();
+          if (candidateFrequency > victimFrequency) {
+            probation.poll();
+
+            if (victim.freeze()) {
+              data.remove(victimKey, victim);
+              victim.makeDead();
+
+              //noinspection NonAtomicOperationOnVolatileField
+              size -= victim.getSize();
+
+              final OCachePointer pointer = victim.getCachePointer();
+
+              pointer.decrementReadersReferrer();
+              victim.clearCachePointer();
+            } else {
+              eden.moveToTheTail(victim);
+            }
           } else {
-            eden.moveToTheTail(candidate);
+            if (candidate.freeze()) {
+              data.remove(candidateKey, candidate);
+              candidate.makeDead();
+
+              //noinspection NonAtomicOperationOnVolatileField
+              size -= candidate.getSize();
+
+              final OCachePointer pointer = candidate.getCachePointer();
+
+              pointer.decrementReadersReferrer();
+              candidate.clearCachePointer();
+            } else {
+              eden.moveToTheTail(candidate);
+            }
           }
         }
       }
@@ -182,8 +180,6 @@ public final class WTinyLFU {
       protection.remove(cacheEntry);
     } else if (eden.contains(cacheEntry)) {
       eden.remove(cacheEntry);
-    } else {
-      throw new IllegalStateException("At least one LRU list should contain entry");
     }
 
     cacheEntry.makeDead();

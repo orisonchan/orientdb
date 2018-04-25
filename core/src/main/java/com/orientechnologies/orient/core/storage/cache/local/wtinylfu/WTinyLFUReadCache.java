@@ -84,7 +84,7 @@ public final class WTinyLFUReadCache implements OReadCache {
   @Override
   public OCacheEntry loadForWrite(long fileId, long pageIndex, boolean checkPinnedPages, OWriteCache writeCache, int pageCount,
       boolean verifyChecksums) {
-    final OCacheEntry cacheEntry = doLoad(fileId, (int) pageIndex, checkPinnedPages, writeCache, false, verifyChecksums);
+    final OCacheEntry cacheEntry = doLoad(fileId, (int) pageIndex, checkPinnedPages, writeCache, verifyChecksums);
 
     if (cacheEntry != null) {
       cacheEntry.acquireExclusiveLock();
@@ -97,12 +97,11 @@ public final class WTinyLFUReadCache implements OReadCache {
   @Override
   public OCacheEntry loadForRead(long fileId, long pageIndex, boolean checkPinnedPages, OWriteCache writeCache, int pageCount,
       boolean verifyChecksums) {
-    final OCacheEntry cacheEntry = doLoad(fileId, (int) pageIndex, checkPinnedPages, writeCache, false, verifyChecksums);
+    final OCacheEntry cacheEntry = doLoad(fileId, (int) pageIndex, checkPinnedPages, writeCache, verifyChecksums);
     return cacheEntry;
   }
 
-  private OCacheEntry doLoad(long fileId, int pageIndex, boolean checkPinnedPages, OWriteCache writeCache, boolean addNewPages,
-      boolean verifyChecksums) {
+  private OCacheEntry doLoad(long fileId, int pageIndex, boolean checkPinnedPages, OWriteCache writeCache, boolean verifyChecksums) {
 
     final PageKey pageKey = new PageKey(fileId, pageIndex);
     while (true) {
@@ -136,7 +135,7 @@ public final class WTinyLFUReadCache implements OReadCache {
           if (entry == null) {
             try {
               final OCachePointer[] pointers = writeCache
-                  .load(fileId, pageIndex, 1, addNewPages, new OModifiableBoolean(), verifyChecksums);
+                  .load(fileId, pageIndex, 1, false, new OModifiableBoolean(), verifyChecksums);
 
               if (pointers.length == 0) {
                 return null;
@@ -255,7 +254,7 @@ public final class WTinyLFUReadCache implements OReadCache {
   @Override
   public OCacheEntry allocateNewPage(long fileId, OWriteCache writeCache, boolean verifyChecksums) throws IOException {
     final int newPageIndex = writeCache.allocateNewPage(fileId);
-    final OCacheEntry cacheEntry = doLoad(fileId, newPageIndex, false, writeCache, true, true);
+    final OCacheEntry cacheEntry = doLoad(fileId, newPageIndex, false, writeCache, true);
 
     if (cacheEntry != null) {
       cacheEntry.acquireExclusiveLock();
@@ -345,6 +344,8 @@ public final class WTinyLFUReadCache implements OReadCache {
   public void clear() {
     evictionLock.lock();
     try {
+      drainBuffers();
+
       for (OCacheEntry entry : data.values()) {
         if (entry.freeze()) {
           wTinyLFU.onRemove(entry);
@@ -383,6 +384,8 @@ public final class WTinyLFUReadCache implements OReadCache {
   private void clearFile(long fileId, int filledUpTo) {
     evictionLock.lock();
     try {
+      drainBuffers();
+
       for (int pageIndex = 0; pageIndex < filledUpTo; pageIndex++) {
         final PageKey pageKey = new PageKey(fileId, pageIndex);
 
