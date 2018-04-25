@@ -19,8 +19,6 @@ import com.orientechnologies.orient.core.storage.cache.local.wtinylfu.readbuffer
 import com.orientechnologies.orient.core.storage.cache.local.wtinylfu.writequeue.MPSCLinkedQueue;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
@@ -219,7 +217,6 @@ public final class WTinyLFUReadCache implements OReadCache {
       try {
         latch[0].await();
       } catch (InterruptedException e) {
-        Thread.interrupted();
         throw OException.wrapException(new OInterruptedException("File flush was interrupted"), e);
       } catch (Exception e) {
         throw OException.wrapException(new OReadCacheException("File flush was abnormally terminated"), e);

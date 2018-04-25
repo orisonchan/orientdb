@@ -1222,6 +1222,72 @@ public class OWOWCache extends OAbstractWriteCache implements OWriteCache, OCach
   }
 
   @Override
+  public int allocateNewPage(long fileId) throws IOException {
+    return doAllocateNewPage(fileId, 1);
+  }
+
+  private int doAllocateNewPage(long fileId, int retry) throws IOException {
+    final int intId = extractFileId(fileId);
+    final int maxRetry = 20;
+
+    if (retry < maxRetry) {
+      filesLock.acquireReadLock();
+    } else {
+      filesLock.acquireWriteLock();
+    }
+
+    try {
+      final OClosableEntry<Long, OFileClassic> entry = files.acquire(fileId);
+      try {
+        final OFileClassic fileClassic = entry.get();
+        final long allocationIndex = fileClassic.getFileSize() / pageSize;
+        final Lock lock = lockManager.acquireExclusiveLock(new PageKey(intId, allocationIndex));
+        try {
+          final long fileSize = fileClassic.getFileSize();
+          final long spaceToAllocate = ((allocationIndex + 1) * pageSize - fileSize);
+
+          if (spaceToAllocate > 0) {
+            fileClassic.allocateSpace(spaceToAllocate);
+
+            final ByteBuffer buffer = bufferPool.acquireDirect(true);
+            buffer.putLong(MAGIC_NUMBER_OFFSET, MAGIC_NUMBER_WITHOUT_CHECKSUM);
+
+            final OCachePointer cachePointer = new OCachePointer(buffer, bufferPool, fileId, allocationIndex);
+            cachePointer.setNotFlushed(true);
+
+            countOfNotFlushedPages.incrementAndGet();
+
+            //item only in write cache till we will not return
+            //it to read cache so we increment exclusive size by one
+            //otherwise call of write listener inside pointer may set exclusive size to negative value
+            exclusiveWriteCacheSize.getAndIncrement();
+
+            doPutInCache(cachePointer, new PageKey(intId, allocationIndex));
+
+            freeSpaceCheckAfterNewPageAdd(1);
+
+            return (int) allocationIndex;
+          }
+        } finally {
+          lock.unlock();
+        }
+
+        return doAllocateNewPage(fileId, retry + 1);
+      } finally {
+        files.release(entry);
+      }
+    } catch (InterruptedException e) {
+      throw OException.wrapException(new OStorageException("Load was interrupted"), e);
+    } finally {
+      if (retry < maxRetry) {
+        filesLock.releaseReadLock();
+      } else {
+        filesLock.releaseWriteLock();
+      }
+    }
+  }
+
+  @Override
   public void addOnlyWriters(final long fileId, final long pageIndex) {
     exclusiveWriteCacheSize.incrementAndGet();
     exclusiveWritePages.add(new PageKey(extractFileId(fileId), pageIndex));

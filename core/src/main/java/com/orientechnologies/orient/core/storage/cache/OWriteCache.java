@@ -102,7 +102,7 @@ public interface OWriteCache {
 
   long getFilledUpTo(long fileId);
 
-  int allocateNewPage(long fileId);
+  int allocateNewPage(long fileId) throws IOException;
 
   long getExclusiveWriteCachePagesSize();
 
