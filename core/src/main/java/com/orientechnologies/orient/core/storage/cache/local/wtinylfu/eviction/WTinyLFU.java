@@ -94,8 +94,9 @@ public final class WTinyLFU {
           final int candidateFrequency = admittor.frequency(candidateKey);
           final int victimFrequency = admittor.frequency(victimKey);
 
-          if (candidateFrequency > victimFrequency) {
+          if (candidateFrequency >= victimFrequency) {
             probation.poll();
+            probation.moveToTheTail(candidate);
 
             if (victim.freeze()) {
               data.remove(victimKey, victim);
@@ -196,4 +197,31 @@ public final class WTinyLFU {
     maxProbationarySize = (maxSize - maxEdenSize) * PROBATIONARY_PERCENT / 100;
     maxProtectedSize = maxSize - maxEdenSize - maxProbationarySize;
   }
+
+  OCacheEntry[] eden() {
+    return listToArray(eden);
+  }
+
+  OCacheEntry[] protection() {
+    return listToArray(protection);
+  }
+
+  OCacheEntry[] probation() {
+    return listToArray(probation);
+  }
+
+  private OCacheEntry[] listToArray(LRUList list) {
+    final OCacheEntry[] result = new OCacheEntry[list.size()];
+    OCacheEntry entry = list.peek();
+    int counter = 0;
+
+    while (entry != null) {
+      result[counter] = entry;
+      counter++;
+      entry = entry.getNext();
+    }
+
+    return result;
+  }
+
 }
