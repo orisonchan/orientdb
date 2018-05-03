@@ -1,6 +1,7 @@
 package com.orientechnologies.orient.core.storage.cache.local.wtinylfu;
 
 import com.orientechnologies.common.concur.lock.OInterruptedException;
+import com.orientechnologies.common.directmemory.OByteBufferPool;
 import com.orientechnologies.common.exception.OException;
 import com.orientechnologies.common.log.OLogManager;
 import com.orientechnologies.common.types.OModifiableBoolean;
@@ -17,8 +18,11 @@ import com.orientechnologies.orient.core.storage.cache.local.wtinylfu.eviction.W
 import com.orientechnologies.orient.core.storage.cache.local.wtinylfu.readbuffer.BoundedBuffer;
 import com.orientechnologies.orient.core.storage.cache.local.wtinylfu.readbuffer.Buffer;
 import com.orientechnologies.orient.core.storage.cache.local.wtinylfu.writequeue.MPSCLinkedQueue;
+import com.sun.corba.se.pept.transport.ByteBufferPool;
 
+import javax.annotation.concurrent.GuardedBy;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
@@ -71,11 +75,13 @@ public final class WTinyLFUReadCache implements OReadCache {
     }
   }
 
+  @GuardedBy("storageLock")
   @Override
   public long addFile(String fileName, OWriteCache writeCache) throws IOException {
     return writeCache.addFile(fileName);
   }
 
+  @GuardedBy("storageLock")
   @Override
   public long addFile(String fileName, long fileId, OWriteCache writeCache) throws IOException {
     return writeCache.addFile(fileName, fileId);
@@ -101,7 +107,8 @@ public final class WTinyLFUReadCache implements OReadCache {
     return cacheEntry;
   }
 
-  private OCacheEntry doLoad(long fileId, int pageIndex, boolean checkPinnedPages, OWriteCache writeCache, boolean verifyChecksums) {
+  private OCacheEntry doLoad(long fileId, int pageIndex, boolean checkPinnedPages, OWriteCache writeCache,
+      boolean verifyChecksums) {
 
     final PageKey pageKey = new PageKey(fileId, pageIndex);
     while (true) {
@@ -114,11 +121,7 @@ public final class WTinyLFUReadCache implements OReadCache {
       }
 
       if (cacheEntry != null) {
-        if (cacheEntry.makePinned()) {
-          return cacheEntry;
-        }
-
-        continue;
+        return cacheEntry;
       }
 
       cacheEntry = data.get(pageKey);
@@ -239,11 +242,17 @@ public final class WTinyLFUReadCache implements OReadCache {
       return;
     }
 
+    if (!cacheEntry.makePinned()) {
+      throw new IllegalStateException("Can not pin page");
+    }
+
     assert !cacheEntry.isReleased();
+    assert !cacheEntry.isDirty();
 
     final PageKey pageKey = new PageKey(cacheEntry.getFileId(), (int) cacheEntry.getPageIndex());
     pinnedPages.putIfAbsent(pageKey, cacheEntry);
 
+    //we can not remove acquired page during eviction so only passed in entry can be associated with the key
     final OCacheEntry removed = data.remove(pageKey);
     if (removed != null) {
       assert removed == cacheEntry;
@@ -319,6 +328,11 @@ public final class WTinyLFUReadCache implements OReadCache {
     drainReadBuffers();
   }
 
+  private void emptyBuffers() {
+    emptyWriteBuffer();
+    drainReadBuffers();
+  }
+
   private void drainReadBuffers() {
     readBuffer.drainTo(wTinyLFU::onAccess);
   }
@@ -335,16 +349,29 @@ public final class WTinyLFUReadCache implements OReadCache {
     }
   }
 
+  private void emptyWriteBuffer() {
+    while (true) {
+      final Runnable command = writeBuffer.poll();
+
+      if (command == null) {
+        break;
+      }
+
+      command.run();
+    }
+  }
+
   @Override
   public long getUsedMemory() {
     return wTinyLFU.getSize() * 4 * 1024;
   }
 
+  @GuardedBy("storageLock")
   @Override
   public void clear() {
     evictionLock.lock();
     try {
-      drainBuffers();
+      emptyBuffers();
 
       for (OCacheEntry entry : data.values()) {
         if (entry.freeze()) {
@@ -373,6 +400,7 @@ public final class WTinyLFUReadCache implements OReadCache {
     pinnedPages.clear();
   }
 
+  @GuardedBy("storageLock")
   @Override
   public void truncateFile(long fileId, OWriteCache writeCache) throws IOException {
     final int filledUpTo = (int) writeCache.getFilledUpTo(fileId);
@@ -384,7 +412,7 @@ public final class WTinyLFUReadCache implements OReadCache {
   private void clearFile(long fileId, int filledUpTo) {
     evictionLock.lock();
     try {
-      drainBuffers();
+      emptyBuffers();
 
       for (int pageIndex = 0; pageIndex < filledUpTo; pageIndex++) {
         final PageKey pageKey = new PageKey(fileId, pageIndex);
@@ -412,6 +440,7 @@ public final class WTinyLFUReadCache implements OReadCache {
     }
   }
 
+  @GuardedBy("storageLock")
   @Override
   public void closeFile(long fileId, boolean flush, OWriteCache writeCache) {
     final int filledUpTo = (int) writeCache.getFilledUpTo(fileId);
@@ -421,6 +450,7 @@ public final class WTinyLFUReadCache implements OReadCache {
 
   }
 
+  @GuardedBy("storageLock")
   @Override
   public void deleteFile(long fileId, OWriteCache writeCache) throws IOException {
     final int filledUpTo = (int) writeCache.getFilledUpTo(fileId);
@@ -429,6 +459,7 @@ public final class WTinyLFUReadCache implements OReadCache {
     writeCache.deleteFile(fileId);
   }
 
+  @GuardedBy("storageLock")
   @Override
   public void deleteStorage(OWriteCache writeCache) throws IOException {
     final Collection<Long> files = writeCache.files().values();
@@ -443,6 +474,7 @@ public final class WTinyLFUReadCache implements OReadCache {
     }
   }
 
+  @GuardedBy("storageLock")
   @Override
   public void closeStorage(OWriteCache writeCache) throws IOException {
     final Collection<Long> files = writeCache.files().values();
@@ -457,11 +489,13 @@ public final class WTinyLFUReadCache implements OReadCache {
     }
   }
 
+  @GuardedBy("storageLock")
   @Override
   public void loadCacheState(OWriteCache writeCache) {
     //TODO: implement at final stage
   }
 
+  @GuardedBy("storageLock")
   @Override
   public void storeCacheState(OWriteCache writeCache) {
     //TODO: implement at final stage

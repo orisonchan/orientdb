@@ -182,6 +182,10 @@ public class OCachePointer {
     referrersCount.incrementAndGet();
   }
 
+  public int getReferrersCount() {
+    return referrersCount.get();
+  }
+
   public void decrementReferrer() {
     final int rf = referrersCount.decrementAndGet();
     if (rf == 0 && buffer != null) {

@@ -84,6 +84,8 @@ public interface OCacheEntry {
 
   boolean freeze();
 
+  boolean isFrozen();
+
   void makeDead();
 
   boolean isDead();

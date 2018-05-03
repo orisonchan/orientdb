@@ -15,8 +15,8 @@ public class OCacheEntryChanges implements OCacheEntry {
   OCacheEntry delegate;
   final OWALChanges changes = new OWALPageChangesPortion();
 
-  boolean            isNew   = false;
-  boolean            pinPage = false;
+  boolean isNew   = false;
+  boolean pinPage = false;
 
   public OCacheEntryChanges(OCacheEntry entry) {
     delegate = entry;
@@ -149,6 +149,11 @@ public class OCacheEntryChanges implements OCacheEntry {
   @Override
   public boolean freeze() {
     return delegate.freeze();
+  }
+
+  @Override
+  public boolean isFrozen() {
+    return delegate.isFrozen();
   }
 
   @Override

@@ -11,15 +11,15 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class OCacheEntryImpl implements OCacheEntry {
   private static final int FROZEN = -1;
   private static final int DEAD   = -2;
+  private static final int PINNED = -3;
 
   private       OCachePointer pointer;
   private final long          fileId;
   private final long          pageIndex;
 
-  private          boolean       dirty;
-  private final    AtomicInteger usagesCount = new AtomicInteger();
-  private final    AtomicInteger state       = new AtomicInteger();
-  private volatile boolean       pinned;
+  private       boolean       dirty;
+  private final AtomicInteger usagesCount = new AtomicInteger();
+  private final AtomicInteger state       = new AtomicInteger();
 
   private OCacheEntry next;
   private OCacheEntry prev;
@@ -132,6 +132,9 @@ public class OCacheEntryImpl implements OCacheEntry {
   @Override
   public boolean acquireEntry() {
     int state = this.state.get();
+    if (state == PINNED) {
+      return true;
+    }
 
     while (state >= 0) {
       if (this.state.compareAndSet(state, state + 1)) {
@@ -147,6 +150,9 @@ public class OCacheEntryImpl implements OCacheEntry {
   @Override
   public void releaseEntry() {
     int state = this.state.get();
+    if (state == PINNED) {
+      return;
+    }
 
     while (true) {
       if (state <= 0) {
@@ -168,20 +174,21 @@ public class OCacheEntryImpl implements OCacheEntry {
 
   @Override
   public boolean makePinned() {
-    if (state.get() > 0) {
-      return false;
-    }
+    while (true) {
+      final int state = this.state.get();
+      if (state != 1) {
+        return false;
+      }
 
-    if (!pinned) {
-      pinned = true;
+      if (this.state.compareAndSet(state, PINNED)) {
+        return true;
+      }
     }
-
-    return true;
   }
 
   @Override
   public boolean isPinned() {
-    return pinned;
+    return this.state.get() == PINNED;
   }
 
   @Override
@@ -201,6 +208,11 @@ public class OCacheEntryImpl implements OCacheEntry {
     }
 
     return false;
+  }
+
+  @Override
+  public boolean isFrozen() {
+    return this.state.get() == FROZEN;
   }
 
   @Override

@@ -1,11 +1,14 @@
 package com.orientechnologies.orient.core.storage.cache.local.wtinylfu.eviction;
 
 import com.orientechnologies.common.directmemory.OByteBufferPool;
+import com.orientechnologies.common.directmemory.ODirectMemoryAllocator;
 import com.orientechnologies.orient.core.storage.cache.OCacheEntry;
 import com.orientechnologies.orient.core.storage.cache.OCacheEntryImpl;
 import com.orientechnologies.orient.core.storage.cache.OCachePointer;
 import com.orientechnologies.orient.core.storage.cache.local.wtinylfu.PageKey;
+import org.junit.After;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -16,6 +19,19 @@ import static org.mockito.Mockito.when;
 
 public class WTinyLFUTest {
 
+  private long            memoryConsumption;
+  private OByteBufferPool pool = new OByteBufferPool(4 * 1024, ODirectMemoryAllocator.instance(), 0);
+
+  @Before
+  public void before() {
+    memoryConsumption = ODirectMemoryAllocator.instance().getMemoryConsumption();
+  }
+
+  @After
+  public void after() {
+    Assert.assertEquals(memoryConsumption, ODirectMemoryAllocator.instance().getMemoryConsumption());
+  }
+
   @Test
   public void testEden() {
     ConcurrentHashMap<PageKey, OCacheEntry> data = new ConcurrentHashMap<>();
@@ -25,47 +41,44 @@ public class WTinyLFUTest {
     WTinyLFU wTinyLFU = new WTinyLFU(data, admittor);
     wTinyLFU.setMaxSize(15);
 
-    OByteBufferPool pool = new OByteBufferPool(4 * 1024);
-    OCachePointer cachePointer = new OCachePointer(pool.acquireDirect(true), pool, 1, 1);
-    cachePointer.incrementReferrer();
+    final OCacheEntry[] cacheEntries = new OCacheEntry[3];
+    final OCachePointer[] cachePointers = new OCachePointer[3];
 
-    OCacheEntry one = new OCacheEntryImpl(1, 1, cachePointer, false);
-    OCacheEntry two = new OCacheEntryImpl(1, 2, cachePointer, false);
-    OCacheEntry three = new OCacheEntryImpl(1, 3, cachePointer, false);
+    generateEntries(cacheEntries, cachePointers);
 
-    wTinyLFU.onAdd(one);
-    wTinyLFU.onAdd(two);
-    wTinyLFU.onAdd(three);
+    wTinyLFU.onAdd(cacheEntries[0]);
+    wTinyLFU.onAdd(cacheEntries[1]);
+    wTinyLFU.onAdd(cacheEntries[2]);
 
     Assert.assertEquals(3, wTinyLFU.getSize());
     Assert.assertEquals(15, wTinyLFU.getMaxSize());
 
     Assert.assertEquals(0, wTinyLFU.probation().length);
     Assert.assertEquals(0, wTinyLFU.protection().length);
-    Assert.assertArrayEquals(new OCacheEntry[] { one, two, three }, wTinyLFU.eden());
+    Assert.assertArrayEquals(new OCacheEntry[] { cacheEntries[0], cacheEntries[1], cacheEntries[2] }, wTinyLFU.eden());
 
-    wTinyLFU.onAccess(two);
-
-    Assert.assertEquals(0, wTinyLFU.probation().length);
-    Assert.assertEquals(0, wTinyLFU.protection().length);
-    Assert.assertArrayEquals(new OCacheEntry[] { one, three, two }, wTinyLFU.eden());
-
-    wTinyLFU.onAccess(two);
+    wTinyLFU.onAccess(cacheEntries[1]);
 
     Assert.assertEquals(0, wTinyLFU.probation().length);
     Assert.assertEquals(0, wTinyLFU.protection().length);
-    Assert.assertArrayEquals(new OCacheEntry[] { one, three, two }, wTinyLFU.eden());
+    Assert.assertArrayEquals(new OCacheEntry[] { cacheEntries[0], cacheEntries[2], cacheEntries[1] }, wTinyLFU.eden());
 
-    wTinyLFU.onAccess(one);
+    wTinyLFU.onAccess(cacheEntries[1]);
 
     Assert.assertEquals(0, wTinyLFU.probation().length);
     Assert.assertEquals(0, wTinyLFU.protection().length);
-    Assert.assertArrayEquals(new OCacheEntry[] { three, two, one }, wTinyLFU.eden());
+    Assert.assertArrayEquals(new OCacheEntry[] { cacheEntries[0], cacheEntries[2], cacheEntries[1] }, wTinyLFU.eden());
+
+    wTinyLFU.onAccess(cacheEntries[0]);
+
+    Assert.assertEquals(0, wTinyLFU.probation().length);
+    Assert.assertEquals(0, wTinyLFU.protection().length);
+    Assert.assertArrayEquals(new OCacheEntry[] { cacheEntries[2], cacheEntries[1], cacheEntries[0] }, wTinyLFU.eden());
 
     Assert.assertEquals(3, wTinyLFU.getSize());
 
-    cachePointer.decrementReferrer();
-    Mockito.reset(admittor);
+    clearPointers(cachePointers);
+    Mockito.<Object>reset(admittor);
   }
 
   @Test
@@ -77,29 +90,24 @@ public class WTinyLFUTest {
     WTinyLFU wTinyLFU = new WTinyLFU(data, admittor);
     wTinyLFU.setMaxSize(15);
 
-    OByteBufferPool pool = new OByteBufferPool(4 * 1024);
-    OCachePointer cachePointer = new OCachePointer(pool.acquireDirect(true), pool, 1, 1);
-    cachePointer.incrementReferrer();
+    OCacheEntry[] cacheEntries = new OCacheEntry[4];
+    OCachePointer[] cachePointers = new OCachePointer[4];
 
-    OCacheEntry one = new OCacheEntryImpl(1, 1, cachePointer, false);
-    OCacheEntry two = new OCacheEntryImpl(1, 2, cachePointer, false);
-    OCacheEntry three = new OCacheEntryImpl(1, 3, cachePointer, false);
-    OCacheEntry four = new OCacheEntryImpl(1, 4, cachePointer, false);
+    generateEntries(cacheEntries, cachePointers);
 
-    wTinyLFU.onAdd(one);
-    wTinyLFU.onAdd(two);
-    wTinyLFU.onAdd(three);
-    wTinyLFU.onAdd(four);
+    wTinyLFU.onAdd(cacheEntries[0]);
+    wTinyLFU.onAdd(cacheEntries[1]);
+    wTinyLFU.onAdd(cacheEntries[2]);
+    wTinyLFU.onAdd(cacheEntries[3]);
 
-    Assert.assertArrayEquals(new OCacheEntry[] { one }, wTinyLFU.probation());
+    Assert.assertArrayEquals(new OCacheEntry[] { cacheEntries[0] }, wTinyLFU.probation());
     Assert.assertEquals(0, wTinyLFU.protection().length);
-    Assert.assertArrayEquals(new OCacheEntry[] { two, three, four }, wTinyLFU.eden());
+    Assert.assertArrayEquals(new OCacheEntry[] { cacheEntries[1], cacheEntries[2], cacheEntries[3] }, wTinyLFU.eden());
 
     Assert.assertEquals(4, wTinyLFU.getSize());
 
-
-    cachePointer.decrementReferrer();
-    Mockito.reset(admittor);
+    clearPointers(cachePointers);
+    Mockito.<Object>reset(admittor);
   }
 
   @Test
@@ -111,38 +119,31 @@ public class WTinyLFUTest {
     WTinyLFU wTinyLFU = new WTinyLFU(data, admittor);
     wTinyLFU.setMaxSize(15);
 
-    OByteBufferPool pool = new OByteBufferPool(4 * 1024);
-    OCachePointer cachePointerOne = new OCachePointer(pool.acquireDirect(true), pool, 1, 1);
-    cachePointerOne.incrementReadersReferrer();
+    OCacheEntry[] cacheEntries = new OCacheEntry[6];
+    OCachePointer[] cachePointers = new OCachePointer[6];
 
-    OCachePointer cachePointerTwo = new OCachePointer(pool.acquireDirect(true), pool, 1, 1);
-    cachePointerTwo.incrementReadersReferrer();
-
-    OCacheEntry one = new OCacheEntryImpl(1, 1, cachePointerOne, false);
-    OCacheEntry two = new OCacheEntryImpl(1, 2, cachePointerTwo, false);
-    OCacheEntry three = new OCacheEntryImpl(1, 3, cachePointerTwo, false);
-    OCacheEntry four = new OCacheEntryImpl(1, 4, cachePointerTwo, false);
-    OCacheEntry five = new OCacheEntryImpl(1, 5, cachePointerTwo, false);
-    OCacheEntry six = new OCacheEntryImpl(1, 6, cachePointerTwo, false);
+    generateEntries(cacheEntries, cachePointers);
 
     when(admittor.frequency(new PageKey(1, 1))).thenReturn(1);
     when(admittor.frequency(new PageKey(1, 3))).thenReturn(1);
 
-    wTinyLFU.onAdd(one);
-    wTinyLFU.onAdd(two);
-    wTinyLFU.onAdd(three);
-    wTinyLFU.onAdd(four);
-    wTinyLFU.onAdd(five);
-    wTinyLFU.onAdd(six);
+    wTinyLFU.onAdd(cacheEntries[0]);
+    wTinyLFU.onAdd(cacheEntries[1]);
+    wTinyLFU.onAdd(cacheEntries[2]);
+    wTinyLFU.onAdd(cacheEntries[3]);
+    wTinyLFU.onAdd(cacheEntries[4]);
+    wTinyLFU.onAdd(cacheEntries[5]);
 
-    Assert.assertArrayEquals(new OCacheEntry[] { two, three }, wTinyLFU.probation());
+    Assert.assertArrayEquals(new OCacheEntry[] { cacheEntries[1], cacheEntries[2] }, wTinyLFU.probation());
     Assert.assertEquals(0, wTinyLFU.protection().length);
-    Assert.assertArrayEquals(new OCacheEntry[] { four, five, six }, wTinyLFU.eden());
+    Assert.assertArrayEquals(new OCacheEntry[] { cacheEntries[3], cacheEntries[4], cacheEntries[5] }, wTinyLFU.eden());
 
     Assert.assertEquals(5, wTinyLFU.getSize());
 
-    cachePointerTwo.decrementReferrer();
-    Mockito.reset(admittor);
+    Assert.assertEquals(0, cachePointers[0].getReferrersCount());
+
+    clearPointers(cachePointers);
+    Mockito.<Object>reset(admittor);
   }
 
   @Test
@@ -153,8 +154,6 @@ public class WTinyLFUTest {
 
     WTinyLFU wTinyLFU = new WTinyLFU(data, admittor);
     wTinyLFU.setMaxSize(15);
-
-    OByteBufferPool pool = new OByteBufferPool(4 * 1024);
 
     OCachePointer cachePointer = new OCachePointer(pool.acquireDirect(true), pool, 1, 1);
     cachePointer.incrementReadersReferrer();
@@ -183,9 +182,8 @@ public class WTinyLFUTest {
 
     Assert.assertEquals(5, wTinyLFU.getSize());
 
-
     cachePointer.decrementReferrer();
-    Mockito.reset(admittor);
+    Mockito.<Object>reset(admittor);
   }
 
   @Test
@@ -196,8 +194,6 @@ public class WTinyLFUTest {
 
     WTinyLFU wTinyLFU = new WTinyLFU(data, admittor);
     wTinyLFU.setMaxSize(15);
-
-    OByteBufferPool pool = new OByteBufferPool(4 * 1024);
 
     OCachePointer cachePointer = new OCachePointer(pool.acquireDirect(true), pool, 1, 1);
     cachePointer.incrementReadersReferrer();
@@ -275,9 +271,8 @@ public class WTinyLFUTest {
 
     Assert.assertEquals(15, wTinyLFU.getSize());
 
-
     cachePointer.decrementReferrer();
-    Mockito.reset(admittor);
+    Mockito.<Object>reset(admittor);
   }
 
   @Test
@@ -288,8 +283,6 @@ public class WTinyLFUTest {
 
     WTinyLFU wTinyLFU = new WTinyLFU(data, admittor);
     wTinyLFU.setMaxSize(15);
-
-    OByteBufferPool pool = new OByteBufferPool(4 * 1024);
 
     OCachePointer cachePointerOne = new OCachePointer(pool.acquireDirect(true), pool, 1, 1);
     cachePointerOne.incrementReadersReferrer();
@@ -370,7 +363,7 @@ public class WTinyLFUTest {
     Assert.assertEquals(15, wTinyLFU.getSize());
 
     cachePointerOne.decrementReferrer();
-    Mockito.reset(admittor);
+    Mockito.<Object>reset(admittor);
   }
 
   @Test
@@ -381,8 +374,6 @@ public class WTinyLFUTest {
 
     WTinyLFU wTinyLFU = new WTinyLFU(data, admittor);
     wTinyLFU.setMaxSize(15);
-
-    OByteBufferPool pool = new OByteBufferPool(4 * 1024);
 
     OCachePointer cachePointerOne = new OCachePointer(pool.acquireDirect(true), pool, 1, 1);
     cachePointerOne.incrementReadersReferrer();
@@ -463,7 +454,7 @@ public class WTinyLFUTest {
     Assert.assertEquals(15, wTinyLFU.getSize());
 
     cachePointerOne.decrementReferrer();
-    Mockito.reset(admittor);
+    Mockito.<Object>reset(admittor);
   }
 
   @Test
@@ -474,8 +465,6 @@ public class WTinyLFUTest {
 
     WTinyLFU wTinyLFU = new WTinyLFU(data, admittor);
     wTinyLFU.setMaxSize(15);
-
-    OByteBufferPool pool = new OByteBufferPool(4 * 1024);
 
     OCachePointer cachePointerOne = new OCachePointer(pool.acquireDirect(true), pool, 1, 1);
     cachePointerOne.incrementReadersReferrer();
@@ -552,7 +541,7 @@ public class WTinyLFUTest {
 
     wTinyLFU.onAdd(sixteen);
 
-    Assert.assertArrayEquals(new OCacheEntry[] {thirteen, fourteen }, wTinyLFU.probation());
+    Assert.assertArrayEquals(new OCacheEntry[] { thirteen, fourteen }, wTinyLFU.probation());
     Assert
         .assertArrayEquals(new OCacheEntry[] { one, two, three, four, five, six, seven, eight, nine, ten }, wTinyLFU.protection());
     Assert.assertArrayEquals(new OCacheEntry[] { fifteen, sixteen, eleven }, wTinyLFU.eden());
@@ -560,7 +549,7 @@ public class WTinyLFUTest {
     Assert.assertEquals(15, wTinyLFU.getSize());
 
     cachePointerOne.decrementReferrer();
-    Mockito.reset(admittor);
+    Mockito.<Object>reset(admittor);
   }
 
   @Test
@@ -571,8 +560,6 @@ public class WTinyLFUTest {
 
     WTinyLFU wTinyLFU = new WTinyLFU(data, admittor);
     wTinyLFU.setMaxSize(15);
-
-    OByteBufferPool pool = new OByteBufferPool(4 * 1024);
 
     OCachePointer cachePointerOne = new OCachePointer(pool.acquireDirect(true), pool, 1, 1);
     cachePointerOne.incrementReadersReferrer();
@@ -656,7 +643,234 @@ public class WTinyLFUTest {
     Assert.assertEquals(15, wTinyLFU.getSize());
 
     cachePointerOne.decrementReferrer();
-    Mockito.reset(admittor);
+    Mockito.<Object>reset(admittor);
   }
 
+  @Test
+  public void testOnRemove() {
+    ConcurrentHashMap<PageKey, OCacheEntry> data = new ConcurrentHashMap<>();
+    @SuppressWarnings("unchecked")
+    Admittor<PageKey> admittor = mock(Admittor.class);
+
+    WTinyLFU wTinyLFU = new WTinyLFU(data, admittor);
+    wTinyLFU.setMaxSize(15);
+
+    OCachePointer cachePointer = new OCachePointer(pool.acquireDirect(true), pool, 1, 1);
+    cachePointer.incrementReadersReferrer();
+
+    OCachePointer cachePointerOne = new OCachePointer(pool.acquireDirect(true), pool, 1, 1);
+    cachePointerOne.incrementReadersReferrer();
+
+    OCachePointer cachePointerTwo = new OCachePointer(pool.acquireDirect(true), pool, 1, 1);
+    cachePointerTwo.incrementReadersReferrer();
+
+    OCachePointer cachePointerThree = new OCachePointer(pool.acquireDirect(true), pool, 1, 1);
+    cachePointerThree.incrementReadersReferrer();
+
+    OCacheEntry one = new OCacheEntryImpl(1, 1, cachePointer, false);
+    OCacheEntry two = new OCacheEntryImpl(1, 2, cachePointerOne, false);
+    OCacheEntry three = new OCacheEntryImpl(1, 3, cachePointer, false);
+    OCacheEntry four = new OCacheEntryImpl(1, 4, cachePointer, false);
+    OCacheEntry five = new OCacheEntryImpl(1, 5, cachePointer, false);
+    OCacheEntry six = new OCacheEntryImpl(1, 6, cachePointer, false);
+    OCacheEntry seven = new OCacheEntryImpl(1, 7, cachePointer, false);
+    OCacheEntry eight = new OCacheEntryImpl(1, 8, cachePointer, false);
+    OCacheEntry nine = new OCacheEntryImpl(1, 9, cachePointer, false);
+    OCacheEntry ten = new OCacheEntryImpl(1, 10, cachePointer, false);
+    OCacheEntry eleven = new OCacheEntryImpl(1, 11, cachePointerTwo, false);
+    OCacheEntry twelve = new OCacheEntryImpl(1, 12, cachePointer, false);
+    OCacheEntry thirteen = new OCacheEntryImpl(1, 13, cachePointer, false);
+    OCacheEntry fourteen = new OCacheEntryImpl(1, 14, cachePointerThree, false);
+    OCacheEntry fifteen = new OCacheEntryImpl(1, 15, cachePointer, false);
+
+    wTinyLFU.onAdd(one);
+    wTinyLFU.onAdd(two);
+    wTinyLFU.onAdd(three);
+    wTinyLFU.onAdd(four);
+    wTinyLFU.onAdd(five);
+
+    wTinyLFU.onAccess(one);
+    wTinyLFU.onAccess(two);
+
+    wTinyLFU.onAdd(six);
+    wTinyLFU.onAdd(seven);
+
+    wTinyLFU.onAccess(three);
+    wTinyLFU.onAccess(four);
+
+    wTinyLFU.onAdd(eight);
+    wTinyLFU.onAdd(nine);
+
+    wTinyLFU.onAccess(five);
+    wTinyLFU.onAccess(six);
+
+    wTinyLFU.onAdd(ten);
+    wTinyLFU.onAdd(eleven);
+
+    wTinyLFU.onAccess(seven);
+    wTinyLFU.onAccess(eight);
+
+    wTinyLFU.onAdd(twelve);
+    wTinyLFU.onAdd(thirteen);
+
+    wTinyLFU.onAccess(nine);
+    wTinyLFU.onAccess(ten);
+
+    wTinyLFU.onAdd(fourteen);
+    wTinyLFU.onAdd(fifteen);
+
+    Assert.assertArrayEquals(new OCacheEntry[] { eleven, twelve }, wTinyLFU.probation());
+    Assert
+        .assertArrayEquals(new OCacheEntry[] { one, two, three, four, five, six, seven, eight, nine, ten }, wTinyLFU.protection());
+    Assert.assertArrayEquals(new OCacheEntry[] { thirteen, fourteen, fifteen }, wTinyLFU.eden());
+    Assert.assertEquals(15, wTinyLFU.getSize());
+
+    Assert.assertTrue(two.freeze());
+    Assert.assertTrue(eleven.freeze());
+    Assert.assertTrue(fourteen.freeze());
+
+    wTinyLFU.onRemove(two);
+    wTinyLFU.onRemove(eleven);
+    wTinyLFU.onRemove(fourteen);
+
+    Assert.assertArrayEquals(new OCacheEntry[] { twelve }, wTinyLFU.probation());
+    Assert.assertArrayEquals(new OCacheEntry[] { one, three, four, five, six, seven, eight, nine, ten }, wTinyLFU.protection());
+    Assert.assertArrayEquals(new OCacheEntry[] { thirteen, fifteen }, wTinyLFU.eden());
+    Assert.assertEquals(12, wTinyLFU.getSize());
+
+    cachePointer.decrementReferrer();
+    Mockito.<Object>reset(admittor);
+  }
+
+  @Test
+  public void testOnPinning() {
+    ConcurrentHashMap<PageKey, OCacheEntry> data = new ConcurrentHashMap<>();
+    @SuppressWarnings("unchecked")
+    Admittor<PageKey> admittor = mock(Admittor.class);
+
+    WTinyLFU wTinyLFU = new WTinyLFU(data, admittor);
+    wTinyLFU.setMaxSize(15);
+
+    OCachePointer cachePointer = new OCachePointer(pool.acquireDirect(true), pool, 1, 1);
+    cachePointer.incrementReadersReferrer();
+
+    OCachePointer cachePointerOne = new OCachePointer(pool.acquireDirect(true), pool, 1, 1);
+    cachePointerOne.incrementReadersReferrer();
+
+    OCachePointer cachePointerTwo = new OCachePointer(pool.acquireDirect(true), pool, 1, 1);
+    cachePointerTwo.incrementReadersReferrer();
+
+    OCachePointer cachePointerThree = new OCachePointer(pool.acquireDirect(true), pool, 1, 1);
+    cachePointerThree.incrementReadersReferrer();
+
+    OCacheEntry one = new OCacheEntryImpl(1, 1, cachePointer, false);
+    OCacheEntry two = new OCacheEntryImpl(1, 2, cachePointerOne, false);
+    OCacheEntry three = new OCacheEntryImpl(1, 3, cachePointer, false);
+    OCacheEntry four = new OCacheEntryImpl(1, 4, cachePointer, false);
+    OCacheEntry five = new OCacheEntryImpl(1, 5, cachePointer, false);
+    OCacheEntry six = new OCacheEntryImpl(1, 6, cachePointer, false);
+    OCacheEntry seven = new OCacheEntryImpl(1, 7, cachePointer, false);
+    OCacheEntry eight = new OCacheEntryImpl(1, 8, cachePointer, false);
+    OCacheEntry nine = new OCacheEntryImpl(1, 9, cachePointer, false);
+    OCacheEntry ten = new OCacheEntryImpl(1, 10, cachePointer, false);
+    OCacheEntry eleven = new OCacheEntryImpl(1, 11, cachePointer, false);
+    OCacheEntry twelve = new OCacheEntryImpl(1, 12, cachePointerTwo, false);
+    OCacheEntry thirteen = new OCacheEntryImpl(1, 13, cachePointer, false);
+    OCacheEntry fourteen = new OCacheEntryImpl(1, 14, cachePointerThree, false);
+    OCacheEntry fifteen = new OCacheEntryImpl(1, 15, cachePointer, false);
+
+    wTinyLFU.onAdd(one);
+    wTinyLFU.onAdd(two);
+    wTinyLFU.onAdd(three);
+    wTinyLFU.onAdd(four);
+    wTinyLFU.onAdd(five);
+
+    wTinyLFU.onAccess(one);
+    wTinyLFU.onAccess(two);
+
+    wTinyLFU.onAdd(six);
+    wTinyLFU.onAdd(seven);
+
+    wTinyLFU.onAccess(three);
+    wTinyLFU.onAccess(four);
+
+    wTinyLFU.onAdd(eight);
+    wTinyLFU.onAdd(nine);
+
+    wTinyLFU.onAccess(five);
+    wTinyLFU.onAccess(six);
+
+    wTinyLFU.onAdd(ten);
+    wTinyLFU.onAdd(eleven);
+
+    wTinyLFU.onAccess(seven);
+    wTinyLFU.onAccess(eight);
+
+    wTinyLFU.onAdd(twelve);
+    wTinyLFU.onAdd(thirteen);
+
+    wTinyLFU.onAccess(nine);
+    wTinyLFU.onAccess(ten);
+
+    wTinyLFU.onAdd(fourteen);
+    wTinyLFU.onAdd(fifteen);
+
+    Assert.assertArrayEquals(new OCacheEntry[] { eleven, twelve }, wTinyLFU.probation());
+    Assert
+        .assertArrayEquals(new OCacheEntry[] { one, two, three, four, five, six, seven, eight, nine, ten }, wTinyLFU.protection());
+    Assert.assertArrayEquals(new OCacheEntry[] { thirteen, fourteen, fifteen }, wTinyLFU.eden());
+
+    Assert.assertEquals(15, wTinyLFU.getSize());
+    Assert.assertEquals(15, wTinyLFU.getMaxSize());
+
+    Assert.assertTrue(two.acquireEntry());
+    Assert.assertTrue(two.makePinned());
+    wTinyLFU.onPinning(two);
+
+    Assert.assertArrayEquals(new OCacheEntry[] { twelve, thirteen }, wTinyLFU.probation());
+    Assert.assertArrayEquals(new OCacheEntry[] { one, three, four, five, six, seven, eight, nine, ten }, wTinyLFU.protection());
+    Assert.assertArrayEquals(new OCacheEntry[] { fourteen, fifteen }, wTinyLFU.eden());
+
+    Assert.assertTrue(twelve.acquireEntry());
+    Assert.assertTrue(twelve.makePinned());
+    wTinyLFU.onPinning(twelve);
+
+    Assert.assertArrayEquals(new OCacheEntry[] { thirteen }, wTinyLFU.probation());
+    Assert.assertArrayEquals(new OCacheEntry[] { one, three, four, five, six, seven, eight, nine, ten }, wTinyLFU.protection());
+    Assert.assertArrayEquals(new OCacheEntry[] { fourteen, fifteen }, wTinyLFU.eden());
+
+    Assert.assertTrue(fourteen.acquireEntry());
+    Assert.assertTrue(fourteen.makePinned());
+    wTinyLFU.onPinning(fourteen);
+
+    Assert.assertArrayEquals(new OCacheEntry[] { thirteen, one }, wTinyLFU.probation());
+    Assert.assertArrayEquals(new OCacheEntry[] { three, four, five, six, seven, eight, nine, ten }, wTinyLFU.protection());
+    Assert.assertArrayEquals(new OCacheEntry[] { fifteen }, wTinyLFU.eden());
+
+    Assert.assertEquals(11, wTinyLFU.getSize());
+    Assert.assertEquals(12, wTinyLFU.getMaxSize());
+
+    cachePointer.decrementReferrer();
+    Mockito.<Object>reset(admittor);
+  }
+
+  private void generateEntries(OCacheEntry[] cacheEntries, OCachePointer[] cachePointers) {
+    for (int i = 0; i < cacheEntries.length; i++) {
+      final OCachePointer cachePointer = new OCachePointer(pool.acquireDirect(true), pool, 1, i);
+      final OCacheEntry cacheEntry = new OCacheEntryImpl(1, i, cachePointer, false);
+
+      cachePointer.incrementReadersReferrer();
+      cacheEntries[i] = cacheEntry;
+      cachePointers[i] = cachePointer;
+    }
+  }
+
+  private void clearPointers(OCachePointer[] cachePointers) {
+    for (OCachePointer pointer : cachePointers) {
+      Assert.assertTrue(pointer.getReferrersCount() < 2);
+      if (pointer.getReferrersCount() == 1) {
+        pointer.decrementReadersReferrer();
+      }
+    }
+  }
 }
