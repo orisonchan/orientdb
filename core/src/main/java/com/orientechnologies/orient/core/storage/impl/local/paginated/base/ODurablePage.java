@@ -223,7 +223,6 @@ public class ODurablePage {
       changes.setIntValue(buffer, value, pageOffset);
     } else {
       buffer.putShort(pageOffset, value);
-      cacheEntry.markDirty();
     }
 
     return OShortSerializer.SHORT_SIZE;
