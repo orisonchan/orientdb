@@ -219,7 +219,8 @@ public class OPrefixBTree<V> extends ODurableComponent {
   }
 
   @SuppressWarnings("unchecked")
-  public boolean update(String key, OIndexKeyUpdater<V> updater, OBaseIndexEngine.Validator<String, V> validator) throws IOException {
+  public boolean update(String key, OIndexKeyUpdater<V> updater, OBaseIndexEngine.Validator<String, V> validator)
+      throws IOException {
     boolean rollback = false;
     final OAtomicOperation atomicOperation = startAtomicOperation(true);
 
@@ -1828,7 +1829,8 @@ public class OPrefixBTree<V> extends ODurableComponent {
               itemIndex++;
 
               if (fromKey != null && (fromKeyInclusive ?
-                  comparator.compare(entry.getKey(), fromKey) < 0 : comparator.compare(entry.getKey(), fromKey) <= 0)) {
+                  comparator.compare(entry.getKey(), fromKey) < 0 :
+                  comparator.compare(entry.getKey(), fromKey) <= 0)) {
                 continue;
               }
 
@@ -2025,7 +2027,8 @@ public class OPrefixBTree<V> extends ODurableComponent {
               itemIndex--;
 
               if (toKey != null && (toKeyInclusive ?
-                  comparator.compare(entry.getKey(), toKey) > 0 : comparator.compare(entry.getKey(), toKey) >= 0)) {
+                  comparator.compare(entry.getKey(), toKey) > 0 :
+                  comparator.compare(entry.getKey(), toKey) >= 0)) {
                 continue;
               }
 

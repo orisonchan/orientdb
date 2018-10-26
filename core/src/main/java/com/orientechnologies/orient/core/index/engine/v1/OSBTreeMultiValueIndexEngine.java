@@ -1,5 +1,6 @@
 package com.orientechnologies.orient.core.index.engine.v1;
 
+import com.orientechnologies.common.exception.OException;
 import com.orientechnologies.common.serialization.types.OBinarySerializer;
 import com.orientechnologies.orient.core.db.record.OIdentifiable;
 import com.orientechnologies.orient.core.encryption.OEncryption;
@@ -7,6 +8,7 @@ import com.orientechnologies.orient.core.id.ORID;
 import com.orientechnologies.orient.core.index.OIndexAbstractCursor;
 import com.orientechnologies.orient.core.index.OIndexCursor;
 import com.orientechnologies.orient.core.index.OIndexDefinition;
+import com.orientechnologies.orient.core.index.OIndexException;
 import com.orientechnologies.orient.core.index.OIndexKeyCursor;
 import com.orientechnologies.orient.core.index.engine.OMultiValueIndexEngine;
 import com.orientechnologies.orient.core.metadata.schema.OType;
@@ -14,13 +16,14 @@ import com.orientechnologies.orient.core.record.impl.ODocument;
 import com.orientechnologies.orient.core.storage.impl.local.OAbstractPaginatedStorage;
 import com.orientechnologies.orient.core.storage.index.sbtree.multivalue.OSBTreeMultiValue;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 public class OSBTreeMultiValueIndexEngine implements OMultiValueIndexEngine {
-  public static final String DATA_FILE_EXTENSION        = ".sbt";
-  public static final String NULL_BUCKET_FILE_EXTENSION = ".nbt";
+  private static final String DATA_FILE_EXTENSION        = ".sbt";
+  private static final String NULL_BUCKET_FILE_EXTENSION = ".nbt";
 
   private final OSBTreeMultiValue<Object> sbTree;
   private final String                    name;
@@ -47,18 +50,30 @@ public class OSBTreeMultiValueIndexEngine implements OMultiValueIndexEngine {
   public void create(OBinarySerializer valueSerializer, boolean isAutomatic, OType[] keyTypes, boolean nullPointerSupport,
       OBinarySerializer keySerializer, int keySize, Set<String> clustersToIndex, Map<String, String> engineProperties,
       ODocument metadata, OEncryption encryption) {
-    //noinspection unchecked
-    sbTree.create(keySerializer, keyTypes, keySize, nullPointerSupport, encryption);
+    try {
+      //noinspection unchecked
+      sbTree.create(keySerializer, keyTypes, keySize, nullPointerSupport, encryption);
+    } catch (IOException e) {
+      throw OException.wrapException(new OIndexException("Error during creation of index " + name), e);
+    }
   }
 
   @Override
   public void delete() {
-    sbTree.delete();
+    try {
+      sbTree.delete();
+    } catch (IOException e) {
+      throw OException.wrapException(new OIndexException("Error during deletion of index " + name), e);
+    }
   }
 
   @Override
   public void deleteWithoutLoad(String indexName) {
-    sbTree.deleteWithoutLoad();
+    try {
+      sbTree.deleteWithoutLoad();
+    } catch (IOException e) {
+      throw OException.wrapException(new OIndexException("Error during deletion of index " + name), e);
+    }
   }
 
   @Override
@@ -75,12 +90,21 @@ public class OSBTreeMultiValueIndexEngine implements OMultiValueIndexEngine {
 
   @Override
   public boolean remove(Object key) {
-    return sbTree.remove(key);
+    try {
+      return sbTree.remove(key);
+    } catch (IOException e) {
+      throw OException.wrapException(new OIndexException("Error during removal of key " + key + " from index " + name), e);
+    }
   }
 
   @Override
   public boolean remove(Object key, ORID value) {
-    return sbTree.remove(key, value);
+    try {
+      return sbTree.remove(key, value);
+    } catch (IOException e) {
+      throw OException.wrapException(
+          new OIndexException("Error during removal of entry with key " + key + "and RID " + value + " from index " + name), e);
+    }
   }
 
   @Override
@@ -90,7 +114,11 @@ public class OSBTreeMultiValueIndexEngine implements OMultiValueIndexEngine {
 
   @Override
   public void clear() {
-    sbTree.clear();
+    try {
+      sbTree.clear();
+    } catch (IOException e) {
+      throw OException.wrapException(new OIndexException("Error during clearing of index " + name), e);
+    }
   }
 
   @Override
@@ -137,7 +165,13 @@ public class OSBTreeMultiValueIndexEngine implements OMultiValueIndexEngine {
 
   @Override
   public void put(Object key, ORID value) {
-    sbTree.put(key, value);
+    try {
+      sbTree.put(key, value);
+    } catch (IOException e) {
+      throw OException
+          .wrapException(new OIndexException("Error during insertion of key " + key + " and RID " + value + " to index " + name),
+              e);
+    }
   }
 
   @Override

@@ -22,7 +22,6 @@ package com.orientechnologies.orient.core.storage.index.sbtree.singlevalue;
 
 import com.orientechnologies.common.comparator.ODefaultComparator;
 import com.orientechnologies.common.exception.OException;
-import com.orientechnologies.common.log.OLogManager;
 import com.orientechnologies.common.serialization.types.OBinarySerializer;
 import com.orientechnologies.common.serialization.types.OIntegerSerializer;
 import com.orientechnologies.common.serialization.types.OLongSerializer;
@@ -42,6 +41,7 @@ import com.orientechnologies.orient.core.metadata.schema.OType;
 import com.orientechnologies.orient.core.storage.cache.OCacheEntry;
 import com.orientechnologies.orient.core.storage.impl.local.OAbstractPaginatedStorage;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.atomicoperations.OAtomicOperation;
+import com.orientechnologies.orient.core.storage.impl.local.paginated.atomicoperations.OAtomicOperationsManager;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.base.ODurableComponent;
 
 import java.io.IOException;
@@ -106,65 +106,52 @@ public class OSBTreeSingleValue<K> extends ODurableComponent {
   }
 
   public void create(OBinarySerializer<K> keySerializer, OType[] keyTypes, int keySize, boolean nullPointerSupport,
-      OEncryption encryption) {
+      OEncryption encryption) throws IOException {
     assert keySerializer != null;
-    final OAtomicOperation atomicOperation;
+    boolean rollback = false;
+    final OAtomicOperation atomicOperation = startAtomicOperation(false);
     try {
-      atomicOperation = startAtomicOperation(false);
-    } catch (IOException e) {
-      throw OException.wrapException(new OSBTreeSingleValueException("Error during sbtree creation", this), e);
-    }
-
-    acquireExclusiveLock();
-    try {
-
-      this.keySize = keySize;
-      if (keyTypes != null) {
-        this.keyTypes = Arrays.copyOf(keyTypes, keyTypes.length);
-      } else {
-        this.keyTypes = null;
-      }
-
-      this.encryption = encryption;
-      this.keySerializer = keySerializer;
-
-      this.nullPointerSupport = nullPointerSupport;
-
-      fileId = addFile(atomicOperation, getFullName());
-
-      if (nullPointerSupport) {
-        nullBucketFileId = addFile(atomicOperation, getName() + nullFileExtension);
-      }
-
-      OCacheEntry rootCacheEntry = addPage(atomicOperation, fileId);
+      acquireExclusiveLock();
       try {
 
-        OSBTreeBucketSingleValue<K> rootBucket = new OSBTreeBucketSingleValue<>(rootCacheEntry, true, keySerializer, keyTypes,
-            encryption);
-        rootBucket.setTreeSize(0);
+        this.keySize = keySize;
+        if (keyTypes != null) {
+          this.keyTypes = Arrays.copyOf(keyTypes, keyTypes.length);
+        } else {
+          this.keyTypes = null;
+        }
 
+        this.encryption = encryption;
+        this.keySerializer = keySerializer;
+
+        this.nullPointerSupport = nullPointerSupport;
+
+        fileId = addFile(atomicOperation, getFullName());
+
+        if (nullPointerSupport) {
+          nullBucketFileId = addFile(atomicOperation, getName() + nullFileExtension);
+        }
+
+        OCacheEntry rootCacheEntry = addPage(atomicOperation, fileId);
+        try {
+
+          OSBTreeBucketSingleValue<K> rootBucket = new OSBTreeBucketSingleValue<>(rootCacheEntry, true, keySerializer, keyTypes,
+              encryption);
+          rootBucket.setTreeSize(0);
+
+        } finally {
+          releasePageFromWrite(atomicOperation, rootCacheEntry);
+        }
       } finally {
-        releasePageFromWrite(atomicOperation, rootCacheEntry);
+        releaseExclusiveLock();
       }
-
-      endAtomicOperation(false, null);
-    } catch (IOException e) {
-      try {
-        endAtomicOperation(true, e);
-      } catch (IOException e1) {
-        OLogManager.instance().error(this, "Error during sbtree data rollback", e1);
-      }
-      throw OException.wrapException(new OSBTreeSingleValueException("Error creation of sbtree with name " + getName(), this), e);
-    } catch (RuntimeException e) {
-      try {
-        endAtomicOperation(true, e);
-      } catch (IOException e1) {
-        OLogManager.instance().error(this, "Error during sbtree data rollback", e1);
-      }
+    } catch (Exception e) {
+      rollback = true;
       throw e;
     } finally {
-      releaseExclusiveLock();
+      endAtomicOperation(rollback);
     }
+
   }
 
   public boolean isNullPointerSupport() {
@@ -183,7 +170,7 @@ public class OSBTreeSingleValue<K> extends ODurableComponent {
       try {
         checkNullSupport(key);
 
-        OAtomicOperation atomicOperation = atomicOperationsManager.getCurrentOperation();
+        OAtomicOperation atomicOperation = OAtomicOperationsManager.getCurrentOperation();
         if (key != null) {
           key = keySerializer.preprocess(key, (Object[]) keyTypes);
 
@@ -225,192 +212,175 @@ public class OSBTreeSingleValue<K> extends ODurableComponent {
     }
   }
 
-  public void put(K key, ORID value) {
+  public void put(K key, ORID value) throws IOException {
     update(key, value, null);
   }
 
-  public boolean validatedPut(K key, ORID value, OBaseIndexEngine.Validator<K, ORID> validator) {
+  public boolean validatedPut(K key, ORID value, OBaseIndexEngine.Validator<K, ORID> validator) throws IOException {
     return update(key, value, validator);
   }
 
   @SuppressWarnings("unchecked")
-  public boolean update(K key, ORID value, OBaseIndexEngine.Validator<K, ORID> validator) {
-    final OAtomicOperation atomicOperation;
+  public boolean update(K key, ORID value, OBaseIndexEngine.Validator<K, ORID> validator) throws IOException {
+    boolean rollback = false;
+    final OAtomicOperation atomicOperation = startAtomicOperation(true);
     try {
-      atomicOperation = startAtomicOperation(true);
-    } catch (IOException e) {
-      throw OException.wrapException(new OSBTreeSingleValueException("Error during sbtree entrie put", this), e);
-    }
+      acquireExclusiveLock();
+      try {
+        checkNullSupport(key);
 
-    acquireExclusiveLock();
-    try {
-      checkNullSupport(key);
+        if (key != null) {
 
-      if (key != null) {
+          key = keySerializer.preprocess(key, (Object[]) keyTypes);
+          final byte[] serializedKey = keySerializer.serializeNativeAsWhole(key, (Object[]) keyTypes);
 
-        key = keySerializer.preprocess(key, (Object[]) keyTypes);
-        final byte[] serializedKey = keySerializer.serializeNativeAsWhole(key, (Object[]) keyTypes);
-
-        if (keySize > MAX_KEY_SIZE) {
-          throw new OTooBigIndexKeyException(
-              "Key size is more than allowed, operation was canceled. Current key size " + keySize + ", allowed  " + MAX_KEY_SIZE,
-              getName());
-        }
-
-        BucketSearchResult bucketSearchResult = findBucket(key, atomicOperation);
-
-        OCacheEntry keyBucketCacheEntry = loadPageForWrite(atomicOperation, fileId, bucketSearchResult.getLastPathItem(), false);
-        OSBTreeBucketSingleValue<K> keyBucket = new OSBTreeBucketSingleValue<>(keyBucketCacheEntry, keySerializer, keyTypes,
-            encryption);
-
-        final byte[] oldRawValue = bucketSearchResult.itemIndex > -1 ? keyBucket.getRawValue(bucketSearchResult.itemIndex) : null;
-        final ORID oldValue;
-        if (oldRawValue == null) {
-          oldValue = null;
-        } else {
-          final int clusterId = OShortSerializer.INSTANCE.deserializeNative(oldRawValue, 0);
-          final long clusterPosition = OLongSerializer.INSTANCE.deserializeNative(oldRawValue, OShortSerializer.SHORT_SIZE);
-          oldValue = new ORecordId(clusterId, clusterPosition);
-        }
-
-        if (validator != null) {
-          boolean failure = true; // assuming validation throws by default
-          boolean ignored = false;
-
-          try {
-
-            final Object result = validator.validate(key, oldValue, value);
-            if (result == OBaseIndexEngine.Validator.IGNORE) {
-              ignored = true;
-              failure = false;
-              return false;
-            }
-
-            value = (ORID) result;
-            failure = false;
-          } finally {
-            if (failure || ignored) {
-              releasePageFromWrite(atomicOperation, keyBucketCacheEntry);
-            }
-            if (ignored) // in case of a failure atomic operation will be ended in a usual way below
-            {
-              endAtomicOperation(false, null);
-            }
+          if (keySize > MAX_KEY_SIZE) {
+            throw new OTooBigIndexKeyException(
+                "Key size is more than allowed, operation was canceled. Current key size " + keySize + ", allowed  " + MAX_KEY_SIZE,
+                getName());
           }
-        }
 
-        final byte[] serializedValue = new byte[OShortSerializer.SHORT_SIZE + OLongSerializer.LONG_SIZE];
-        OShortSerializer.INSTANCE.serializeNative((short) value.getClusterId(), serializedValue, 0);
-        OLongSerializer.INSTANCE.serializeNative(value.getClusterPosition(), serializedValue, OShortSerializer.SHORT_SIZE);
+          BucketSearchResult bucketSearchResult = findBucket(key, atomicOperation);
 
-        final byte[] rawKey;
-        if (encryption == null) {
-          rawKey = serializedKey;
-        } else {
-          final byte[] encryptedKey = encryption.encrypt(serializedKey);
+          OCacheEntry keyBucketCacheEntry = loadPageForWrite(atomicOperation, fileId, bucketSearchResult.getLastPathItem(), false);
+          OSBTreeBucketSingleValue<K> keyBucket = new OSBTreeBucketSingleValue<>(keyBucketCacheEntry, keySerializer, keyTypes,
+              encryption);
 
-          rawKey = new byte[OIntegerSerializer.INT_SIZE + encryptedKey.length];
-          OIntegerSerializer.INSTANCE.serializeNative(encryptedKey.length, rawKey, 0);
-          System.arraycopy(encryptedKey, 0, rawKey, OIntegerSerializer.INT_SIZE, encryptedKey.length);
-        }
-
-        int insertionIndex;
-        int sizeDiff;
-        if (bucketSearchResult.itemIndex >= 0) {
-          assert oldRawValue != null;
-
-          if (oldRawValue.length == serializedValue.length) {
-            keyBucket.updateValue(bucketSearchResult.itemIndex, serializedValue);
-            releasePageFromWrite(atomicOperation, keyBucketCacheEntry);
-
-            endAtomicOperation(false, null);
-            return true;
+          final byte[] oldRawValue = bucketSearchResult.itemIndex > -1 ? keyBucket.getRawValue(bucketSearchResult.itemIndex) : null;
+          final ORID oldValue;
+          if (oldRawValue == null) {
+            oldValue = null;
           } else {
-            keyBucket.remove(bucketSearchResult.itemIndex, rawKey);
-            insertionIndex = bucketSearchResult.itemIndex;
-            sizeDiff = 0;
+            final int clusterId = OShortSerializer.INSTANCE.deserializeNative(oldRawValue, 0);
+            final long clusterPosition = OLongSerializer.INSTANCE.deserializeNative(oldRawValue, OShortSerializer.SHORT_SIZE);
+            oldValue = new ORecordId(clusterId, clusterPosition);
           }
-        } else {
-          insertionIndex = -bucketSearchResult.itemIndex - 1;
-          sizeDiff = 1;
-        }
-
-        while (!keyBucket.addLeafEntry(insertionIndex, rawKey, serializedValue)) {
-          bucketSearchResult = splitBucket(keyBucket, keyBucketCacheEntry, bucketSearchResult.path, insertionIndex, key,
-              atomicOperation);
-
-          insertionIndex = bucketSearchResult.itemIndex;
-
-          long pageIndex = bucketSearchResult.getLastPathItem();
-
-          if (pageIndex != keyBucketCacheEntry.getPageIndex()) {
-            releasePageFromWrite(atomicOperation, keyBucketCacheEntry);
-
-            keyBucketCacheEntry = loadPageForWrite(atomicOperation, fileId, pageIndex, false);
-          }
-
-          keyBucket = new OSBTreeBucketSingleValue<>(keyBucketCacheEntry, keySerializer, keyTypes, encryption);
-        }
-
-        releasePageFromWrite(atomicOperation, keyBucketCacheEntry);
-
-        if (sizeDiff != 0) {
-          updateSize(sizeDiff, atomicOperation);
-        }
-
-      } else {
-        OCacheEntry cacheEntry;
-        boolean isNew = false;
-
-        if (getFilledUpTo(atomicOperation, nullBucketFileId) == 0) {
-          cacheEntry = addPage(atomicOperation, nullBucketFileId);
-          isNew = true;
-        } else {
-          cacheEntry = loadPageForWrite(atomicOperation, nullBucketFileId, 0, false);
-        }
-
-        int sizeDiff = 0;
-
-        boolean ignored = false;
-        try {
-          final OSingleValueNullBucket nullBucket = new OSingleValueNullBucket(cacheEntry, isNew);
-          final ORID oldValue = nullBucket.getValue();
 
           if (validator != null) {
-            final Object result = validator.validate(null, oldValue, value);
-            if (result == OBaseIndexEngine.Validator.IGNORE) {
-              ignored = true;
-              return false;
+            boolean failure = true; // assuming validation throws by default
+            boolean ignored = false;
+
+            try {
+
+              final Object result = validator.validate(key, oldValue, value);
+              if (result == OBaseIndexEngine.Validator.IGNORE) {
+                ignored = true;
+                failure = false;
+                return false;
+              }
+
+              value = (ORID) result;
+              failure = false;
+            } finally {
+              if (failure || ignored) {
+                releasePageFromWrite(atomicOperation, keyBucketCacheEntry);
+              }
             }
           }
 
-          if (oldValue != null) {
-            sizeDiff = -1;
+          final byte[] serializedValue = new byte[OShortSerializer.SHORT_SIZE + OLongSerializer.LONG_SIZE];
+          OShortSerializer.INSTANCE.serializeNative((short) value.getClusterId(), serializedValue, 0);
+          OLongSerializer.INSTANCE.serializeNative(value.getClusterPosition(), serializedValue, OShortSerializer.SHORT_SIZE);
+
+          final byte[] rawKey;
+          if (encryption == null) {
+            rawKey = serializedKey;
+          } else {
+            final byte[] encryptedKey = encryption.encrypt(serializedKey);
+
+            rawKey = new byte[OIntegerSerializer.INT_SIZE + encryptedKey.length];
+            OIntegerSerializer.INSTANCE.serializeNative(encryptedKey.length, rawKey, 0);
+            System.arraycopy(encryptedKey, 0, rawKey, OIntegerSerializer.INT_SIZE, encryptedKey.length);
           }
 
-          nullBucket.setValue(value);
+          int insertionIndex;
+          int sizeDiff;
+          if (bucketSearchResult.itemIndex >= 0) {
+            assert oldRawValue != null;
 
-        } finally {
-          releasePageFromWrite(atomicOperation, cacheEntry);
-          if (ignored) {
-            endAtomicOperation(false, null);
+            if (oldRawValue.length == serializedValue.length) {
+              keyBucket.updateValue(bucketSearchResult.itemIndex, serializedValue);
+              releasePageFromWrite(atomicOperation, keyBucketCacheEntry);
+              return true;
+            } else {
+              keyBucket.remove(bucketSearchResult.itemIndex, rawKey);
+              insertionIndex = bucketSearchResult.itemIndex;
+              sizeDiff = 0;
+            }
+          } else {
+            insertionIndex = -bucketSearchResult.itemIndex - 1;
+            sizeDiff = 1;
           }
+
+          while (!keyBucket.addLeafEntry(insertionIndex, rawKey, serializedValue)) {
+            bucketSearchResult = splitBucket(keyBucket, keyBucketCacheEntry, bucketSearchResult.path, insertionIndex, key,
+                atomicOperation);
+
+            insertionIndex = bucketSearchResult.itemIndex;
+
+            long pageIndex = bucketSearchResult.getLastPathItem();
+
+            if (pageIndex != keyBucketCacheEntry.getPageIndex()) {
+              releasePageFromWrite(atomicOperation, keyBucketCacheEntry);
+
+              keyBucketCacheEntry = loadPageForWrite(atomicOperation, fileId, pageIndex, false);
+            }
+
+            keyBucket = new OSBTreeBucketSingleValue<>(keyBucketCacheEntry, keySerializer, keyTypes, encryption);
+          }
+
+          releasePageFromWrite(atomicOperation, keyBucketCacheEntry);
+
+          if (sizeDiff != 0) {
+            updateSize(sizeDiff, atomicOperation);
+          }
+
+        } else {
+          OCacheEntry cacheEntry;
+          boolean isNew = false;
+
+          if (getFilledUpTo(atomicOperation, nullBucketFileId) == 0) {
+            cacheEntry = addPage(atomicOperation, nullBucketFileId);
+            isNew = true;
+          } else {
+            cacheEntry = loadPageForWrite(atomicOperation, nullBucketFileId, 0, false);
+          }
+
+          int sizeDiff = 0;
+
+          try {
+            final OSingleValueNullBucket nullBucket = new OSingleValueNullBucket(cacheEntry, isNew);
+            final ORID oldValue = nullBucket.getValue();
+
+            if (validator != null) {
+              final Object result = validator.validate(null, oldValue, value);
+              if (result == OBaseIndexEngine.Validator.IGNORE) {
+                return false;
+              }
+            }
+
+            if (oldValue != null) {
+              sizeDiff = -1;
+            }
+
+            nullBucket.setValue(value);
+
+          } finally {
+            releasePageFromWrite(atomicOperation, cacheEntry);
+          }
+
+          sizeDiff++;
+          updateSize(sizeDiff, atomicOperation);
         }
-
-        sizeDiff++;
-        updateSize(sizeDiff, atomicOperation);
+        return true;
+      } finally {
+        releaseExclusiveLock();
       }
-
-      endAtomicOperation(false, null);
-      return true;
-    } catch (IOException e) {
-      rollback(e);
-      throw OException.wrapException(new OSBTreeSingleValueException("Error during index update with key " + key, this), e);
-    } catch (RuntimeException e) {
-      rollback(e);
+    } catch (Exception e) {
+      rollback = true;
       throw e;
     } finally {
-      releaseExclusiveLock();
+      endAtomicOperation(rollback);
     }
   }
 
@@ -432,102 +402,89 @@ public class OSBTreeSingleValue<K> extends ODurableComponent {
     close(true);
   }
 
-  public void clear() {
-    final OAtomicOperation atomicOperation;
+  public void clear() throws IOException {
+    boolean rollback = false;
+    final OAtomicOperation atomicOperation = startAtomicOperation(true);
     try {
-      atomicOperation = startAtomicOperation(true);
-    } catch (IOException e) {
-      throw OException.wrapException(new OSBTreeSingleValueException("Error during sbtree clear", this), e);
-    }
-
-    acquireExclusiveLock();
-    try {
-      truncateFile(atomicOperation, fileId);
-
-      if (nullPointerSupport) {
-        truncateFile(atomicOperation, nullBucketFileId);
-      }
-
-      OCacheEntry cacheEntry = loadPageForWrite(atomicOperation, fileId, ROOT_INDEX, false);
-      if (cacheEntry == null) {
-        cacheEntry = addPage(atomicOperation, fileId);
-      }
-
+      acquireExclusiveLock();
       try {
-        OSBTreeBucketSingleValue<K> rootBucket = new OSBTreeBucketSingleValue<>(cacheEntry, true, keySerializer, keyTypes,
-            encryption);
+        truncateFile(atomicOperation, fileId);
 
-        rootBucket.setTreeSize(0);
+        if (nullPointerSupport) {
+          truncateFile(atomicOperation, nullBucketFileId);
+        }
+
+        OCacheEntry cacheEntry = loadPageForWrite(atomicOperation, fileId, ROOT_INDEX, false);
+        if (cacheEntry == null) {
+          cacheEntry = addPage(atomicOperation, fileId);
+        }
+
+        try {
+          OSBTreeBucketSingleValue<K> rootBucket = new OSBTreeBucketSingleValue<>(cacheEntry, true, keySerializer, keyTypes,
+              encryption);
+
+          rootBucket.setTreeSize(0);
+        } finally {
+          releasePageFromWrite(atomicOperation, cacheEntry);
+        }
       } finally {
-        releasePageFromWrite(atomicOperation, cacheEntry);
+        releaseExclusiveLock();
       }
-
-      endAtomicOperation(false, null);
-    } catch (IOException e) {
-      rollback(e);
-
-      throw OException
-          .wrapException(new OSBTreeSingleValueException("Error during clear of sbtree with name " + getName(), this), e);
-    } catch (RuntimeException e) {
-      rollback(e);
+    } catch (Exception e) {
+      rollback = true;
       throw e;
     } finally {
-      releaseExclusiveLock();
+      endAtomicOperation(rollback);
     }
   }
 
-  public void delete() {
-    final OAtomicOperation atomicOperation;
+  public void delete() throws IOException {
+    boolean rollback = false;
+    final OAtomicOperation atomicOperation = startAtomicOperation(false);
+
     try {
-      atomicOperation = startAtomicOperation(false);
-    } catch (IOException e) {
-      throw OException.wrapException(new OSBTreeSingleValueException("Error during sbtree deletion", this), e);
-    }
-
-    acquireExclusiveLock();
-    try {
-      deleteFile(atomicOperation, fileId);
-
-      if (nullPointerSupport) {
-        deleteFile(atomicOperation, nullBucketFileId);
-      }
-
-      endAtomicOperation(false, null);
-    } catch (Exception e) {
-      rollback(e);
-      throw OException
-          .wrapException(new OSBTreeSingleValueException("Error during delete of sbtree with name " + getName(), this), e);
-    } finally {
-      releaseExclusiveLock();
-    }
-  }
-
-  public void deleteWithoutLoad() {
-    final OAtomicOperation atomicOperation;
-    try {
-      atomicOperation = startAtomicOperation(false);
-    } catch (IOException e) {
-      throw OException.wrapException(new OSBTreeSingleValueException("Error during sbtree deletion", this), e);
-    }
-
-    acquireExclusiveLock();
-    try {
-      if (isFileExists(atomicOperation, getFullName())) {
-        final long fileId = openFile(atomicOperation, getFullName());
+      acquireExclusiveLock();
+      try {
         deleteFile(atomicOperation, fileId);
-      }
 
-      if (isFileExists(atomicOperation, getName() + nullFileExtension)) {
-        final long nullFileId = openFile(atomicOperation, getName() + nullFileExtension);
-        deleteFile(atomicOperation, nullFileId);
+        if (nullPointerSupport) {
+          deleteFile(atomicOperation, nullBucketFileId);
+        }
+      } finally {
+        releaseExclusiveLock();
       }
-
-      endAtomicOperation(false, null);
-    } catch (IOException e) {
-      rollback(e);
-      throw OException.wrapException(new OSBTreeSingleValueException("Exception during deletion of sbtree " + getName(), this), e);
+    } catch (Exception e) {
+      rollback = true;
+      throw e;
     } finally {
-      releaseExclusiveLock();
+      endAtomicOperation(rollback);
+    }
+  }
+
+  public void deleteWithoutLoad() throws IOException {
+    boolean rollback = false;
+    final OAtomicOperation atomicOperation = startAtomicOperation(false);
+
+    try {
+      acquireExclusiveLock();
+      try {
+        if (isFileExists(atomicOperation, getFullName())) {
+          final long fileId = openFile(atomicOperation, getFullName());
+          deleteFile(atomicOperation, fileId);
+        }
+
+        if (isFileExists(atomicOperation, getName() + nullFileExtension)) {
+          final long nullFileId = openFile(atomicOperation, getName() + nullFileExtension);
+          deleteFile(atomicOperation, nullFileId);
+        }
+      } finally {
+        releaseExclusiveLock();
+      }
+    } catch (Exception e) {
+      rollback = true;
+      throw e;
+    } finally {
+      endAtomicOperation(rollback);
     }
   }
 
@@ -545,7 +502,7 @@ public class OSBTreeSingleValue<K> extends ODurableComponent {
       this.encryption = encryption;
       this.nullPointerSupport = nullPointerSupport;
 
-      final OAtomicOperation atomicOperation = atomicOperationsManager.getCurrentOperation();
+      final OAtomicOperation atomicOperation = OAtomicOperationsManager.getCurrentOperation();
 
       fileId = openFile(atomicOperation, getFullName());
       if (nullPointerSupport) {
@@ -565,7 +522,7 @@ public class OSBTreeSingleValue<K> extends ODurableComponent {
     try {
       acquireSharedLock();
       try {
-        OAtomicOperation atomicOperation = atomicOperationsManager.getCurrentOperation();
+        OAtomicOperation atomicOperation = OAtomicOperationsManager.getCurrentOperation();
 
         OCacheEntry rootCacheEntry = loadPageForRead(atomicOperation, fileId, ROOT_INDEX, false);
         try {
@@ -586,50 +543,39 @@ public class OSBTreeSingleValue<K> extends ODurableComponent {
     }
   }
 
-  public ORID remove(K key) {
-    final OAtomicOperation atomicOperation;
+  public ORID remove(K key) throws IOException {
+    boolean rollback = false;
+    final OAtomicOperation atomicOperation = startAtomicOperation(true);
     try {
-      atomicOperation = startAtomicOperation(true);
-    } catch (IOException e) {
-      throw OException.wrapException(new OSBTreeSingleValueException("Error during sbtree entrie remove", this), e);
-    }
+      acquireExclusiveLock();
+      try {
+        ORID removedValue;
 
-    acquireExclusiveLock();
-    try {
-      ORID removedValue;
+        if (key != null) {
+          key = keySerializer.preprocess(key, (Object[]) keyTypes);
 
-      if (key != null) {
-        key = keySerializer.preprocess(key, (Object[]) keyTypes);
+          BucketSearchResult bucketSearchResult = findBucket(key, atomicOperation);
+          if (bucketSearchResult.itemIndex < 0) {
+            return null;
+          }
 
-        BucketSearchResult bucketSearchResult = findBucket(key, atomicOperation);
-        if (bucketSearchResult.itemIndex < 0) {
-          endAtomicOperation(false, null);
-          return null;
+          removedValue = removeKey(atomicOperation, bucketSearchResult);
+        } else {
+          if (getFilledUpTo(atomicOperation, nullBucketFileId) == 0) {
+            return null;
+          }
+
+          removedValue = removeNullBucket(atomicOperation);
         }
-
-        removedValue = removeKey(atomicOperation, bucketSearchResult);
-      } else {
-        if (getFilledUpTo(atomicOperation, nullBucketFileId) == 0) {
-          endAtomicOperation(false, null);
-          return null;
-        }
-
-        removedValue = removeNullBucket(atomicOperation);
+        return removedValue;
+      } finally {
+        releaseExclusiveLock();
       }
-
-      endAtomicOperation(false, null);
-      return removedValue;
-    } catch (IOException e) {
-      rollback(e);
-
-      throw OException
-          .wrapException(new OSBTreeSingleValueException("Error during removing key " + key + " from sbtree " + getName(), this),
-              e);
-    } catch (RuntimeException e) {
-      rollback(e);
+    } catch (Exception e) {
+      rollback = true;
       throw e;
     } finally {
-      releaseExclusiveLock();
+      endAtomicOperation(rollback);
     }
   }
 
@@ -711,7 +657,7 @@ public class OSBTreeSingleValue<K> extends ODurableComponent {
     try {
       acquireSharedLock();
       try {
-        OAtomicOperation atomicOperation = atomicOperationsManager.getCurrentOperation();
+        OAtomicOperation atomicOperation = OAtomicOperationsManager.getCurrentOperation();
 
         final BucketSearchResult searchResult = firstItem(atomicOperation);
         if (searchResult == null) {
@@ -741,7 +687,7 @@ public class OSBTreeSingleValue<K> extends ODurableComponent {
     try {
       acquireSharedLock();
       try {
-        OAtomicOperation atomicOperation = atomicOperationsManager.getCurrentOperation();
+        OAtomicOperation atomicOperation = OAtomicOperationsManager.getCurrentOperation();
 
         final BucketSearchResult searchResult = lastItem(atomicOperation);
         if (searchResult == null) {
@@ -771,7 +717,7 @@ public class OSBTreeSingleValue<K> extends ODurableComponent {
     try {
       acquireSharedLock();
       try {
-        OAtomicOperation atomicOperation = atomicOperationsManager.getCurrentOperation();
+        OAtomicOperation atomicOperation = OAtomicOperationsManager.getCurrentOperation();
         final BucketSearchResult searchResult = firstItem(atomicOperation);
         if (searchResult == null) {
           return prefetchSize -> null;
@@ -832,14 +778,6 @@ public class OSBTreeSingleValue<K> extends ODurableComponent {
   private void checkNullSupport(K key) {
     if (key == null && !nullPointerSupport) {
       throw new OSBTreeSingleValueException("Null keys are not supported.", this);
-    }
-  }
-
-  private void rollback(Exception e) {
-    try {
-      endAtomicOperation(true, e);
-    } catch (IOException e1) {
-      OLogManager.instance().error(this, "Error during sbtree operation  rollback", e1);
     }
   }
 
@@ -1486,7 +1424,7 @@ public class OSBTreeSingleValue<K> extends ODurableComponent {
       try {
         acquireSharedLock();
         try {
-          OAtomicOperation atomicOperation = atomicOperationsManager.getCurrentOperation();
+          OAtomicOperation atomicOperation = OAtomicOperationsManager.getCurrentOperation();
 
           while (keysCache.size() < prefetchSize) {
             if (pageIndex == -1) {
@@ -1586,7 +1524,7 @@ public class OSBTreeSingleValue<K> extends ODurableComponent {
       try {
         acquireSharedLock();
         try {
-          OAtomicOperation atomicOperation = atomicOperationsManager.getCurrentOperation();
+          OAtomicOperation atomicOperation = OAtomicOperationsManager.getCurrentOperation();
 
           final BucketSearchResult bucketSearchResult;
 
@@ -1717,7 +1655,7 @@ public class OSBTreeSingleValue<K> extends ODurableComponent {
       try {
         acquireSharedLock();
         try {
-          final OAtomicOperation atomicOperation = atomicOperationsManager.getCurrentOperation();
+          final OAtomicOperation atomicOperation = OAtomicOperationsManager.getCurrentOperation();
 
           final BucketSearchResult bucketSearchResult;
 

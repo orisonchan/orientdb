@@ -1573,7 +1573,8 @@ public class OPaginatedCluster extends ODurableComponent implements OCluster {
     this.encryption = OEncryptionFactory.INSTANCE.getEncryption(this.config.encryption, this.config.encryptionKey);
 
     if (((OStoragePaginatedClusterConfiguration) config).conflictStrategy != null) {
-      this.recordConflictStrategy = Orient.instance().getRecordConflictStrategy().getStrategy(((OStoragePaginatedClusterConfiguration) config).conflictStrategy);
+      this.recordConflictStrategy = Orient.instance().getRecordConflictStrategy()
+          .getStrategy(((OStoragePaginatedClusterConfiguration) config).conflictStrategy);
     }
 
     storageLocal = storage;

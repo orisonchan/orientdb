@@ -35,7 +35,7 @@ public class SBTreeSingleValueTestIT {
   private String dbName;
 
   @Before
-  public void before() {
+  public void before() throws Exception {
     buildDirectory = System.getProperty("buildDirectory", ".") + File.separator + PrefixBTreeTestIT.class.getSimpleName();
 
     dbName = "localSingleBTreeTest";
@@ -60,7 +60,7 @@ public class SBTreeSingleValueTestIT {
 
   @Test
   @Ignore
-  public void testRandom() {
+  public void testRandom() throws Exception {
     final int keysCount = 100_000_000;
     TreeMap<Integer, String> keys = new TreeMap<>();
 
@@ -104,7 +104,7 @@ public class SBTreeSingleValueTestIT {
   }
 
   @Test
-  public void testKeyPut() {
+  public void testKeyPut() throws Exception {
     final int keysCount = 100_000_000;
 
     String lastKey = null;
@@ -140,7 +140,7 @@ public class SBTreeSingleValueTestIT {
   }
 
   @Test
-  public void testKeyPutRandomUniform() {
+  public void testKeyPutRandomUniform() throws Exception {
     final NavigableSet<String> keys = new TreeSet<>();
     final Random random = new Random();
     final int keysCount = 100_000_000;
@@ -165,7 +165,7 @@ public class SBTreeSingleValueTestIT {
   }
 
   @Test
-  public void testKeyPutRandomGaussian() {
+  public void testKeyPutRandomGaussian() throws Exception {
     NavigableSet<String> keys = new TreeSet<>();
     long seed = System.currentTimeMillis();
 
@@ -197,7 +197,7 @@ public class SBTreeSingleValueTestIT {
   }
 
   @Test
-  public void testKeyDeleteRandomUniform() {
+  public void testKeyDeleteRandomUniform() throws Exception {
     final int keysCount = 100_000_000;
 
     NavigableSet<String> keys = new TreeSet<>();
@@ -230,7 +230,7 @@ public class SBTreeSingleValueTestIT {
   }
 
   @Test
-  public void testKeyDeleteRandomGaussian() {
+  public void testKeyDeleteRandomGaussian() throws Exception {
     NavigableSet<String> keys = new TreeSet<>();
     final int keysCount = 1_000_000;
 
@@ -277,7 +277,7 @@ public class SBTreeSingleValueTestIT {
   }
 
   @Test
-  public void testKeyDelete() {
+  public void testKeyDelete() throws Exception {
     final int keysCount = 100_000_000;
 
     for (int i = 0; i < keysCount; i++) {
@@ -300,7 +300,7 @@ public class SBTreeSingleValueTestIT {
   }
 
   @Test
-  public void testKeyAddDelete() {
+  public void testKeyAddDelete() throws Exception {
     final int keysCount = 100_000_000;
 
     for (int i = 0; i < keysCount; i++) {
@@ -335,7 +335,7 @@ public class SBTreeSingleValueTestIT {
   }
 
   @Test
-  public void testKeyCursor() {
+  public void testKeyCursor() throws Exception {
     final int keysCount = 100_000_000;
 
     NavigableMap<String, ORID> keyValues = new TreeMap<>();
@@ -364,7 +364,7 @@ public class SBTreeSingleValueTestIT {
   }
 
   @Test
-  public void testIterateEntriesMajor() {
+  public void testIterateEntriesMajor() throws Exception {
     final int keysCount = 100_000_000;
 
     NavigableMap<String, ORID> keyValues = new TreeMap<>();
@@ -392,7 +392,7 @@ public class SBTreeSingleValueTestIT {
   }
 
   @Test
-  public void testIterateEntriesMinor() {
+  public void testIterateEntriesMinor() throws Exception {
     final int keysCount = 100_000_000;
     NavigableMap<String, ORID> keyValues = new TreeMap<>();
 
@@ -420,7 +420,7 @@ public class SBTreeSingleValueTestIT {
   }
 
   @Test
-  public void testIterateEntriesBetween() {
+  public void testIterateEntriesBetween() throws Exception {
     final int keysCount = 100_000_000;
     NavigableMap<String, ORID> keyValues = new TreeMap<>();
     Random random = new Random();

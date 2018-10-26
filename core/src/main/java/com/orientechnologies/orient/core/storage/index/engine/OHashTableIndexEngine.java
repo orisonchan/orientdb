@@ -307,8 +307,9 @@ public final class OHashTableIndexEngine implements OIndexEngine {
           Object value = bucketEntry.value;
           if (valuesTransformer != null) {
             currentIterator = valuesTransformer.transformFromValue(value).iterator();
-          else
+          } else {
             currentIterator = Collections.singletonList((ORID) value).iterator();
+          }
 
           nextEntriesIndex++;
 
@@ -396,8 +397,9 @@ public final class OHashTableIndexEngine implements OIndexEngine {
           Object value = bucketEntry.value;
           if (valuesTransformer != null) {
             currentIterator = valuesTransformer.transformFromValue(value).iterator();
-          } else
+          } else {
             currentIterator = Collections.singletonList((ORID) value).iterator();
+          }
 
           nextEntriesIndex--;
 

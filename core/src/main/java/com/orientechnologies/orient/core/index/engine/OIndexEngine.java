@@ -23,6 +23,8 @@ package com.orientechnologies.orient.core.index.engine;
 import com.orientechnologies.orient.core.id.ORID;
 import com.orientechnologies.orient.core.index.OIndexKeyUpdater;
 
+import java.io.IOException;
+
 /**
  * @author Andrey Lomakin (a.lomakin-at-orientdb.com)
  * @since 6/29/13
@@ -30,9 +32,9 @@ import com.orientechnologies.orient.core.index.OIndexKeyUpdater;
 public interface OIndexEngine extends OBaseIndexEngine {
   int VERSION = 0;
 
-  void put(Object key, Object value);
+  void put(Object key, Object value) throws IOException;
 
-  void update(Object key, OIndexKeyUpdater<Object> updater);
+  void update(Object key, OIndexKeyUpdater<Object> updater) throws IOException;
 
   /**
    * Puts the given value under the given key into this index engine. Validates the operation using the provided validator.
@@ -45,7 +47,7 @@ public interface OIndexEngine extends OBaseIndexEngine {
    *
    * @see Validator#validate(Object, Object, Object)
    */
-  boolean validatedPut(Object key, ORID value, Validator<Object, ORID> validator);
+  boolean validatedPut(Object key, ORID value, Validator<Object, ORID> validator) throws IOException;
 
   @Override
   default int getEngineAPIVersion() {

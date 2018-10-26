@@ -127,8 +127,6 @@ public class ODurablePage {
   }
 
   protected short getShortValue(int pageOffset) {
-    assert cacheEntry.getCachePointer().getBuffer() == null || cacheEntry.isLockAcquiredByCurrentThread();
-
     if (changes == null) {
       final ByteBuffer buffer = pointer.getBuffer();
       return buffer.getShort(pageOffset);
@@ -202,8 +200,6 @@ public class ODurablePage {
   }
 
   protected int setShortValue(int pageOffset, short value) {
-    assert cacheEntry.getCachePointer().getBuffer() == null || cacheEntry.isLockAcquiredByCurrentThread();
-
     final ByteBuffer buffer = pointer.getBuffer();
     if (changes != null) {
       changes.setIntValue(buffer, value, pageOffset);

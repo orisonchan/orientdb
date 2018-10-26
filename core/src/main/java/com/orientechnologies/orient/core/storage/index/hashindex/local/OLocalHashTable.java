@@ -1256,7 +1256,8 @@ public class OLocalHashTable<K, V> extends ODurableComponent implements OHashTab
   }
 
   private boolean put(K key, V value, OBaseIndexEngine.Validator<K, V> validator) throws IOException {
-    final OAtomicOperation atomicOperation;
+    boolean rollback = false;
+    final OAtomicOperation atomicOperation = startAtomicOperation(true);
     try {
       acquireExclusiveLock();
       try {
@@ -1309,7 +1310,7 @@ public class OLocalHashTable<K, V> extends ODurableComponent implements OHashTab
 
         if (validator != null) {
           final Object result = validator.validate(null, oldValue, value);
-          if (result == OBaseIndexEngine.Validator.IGNORE)
+          if (result == OBaseIndexEngine.Validator.IGNORE) {
             return false;
           }
 
@@ -1349,7 +1350,7 @@ public class OLocalHashTable<K, V> extends ODurableComponent implements OHashTab
         if (validator != null) {
           final V oldValue = index > -1 ? bucket.getValue(index) : null;
           final Object result = validator.validate(key, oldValue, value);
-          if (result == OBaseIndexEngine.Validator.IGNORE)
+          if (result == OBaseIndexEngine.Validator.IGNORE) {
             return false;
           }
 
@@ -1444,6 +1445,7 @@ public class OLocalHashTable<K, V> extends ODurableComponent implements OHashTab
       doPut(key, value, null /* already validated */, atomicOperation);
       return true;
     }
+
   }
 
   private void checkNullSupport(K key) {

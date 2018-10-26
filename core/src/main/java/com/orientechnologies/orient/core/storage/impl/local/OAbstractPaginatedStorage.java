@@ -175,9 +175,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
-import java.net.InetAddress;
-import java.net.ServerSocket;
-import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -216,51 +213,12 @@ import java.util.zip.ZipOutputStream;
 public abstract class OAbstractPaginatedStorage extends OStorageAbstract
     implements OLowDiskSpaceListener, OCheckpointRequestListener, OIdentifiableStorage, OBackgroundExceptionListener,
     OFreezableStorageComponent, OPageIsBrokenListener {
-  protected static final  OScheduledThreadPoolExecutorWithLogging fuzzyCheckpointExecutor;
-  private static final    int                                     RECORD_LOCK_TIMEOUT                = OGlobalConfiguration.STORAGE_RECORD_LOCK_TIMEOUT
+  protected static final OScheduledThreadPoolExecutorWithLogging fuzzyCheckpointExecutor;
+  private static final   int                                     RECORD_LOCK_TIMEOUT                = OGlobalConfiguration.STORAGE_RECORD_LOCK_TIMEOUT
       .getValueAsInteger();
-  private static final    int                                     WAL_RESTORE_REPORT_INTERVAL        = 30 * 1000; // milliseconds
-  private static final    Comparator<ORecordOperation>            COMMIT_RECORD_OPERATION_COMPARATOR = Comparator
+  private static final   int                                     WAL_RESTORE_REPORT_INTERVAL        = 30 * 1000; // milliseconds
+  private static final   Comparator<ORecordOperation>            COMMIT_RECORD_OPERATION_COMPARATOR = Comparator
       .comparing(o -> o.getRecord().getIdentity());
-  @SuppressWarnings("CanBeFinal")
-  private static volatile DataOutputStream                        journaledStream                    = null;
-
-  static {
-    // initialize journaled tx streaming if enabled by configuration
-
-    final Integer journaledPort = OGlobalConfiguration.STORAGE_INTERNAL_JOURNALED_TX_STREAMING_PORT.getValue();
-    if (journaledPort != null) {
-      ServerSocket serverSocket;
-      try {
-        //noinspection resource,IOResourceOpenedButNotSafelyClosed
-        serverSocket = new ServerSocket(journaledPort, 0, InetAddress.getLocalHost());
-        serverSocket.setReuseAddress(true);
-      } catch (IOException e) {
-        serverSocket = null;
-        OLogManager.instance().error(OAbstractPaginatedStorage.class, "unable to create journaled tx server socket", e);
-      }
-
-      if (serverSocket != null) {
-        final ServerSocket finalServerSocket = serverSocket;
-        final Thread serverThread = new Thread(() -> {
-          OLogManager.instance()
-              .info(OAbstractPaginatedStorage.class, "journaled tx streaming server is listening on localhost:" + journaledPort);
-          try {
-            @SuppressWarnings("resource")
-            final Socket clientSocket = finalServerSocket.accept(); // accept single connection only and only once
-            clientSocket.setSendBufferSize(4 * 1024 * 1024 /* 4MB */);
-            journaledStream = new DataOutputStream(clientSocket.getOutputStream());
-          } catch (IOException e) {
-            journaledStream = null;
-            OLogManager.instance().error(OAbstractPaginatedStorage.class, "unable to accept journaled tx client connection", e);
-          }
-        });
-        serverThread.setDaemon(true);
-        serverThread.setUncaughtExceptionHandler(new OUncaughtExceptionHandler());
-        serverThread.start();
-      }
-    }
-  }
 
   static {
     fuzzyCheckpointExecutor = new OScheduledThreadPoolExecutorWithLogging(1, new FuzzyCheckpointThreadFactory());
@@ -350,41 +308,6 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
           + " should be at least 4 times bigger than value of parameter " + OGlobalConfiguration.SBTREE_MAX_KEY_SIZE.getKey()
           + " but real values are :" + OGlobalConfiguration.DISK_CACHE_PAGE_SIZE.getKey() + " = " + pageSize + " , "
           + OGlobalConfiguration.SBTREE_MAX_KEY_SIZE.getKey() + " = " + maxKeySize);
-    }
-  }
-
-  private static void commitIndexes(final Map<String, OTransactionIndexChanges> indexesToCommit) {
-    final Map<OIndex, OIndexAbstract.IndexTxSnapshot> snapshots = new IdentityHashMap<>();
-
-    for (OTransactionIndexChanges changes : indexesToCommit.values()) {
-      final OIndexInternal<?> index = changes.getAssociatedIndex();
-      final OIndexAbstract.IndexTxSnapshot snapshot = new OIndexAbstract.IndexTxSnapshot();
-      snapshots.put(index, snapshot);
-
-      index.preCommit(snapshot);
-    }
-
-    for (OTransactionIndexChanges changes : indexesToCommit.values()) {
-      final OIndexInternal<?> index = changes.getAssociatedIndex();
-      final OIndexAbstract.IndexTxSnapshot snapshot = snapshots.get(index);
-
-      index.addTxOperation(snapshot, changes);
-    }
-
-    try {
-      for (OTransactionIndexChanges changes : indexesToCommit.values()) {
-        final OIndexInternal<?> index = changes.getAssociatedIndex();
-        final OIndexAbstract.IndexTxSnapshot snapshot = snapshots.get(index);
-
-        index.commit(snapshot);
-      }
-    } finally {
-      for (OTransactionIndexChanges changes : indexesToCommit.values()) {
-        final OIndexInternal<?> index = changes.getAssociatedIndex();
-        final OIndexAbstract.IndexTxSnapshot snapshot = snapshots.get(index);
-
-        index.postCommit(snapshot);
-      }
     }
   }
 
@@ -1541,17 +1464,15 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
       checkOpenness();
       checkLowDiskSpaceRequestsAndReadOnlyConditions();
 
-      final OPhysicalPosition ppos = new OPhysicalPosition(recordType);
       final OCluster cluster = getClusterById(rid.getClusterId());
-
       if (transaction.get() != null) {
-        return doCreateRecord(rid, content, recordVersion, recordType, callback, cluster, ppos, null);
+        return doCreateRecord(rid, content, recordVersion, recordType, callback, cluster, null);
       }
 
       stateLock.acquireReadLock();
       try {
         checkOpenness();
-        return doCreateRecord(rid, content, recordVersion, recordType, callback, cluster, ppos, null);
+        return doCreateRecord(rid, content, recordVersion, recordType, callback, cluster, null);
       } finally {
         stateLock.releaseReadLock();
       }
@@ -2327,7 +2248,8 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
 
       if (OLogManager.instance().isDebugEnabled()) {
         OLogManager.instance()
-            .debug(this, "%d Committed transaction %d on database '%s' (result=%s)", Thread.currentThread().getId(), transaction.getId(), database.getName(), result);
+            .debug(this, "%d Committed transaction %d on database '%s' (result=%s)", Thread.currentThread().getId(),
+                transaction.getId(), database.getName(), result);
       }
 
       return result;
@@ -2384,10 +2306,6 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
         assert atomicOperation.getCounter() == 1;
       }
     }
-  }
-
-  private static TreeMap<String, OTransactionIndexChanges> getSortedIndexOperations(OTransactionInternal clientTx) {
-    return new TreeMap<>(clientTx.getIndexOperations());
   }
 
   public int loadIndexEngine(String name) {
@@ -2930,7 +2848,7 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
       final OBaseIndexEngine engine = indexEngines.get(indexId);
       makeStorageDirty();
 
-      ((OIndexEngine)engine).update(key, valueCreator);
+      ((OIndexEngine) engine).update(key, valueCreator);
     } catch (Exception e) {
       rollback = true;
       throw e;
@@ -4583,7 +4501,7 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
 
   private void endStorageTx(final OTransactionInternal txi, final Collection<ORecordOperation> recordOperations)
       throws IOException {
-    final OLogSequenceNumber lsn = atomicOperationsManager.endAtomicOperation(false);
+    atomicOperationsManager.endAtomicOperation(false);
     assert OAtomicOperationsManager.getCurrentOperation() == null;
 
     OTransactionAbstract.updateCacheFromEntries(txi.getDatabase(), recordOperations, true);
@@ -4632,8 +4550,7 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
   }
 
   private OStorageOperationResult<OPhysicalPosition> doCreateRecord(final ORecordId rid, final byte[] content, int recordVersion,
-      final byte recordType, final ORecordCallback<Long> callback, final OCluster cluster, OPhysicalPosition ppos,
-      final OPhysicalPosition allocated) {
+      final byte recordType, final ORecordCallback<Long> callback, final OCluster cluster, final OPhysicalPosition allocated) {
     if (content == null) {
       throw new IllegalArgumentException("Record is null");
     }
@@ -4649,6 +4566,7 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
 
       boolean rollback = false;
       atomicOperationsManager.startAtomicOperation((String) null, true);
+      OPhysicalPosition ppos;
       try {
         ppos = cluster.createRecord(content, recordVersion, recordType, allocated);
         rid.setClusterPosition(ppos.clusterPosition);
@@ -5275,8 +5193,7 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
         if (allocated != null) {
           final OPhysicalPosition ppos;
           final byte recordType = ORecordInternal.getRecordType(rec);
-          ppos = doCreateRecord(rid, stream, rec.getVersion(), recordType, null, cluster, new OPhysicalPosition(recordType),
-              allocated).getResult();
+          ppos = doCreateRecord(rid, stream, rec.getVersion(), recordType, null, cluster, allocated).getResult();
 
           ORecordInternal.setVersion(rec, ppos.recordVersion);
         } else {
