@@ -9,6 +9,7 @@ import com.orientechnologies.orient.core.index.OIndexKeyCursor;
 import com.orientechnologies.orient.core.metadata.schema.OType;
 import com.orientechnologies.orient.core.record.impl.ODocument;
 
+import java.io.IOException;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
@@ -21,24 +22,24 @@ public interface OBaseIndexEngine {
 
   void create(OBinarySerializer valueSerializer, boolean isAutomatic, OType[] keyTypes, boolean nullPointerSupport,
       OBinarySerializer keySerializer, int keySize, Set<String> clustersToIndex, Map<String, String> engineProperties,
-      ODocument metadata, OEncryption encryption);
+      ODocument metadata, OEncryption encryption) throws IOException;
 
-  void delete();
+  void delete() throws IOException;
 
-  void deleteWithoutLoad(String indexName);
+  void deleteWithoutLoad(String indexName) throws IOException;
 
   void load(String indexName, OBinarySerializer valueSerializer, boolean isAutomatic, OBinarySerializer keySerializer,
       OType[] keyTypes, boolean nullPointerSupport, int keySize, Map<String, String> engineProperties, OEncryption encryption);
 
   boolean contains(Object key);
 
-  void clear();
+  void clear() throws IOException;
 
   void close();
 
   Object get(Object key);
 
-  boolean remove(Object key);
+  boolean remove(Object key) throws IOException;
 
   Object getFirstKey();
 

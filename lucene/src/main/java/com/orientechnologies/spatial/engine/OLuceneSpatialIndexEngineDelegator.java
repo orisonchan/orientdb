@@ -17,6 +17,7 @@
  */
 package com.orientechnologies.spatial.engine;
 
+import com.orientechnologies.common.exception.OException;
 import com.orientechnologies.common.serialization.types.OBinarySerializer;
 import com.orientechnologies.lucene.engine.OLuceneIndexEngine;
 import com.orientechnologies.lucene.query.OLuceneQueryContext;
@@ -27,6 +28,7 @@ import com.orientechnologies.orient.core.id.OContextualRecordId;
 import com.orientechnologies.orient.core.id.ORID;
 import com.orientechnologies.orient.core.index.OIndexCursor;
 import com.orientechnologies.orient.core.index.OIndexDefinition;
+import com.orientechnologies.orient.core.index.OIndexException;
 import com.orientechnologies.orient.core.index.OIndexKeyCursor;
 import com.orientechnologies.orient.core.index.OIndexKeyUpdater;
 import com.orientechnologies.orient.core.metadata.schema.OClass;
@@ -142,17 +144,29 @@ public class OLuceneSpatialIndexEngineDelegator implements OLuceneIndexEngine, O
   @Override
   public void put(Object key, Object value) {
 
-    delegate.put(key, value);
+    try {
+      delegate.put(key, value);
+    } catch (IOException e) {
+      throw OException.wrapException(new OIndexException("Error during insertion of key " + key + " in index " + indexName), e);
+    }
   }
 
   @Override
   public void update(Object key, OIndexKeyUpdater<Object> updater) {
-    delegate.update(key, updater);
+    try {
+      delegate.update(key, updater);
+    } catch (IOException e) {
+      throw OException.wrapException(new OIndexException("Error during update of key " + key + " in index " + indexName), e);
+    }
   }
 
   @Override
   public boolean validatedPut(Object key, ORID value, Validator<Object, ORID> validator) {
-    return delegate.validatedPut(key, value, validator);
+    try {
+      return delegate.validatedPut(key, value, validator);
+    } catch (IOException e) {
+      throw OException.wrapException(new OIndexException("Error during insertion of key " + key + " in index " + indexName), e);
+    }
   }
 
   @Override

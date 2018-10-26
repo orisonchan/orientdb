@@ -15,6 +15,7 @@ import com.orientechnologies.orient.core.storage.impl.local.OAbstractPaginatedSt
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.File;
@@ -35,7 +36,7 @@ public class PrefixBTreeTestIT {
   private String dbName;
 
   @Before
-  public void before() {
+  public void before() throws Exception {
     buildDirectory = System.getProperty("buildDirectory", ".") + File.separator + PrefixBTreeTestIT.class.getSimpleName();
 
     dbName = "localPrefixBTreeTest";
@@ -59,7 +60,8 @@ public class PrefixBTreeTestIT {
   }
 
   @Test
-  public void testRandom() {
+  @Ignore
+  public void testRandom() throws Exception {
     final int keysCount = 100_000_000;
     TreeMap<Integer, String> keys = new TreeMap<>();
 
@@ -103,7 +105,7 @@ public class PrefixBTreeTestIT {
   }
 
   @Test
-  public void testKeyPut() {
+  public void testKeyPut() throws Exception {
     final int keysCount = 500_000;
 
     String lastKey = null;
@@ -139,7 +141,7 @@ public class PrefixBTreeTestIT {
   }
 
   @Test
-  public void testKeyPutRandomUniform() {
+  public void testKeyPutRandomUniform() throws Exception {
     final NavigableSet<String> keys = new TreeSet<>();
     final Random random = new Random();
     final int keysCount = 500_000;
@@ -164,7 +166,7 @@ public class PrefixBTreeTestIT {
   }
 
   @Test
-  public void testKeyPutRandomGaussian() {
+  public void testKeyPutRandomGaussian() throws Exception {
     NavigableSet<String> keys = new TreeSet<>();
     long seed = System.currentTimeMillis();
 
@@ -195,7 +197,7 @@ public class PrefixBTreeTestIT {
   }
 
   @Test
-  public void testKeyDeleteRandomUniform() {
+  public void testKeyDeleteRandomUniform() throws Exception {
     final int keysCount = 500_000;
 
     NavigableSet<String> keys = new TreeSet<>();
@@ -228,7 +230,7 @@ public class PrefixBTreeTestIT {
   }
 
   @Test
-  public void testKeyDeleteRandomGaussian() {
+  public void testKeyDeleteRandomGaussian() throws Exception {
     NavigableSet<String> keys = new TreeSet<>();
     final int keysCount = 500_000;
 
@@ -274,7 +276,7 @@ public class PrefixBTreeTestIT {
   }
 
   @Test
-  public void testKeyDelete() {
+  public void testKeyDelete() throws Exception {
     final int keysCount = 500_000;
 
     for (int i = 0; i < keysCount; i++) {
@@ -297,7 +299,7 @@ public class PrefixBTreeTestIT {
   }
 
   @Test
-  public void testKeyAddDelete() {
+  public void testKeyAddDelete() throws Exception {
     final int keysCount = 500_000;
 
     for (int i = 0; i < keysCount; i++) {
@@ -331,7 +333,7 @@ public class PrefixBTreeTestIT {
   }
 
   @Test
-  public void testKeyCursor() {
+  public void testKeyCursor() throws Exception {
     final int keysCount = 500_000;
 
     NavigableMap<String, ORID> keyValues = new TreeMap<>();
@@ -360,7 +362,7 @@ public class PrefixBTreeTestIT {
   }
 
   @Test
-  public void testIterateEntriesMajor() {
+  public void testIterateEntriesMajor() throws Exception {
     final int keysCount = 500_000;
 
     NavigableMap<String, ORID> keyValues = new TreeMap<>();
@@ -388,7 +390,7 @@ public class PrefixBTreeTestIT {
   }
 
   @Test
-  public void testIterateEntriesMinor() {
+  public void testIterateEntriesMinor() throws Exception {
     final int keysCount = 500_000;
     NavigableMap<String, ORID> keyValues = new TreeMap<>();
 
@@ -416,7 +418,7 @@ public class PrefixBTreeTestIT {
   }
 
   @Test
-  public void testIterateEntriesBetween() {
+  public void testIterateEntriesBetween() throws Exception {
     final int keysCount = 500_000;
     NavigableMap<String, ORID> keyValues = new TreeMap<>();
     Random random = new Random();
