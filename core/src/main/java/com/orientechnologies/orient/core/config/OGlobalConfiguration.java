@@ -426,9 +426,6 @@ public enum OGlobalConfiguration {
       "Indicates whether index implementation for plocal storage will be durable in non-Tx mode (true by default)", Boolean.class,
       true),
 
-  INDEX_USE_PREFIX_B_TREE("index.usePrefixBTRee", "Indicates that prefix B-Tree should be used for String indexes", Boolean.class,
-      false),
-
   /**
    * @see OIndexDefinition#isNullValuesIgnored()
    * @since 2.2

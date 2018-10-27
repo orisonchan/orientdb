@@ -25,7 +25,6 @@ import com.orientechnologies.common.log.OLogManager;
 import com.orientechnologies.common.util.OMultiKey;
 import com.orientechnologies.common.util.OUncaughtExceptionHandler;
 import com.orientechnologies.orient.core.config.OGlobalConfiguration;
-import com.orientechnologies.orient.core.config.OStorageConfiguration;
 import com.orientechnologies.orient.core.db.ODatabase;
 import com.orientechnologies.orient.core.db.ODatabaseDocumentInternal;
 import com.orientechnologies.orient.core.db.document.ODatabaseDocumentEmbedded;
@@ -65,9 +64,9 @@ import java.util.Set;
 public class OIndexManagerShared extends OIndexManagerAbstract {
   private static final long serialVersionUID = 1L;
 
-  protected volatile transient Thread   recreateIndexesThread = null;
-  private volatile             boolean  rebuildCompleted      = false;
-  private                      OStorage storage;
+  private volatile transient Thread   recreateIndexesThread = null;
+  private volatile           boolean  rebuildCompleted      = false;
+  private final              OStorage storage;
 
   public OIndexManagerShared(OStorage storage) {
     super();
@@ -123,23 +122,8 @@ public class OIndexManagerShared extends OIndexManagerAbstract {
 
     final Locale locale = getServerLocale();
     type = type.toUpperCase(locale);
-
     if (algorithm == null) {
-      final OType[] types = indexDefinition.getTypes();
-
-      if ((type.equals(OClass.INDEX_TYPE.NOTUNIQUE.name()) || type.equals(OClass.INDEX_TYPE.UNIQUE.name())) && types.length == 1
-          && types[0] == OType.STRING) {
-
-        OStorage storage = getStorage();
-        OStorageConfiguration configuration = storage.getConfiguration();
-        if (configuration.getContextConfiguration().getValueAsBoolean(OGlobalConfiguration.INDEX_USE_PREFIX_B_TREE)) {
-          algorithm = ODefaultIndexFactory.PREFIX_BTREE_ALGORITHM;
-        } else {
-          algorithm = OIndexes.chooseDefaultIndexAlgorithm(type);
-        }
-      } else {
-        algorithm = OIndexes.chooseDefaultIndexAlgorithm(type);
-      }
+      algorithm = OIndexes.chooseDefaultIndexAlgorithm(type);
     }
 
     final String valueContainerAlgorithm = chooseContainerAlgorithm(type);
@@ -202,7 +186,7 @@ public class OIndexManagerShared extends OIndexManagerAbstract {
     return preProcessBeforeReturn(database, index);
   }
 
-  protected void notifyInvolvedClasses(int[] clusterIdsToIndex) {
+  private void notifyInvolvedClasses(int[] clusterIdsToIndex) {
     if (clusterIdsToIndex == null || clusterIdsToIndex.length == 0)
       return;
 
@@ -212,7 +196,7 @@ public class OIndexManagerShared extends OIndexManagerAbstract {
     final Set<String> classes = new HashSet<>();
     for (int clusterId : clusterIdsToIndex) {
       final OClass cls = database.getMetadata().getSchema().getClassByClusterId(clusterId);
-      if (cls != null && cls instanceof OClassImpl && !classes.contains(cls.getName())) {
+      if (cls instanceof OClassImpl && !classes.contains(cls.getName())) {
         ((OClassImpl) cls).onPostIndexManagement();
         classes.add(cls.getName());
       }
@@ -533,7 +517,7 @@ public class OIndexManagerShared extends OIndexManagerAbstract {
     private       int      ok;
     private       int      errors;
 
-    public RecreateIndexesTask(OStorage storage) {
+    RecreateIndexesTask(OStorage storage) {
       this.storage = storage;
     }
 

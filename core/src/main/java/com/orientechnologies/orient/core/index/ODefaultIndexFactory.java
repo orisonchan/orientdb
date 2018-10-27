@@ -23,7 +23,6 @@ import com.orientechnologies.orient.core.metadata.schema.OClass;
 import com.orientechnologies.orient.core.record.impl.ODocument;
 import com.orientechnologies.orient.core.storage.OStorage;
 import com.orientechnologies.orient.core.storage.impl.local.OAbstractPaginatedStorage;
-import com.orientechnologies.orient.core.storage.index.engine.OPrefixBTreeIndexEngine;
 import com.orientechnologies.orient.core.storage.index.engine.ORemoteIndexEngine;
 import com.orientechnologies.orient.core.storage.index.engine.OSBTreeIndexEngine;
 
@@ -44,17 +43,15 @@ import java.util.Set;
  */
 public class ODefaultIndexFactory implements OIndexFactory {
 
-  public static final String SBTREE_ALGORITHM       = "SBTREE";
-  public static final String PREFIX_BTREE_ALGORITHM = "PREFIX_BTREE";
-
-  public static final String SBTREEBONSAI_VALUE_CONTAINER = "SBTREEBONSAISET";
+  static final        String SBTREE_ALGORITHM             = "SBTREE";
+  static final        String SBTREEBONSAI_VALUE_CONTAINER = "SBTREEBONSAISET";
   public static final String NONE_VALUE_CONTAINER         = "NONE";
 
   private static final Set<String> TYPES;
   private static final Set<String> ALGORITHMS;
 
   static {
-    final Set<String> types = new HashSet<String>();
+    final Set<String> types = new HashSet<>();
     types.add(OClass.INDEX_TYPE.UNIQUE.toString());
     types.add(OClass.INDEX_TYPE.NOTUNIQUE.toString());
     types.add(OClass.INDEX_TYPE.FULLTEXT.toString());
@@ -63,14 +60,13 @@ public class ODefaultIndexFactory implements OIndexFactory {
   }
 
   static {
-    final Set<String> algorithms = new HashSet<String>();
+    final Set<String> algorithms = new HashSet<>();
     algorithms.add(SBTREE_ALGORITHM);
-    algorithms.add(PREFIX_BTREE_ALGORITHM);
 
     ALGORITHMS = Collections.unmodifiableSet(algorithms);
   }
 
-  public static boolean isMultiValueIndex(final String indexType) {
+  static boolean isMultiValueIndex(final String indexType) {
     switch (OClass.INDEX_TYPE.valueOf(indexType)) {
     case UNIQUE:
     case UNIQUE_HASH_INDEX:
@@ -109,7 +105,7 @@ public class ODefaultIndexFactory implements OIndexFactory {
       version = getLastVersion();
     }
 
-    if (SBTREE_ALGORITHM.equals(algorithm) || PREFIX_BTREE_ALGORITHM.equals(algorithm)) {
+    if (SBTREE_ALGORITHM.equals(algorithm)) {
       return createSBTreeIndex(name, indexType, valueContainerAlgorithm, metadata,
           (OAbstractPaginatedStorage) storage.getUnderlying(), version, algorithm);
     }
@@ -147,9 +143,7 @@ public class ODefaultIndexFactory implements OIndexFactory {
   public OBaseIndexEngine createIndexEngine(String algorithm, String name, Boolean durableInNonTxMode, OStorage storage,
       int version, int apiVersion, boolean multivalue, Map<String, String> engineProperties) {
 
-    assert apiVersion == 1;
     final OBaseIndexEngine indexEngine;
-
     final String storageType = storage.getType();
 
     switch (storageType) {
@@ -158,11 +152,7 @@ public class ODefaultIndexFactory implements OIndexFactory {
     case "memory":
     case "plocal":
       if (apiVersion == 0) {
-        if (algorithm.equals(PREFIX_BTREE_ALGORITHM)) {
-          indexEngine = new OPrefixBTreeIndexEngine(name, (OAbstractPaginatedStorage) storage, version);
-        } else {
-          indexEngine = new OSBTreeIndexEngine(name, (OAbstractPaginatedStorage) storage, version);
-        }
+        indexEngine = new OSBTreeIndexEngine(name, (OAbstractPaginatedStorage) storage, version);
       } else if (apiVersion == 1) {
         if (multivalue) {
           indexEngine = new OSBTreeMultiValueIndexEngine(name, (OAbstractPaginatedStorage) storage);
