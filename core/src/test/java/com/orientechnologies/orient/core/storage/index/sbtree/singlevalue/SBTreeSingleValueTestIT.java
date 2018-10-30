@@ -60,7 +60,7 @@ public class SBTreeSingleValueTestIT {
   @Test
   @Ignore
   public void testRandom() throws Exception {
-    final int keysCount = 100_000_000;
+    final int keysCount = 500_000;
     TreeMap<Integer, String> keys = new TreeMap<>();
 
     for (int i = 0; i < 100; i++) {
@@ -104,7 +104,7 @@ public class SBTreeSingleValueTestIT {
 
   @Test
   public void testKeyPut() throws Exception {
-    final int keysCount = 100_000_000;
+    final int keysCount = 500_000;
 
     String lastKey = null;
 
@@ -142,7 +142,7 @@ public class SBTreeSingleValueTestIT {
   public void testKeyPutRandomUniform() throws Exception {
     final NavigableSet<String> keys = new TreeSet<>();
     final Random random = new Random();
-    final int keysCount = 100_000_000;
+    final int keysCount = 500_000;
 
     while (keys.size() < keysCount) {
       int val = random.nextInt(Integer.MAX_VALUE);
@@ -171,7 +171,7 @@ public class SBTreeSingleValueTestIT {
     System.out.println("testKeyPutRandomGaussian seed : " + seed);
 
     Random random = new Random(seed);
-    final int keysCount = 1_000_000;
+    final int keysCount = 500_000;
 
     while (keys.size() < keysCount) {
       int val = (int) (random.nextGaussian() * Integer.MAX_VALUE / 2 + Integer.MAX_VALUE);
@@ -197,7 +197,7 @@ public class SBTreeSingleValueTestIT {
 
   @Test
   public void testKeyDeleteRandomUniform() throws Exception {
-    final int keysCount = 100_000_000;
+    final int keysCount = 500_000;
 
     NavigableSet<String> keys = new TreeSet<>();
     for (int i = 0; i < keysCount; i++) {
@@ -277,7 +277,7 @@ public class SBTreeSingleValueTestIT {
 
   @Test
   public void testKeyDelete() throws Exception {
-    final int keysCount = 100_000_000;
+    final int keysCount = 500_000;
 
     for (int i = 0; i < keysCount; i++) {
       singleValueTree.put(Integer.toString(i), new ORecordId(i % 32000, i));
@@ -300,7 +300,7 @@ public class SBTreeSingleValueTestIT {
 
   @Test
   public void testKeyAddDelete() throws Exception {
-    final int keysCount = 100_000_000;
+    final int keysCount = 500_000;
 
     for (int i = 0; i < keysCount; i++) {
       singleValueTree.put(Integer.toString(i), new ORecordId(i % 32000, i));
@@ -335,7 +335,7 @@ public class SBTreeSingleValueTestIT {
 
   @Test
   public void testKeyCursor() throws Exception {
-    final int keysCount = 100_000_000;
+    final int keysCount = 500_000;
 
     NavigableMap<String, ORID> keyValues = new TreeMap<>();
     final long seed = System.nanoTime();
@@ -364,7 +364,7 @@ public class SBTreeSingleValueTestIT {
 
   @Test
   public void testIterateEntriesMajor() throws Exception {
-    final int keysCount = 100_000_000;
+    final int keysCount = 500_000;
 
     NavigableMap<String, ORID> keyValues = new TreeMap<>();
     final long seed = System.nanoTime();
@@ -392,7 +392,7 @@ public class SBTreeSingleValueTestIT {
 
   @Test
   public void testIterateEntriesMinor() throws Exception {
-    final int keysCount = 100_000_000;
+    final int keysCount = 500_000;
     NavigableMap<String, ORID> keyValues = new TreeMap<>();
 
     final long seed = System.nanoTime();
@@ -420,7 +420,7 @@ public class SBTreeSingleValueTestIT {
 
   @Test
   public void testIterateEntriesBetween() throws Exception {
-    final int keysCount = 100_000_000;
+    final int keysCount = 500_000;
     NavigableMap<String, ORID> keyValues = new TreeMap<>();
     Random random = new Random();
 
