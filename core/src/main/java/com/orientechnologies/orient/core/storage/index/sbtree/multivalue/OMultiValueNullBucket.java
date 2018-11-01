@@ -42,16 +42,15 @@ import java.util.List;
  * @author Andrey Lomakin (a.lomakin-at-orientdb.com)
  * @since 4/15/14
  */
-public class OMultiValueNullBucket extends ODurablePage {
+final class OMultiValueNullBucket extends ODurablePage {
   private static final int RID_SIZE = OShortSerializer.SHORT_SIZE + OLongSerializer.LONG_SIZE;
 
-  private static final int FREE_LIST_HEADER_OFFSET = NEXT_FREE_POSITION;
-  private static final int NEXT_OFFSET             = FREE_LIST_HEADER_OFFSET + OIntegerSerializer.INT_SIZE;
+  private static final int NEXT_OFFSET = NEXT_FREE_POSITION;
 
   private static final int RIDS_SIZE_OFFSET = NEXT_OFFSET + OIntegerSerializer.INT_SIZE;
   private static final int RIDS_OFFSET      = RIDS_SIZE_OFFSET + OIntegerSerializer.INT_SIZE;
 
-  OMultiValueNullBucket(OCacheEntry cacheEntry, boolean isNew) {
+  OMultiValueNullBucket(final OCacheEntry cacheEntry, final boolean isNew) {
     super(cacheEntry);
 
     if (isNew) {
@@ -59,15 +58,15 @@ public class OMultiValueNullBucket extends ODurablePage {
     }
   }
 
-  public void setFreeListHeader(int pageIndex) {
-    setIntValue(FREE_LIST_HEADER_OFFSET, pageIndex);
-  }
-
-  public void setNext(int pageIndex) {
+  void setNext(final int pageIndex) {
     setIntValue(NEXT_OFFSET, pageIndex);
   }
 
-  boolean addValue(ORID rid) {
+  int getNext() {
+    return getIntValue(NEXT_OFFSET);
+  }
+
+  boolean addValue(final ORID rid) {
     final int size = getIntValue(RIDS_SIZE_OFFSET);
     final int position = size * RID_SIZE + RIDS_OFFSET;
 
@@ -98,7 +97,7 @@ public class OMultiValueNullBucket extends ODurablePage {
     return rids;
   }
 
-  boolean removeValue(ORID rid) {
+  boolean removeValue(final ORID rid) {
     final int size = getIntValue(RIDS_SIZE_OFFSET);
     final int end = size * RID_SIZE + RIDS_OFFSET;
 
@@ -116,5 +115,9 @@ public class OMultiValueNullBucket extends ODurablePage {
     }
 
     return false;
+  }
+
+  boolean isEmpty() {
+    return getIntValue(RIDS_SIZE_OFFSET) == 0;
   }
 }

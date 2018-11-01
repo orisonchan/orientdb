@@ -37,8 +37,8 @@ import com.orientechnologies.orient.core.storage.impl.local.paginated.base.ODura
  * @author Andrey Lomakin (a.lomakin-at-orientdb.com)
  * @since 4/15/14
  */
-public class OSingleValueNullBucket extends ODurablePage {
-  OSingleValueNullBucket(OCacheEntry cacheEntry, boolean isNew) {
+final class OSingleValueNullBucket extends ODurablePage {
+  OSingleValueNullBucket(final OCacheEntry cacheEntry, final boolean isNew) {
     super(cacheEntry);
 
     if (isNew) {
@@ -46,7 +46,7 @@ public class OSingleValueNullBucket extends ODurablePage {
     }
   }
 
-  public void setValue(ORID value) {
+  public void setValue(final ORID value) {
     setByteValue(NEXT_FREE_POSITION, (byte) 1);
 
     setShortValue(NEXT_FREE_POSITION + 1, (short) value.getClusterId());

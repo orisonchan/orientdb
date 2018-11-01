@@ -46,7 +46,7 @@ import java.util.concurrent.ConcurrentSkipListMap;
  * @author Andrey Lomakin (a.lomakin-at-orientdb.com)
  * @since 8/7/13
  */
-public class OSBTreeBucketMultiValue<K> extends ODurablePage {
+final class OSBTreeBucketMultiValue<K> extends ODurablePage {
   private static final int RID_SIZE              = OShortSerializer.SHORT_SIZE + OLongSerializer.LONG_SIZE;
   private static final int LINKED_LIST_ITEM_SIZE = RID_SIZE + OIntegerSerializer.INT_SIZE;
 
@@ -68,7 +68,8 @@ public class OSBTreeBucketMultiValue<K> extends ODurablePage {
   private final OEncryption encryption;
 
   @SuppressFBWarnings("EI_EXPOSE_REP2")
-  OSBTreeBucketMultiValue(OCacheEntry cacheEntry, boolean isLeaf, OBinarySerializer<K> keySerializer, OEncryption encryption) {
+  OSBTreeBucketMultiValue(final OCacheEntry cacheEntry, final boolean isLeaf, final OBinarySerializer<K> keySerializer,
+      final OEncryption encryption) {
     super(cacheEntry);
 
     this.isLeaf = isLeaf;
@@ -86,7 +87,7 @@ public class OSBTreeBucketMultiValue<K> extends ODurablePage {
   }
 
   @SuppressFBWarnings("EI_EXPOSE_REP2")
-  OSBTreeBucketMultiValue(OCacheEntry cacheEntry, OBinarySerializer<K> keySerializer, OEncryption encryption) {
+  OSBTreeBucketMultiValue(final OCacheEntry cacheEntry, final OBinarySerializer<K> keySerializer, final OEncryption encryption) {
     super(cacheEntry);
     this.encryption = encryption;
 
@@ -94,7 +95,7 @@ public class OSBTreeBucketMultiValue<K> extends ODurablePage {
     this.keySerializer = keySerializer;
   }
 
-  void setTreeSize(long size) {
+  void setTreeSize(final long size) {
     setLongValue(TREE_SIZE_OFFSET, size);
   }
 
@@ -106,14 +107,14 @@ public class OSBTreeBucketMultiValue<K> extends ODurablePage {
     return size() == 0;
   }
 
-  int find(K key) {
+  int find(final K key) {
     int low = 0;
     int high = size() - 1;
 
     while (low <= high) {
-      int mid = (low + high) >>> 1;
-      K midVal = getKey(mid);
-      int cmp = comparator.compare(midVal, key);
+      final int mid = (low + high) >>> 1;
+      final K midVal = getKey(mid);
+      final int cmp = comparator.compare(midVal, key);
 
       if (cmp < 0) {
         low = mid + 1;
@@ -150,7 +151,7 @@ public class OSBTreeBucketMultiValue<K> extends ODurablePage {
       return 1;
     }
 
-    List<Integer> itemsToRemove = new ArrayList<>();
+    final List<Integer> itemsToRemove = new ArrayList<>();
     final int entrySize = keySize + OIntegerSerializer.INT_SIZE + RID_SIZE;
     int totalSpace = entrySize;
 
@@ -185,7 +186,7 @@ public class OSBTreeBucketMultiValue<K> extends ODurablePage {
     int freeSpacePointer = getIntValue(FREE_POINTER_OFFSET);
 
     int counter = 0;
-    for (int itemToRemove : itemsToRemove) {
+    for (final int itemToRemove : itemsToRemove) {
       if (itemToRemove > freeSpacePointer) {
         moveData(freeSpacePointer, freeSpacePointer + LINKED_LIST_ITEM_SIZE, itemToRemove - freeSpacePointer);
 
@@ -193,7 +194,7 @@ public class OSBTreeBucketMultiValue<K> extends ODurablePage {
         final int diff = totalSpace - counter * LINKED_LIST_ITEM_SIZE;
 
         final SortedMap<Integer, Integer> entriesRefToCorrect = entries.headMap(itemToRemove);
-        for (Map.Entry<Integer, Integer> entry : entriesRefToCorrect.entrySet()) {
+        for (final Map.Entry<Integer, Integer> entry : entriesRefToCorrect.entrySet()) {
           final int currentEntryOffset = entry.getValue();
           final int currentEntryPosition = entry.getKey();
 
@@ -202,7 +203,7 @@ public class OSBTreeBucketMultiValue<K> extends ODurablePage {
 
         entriesRefToCorrect.clear();
 
-        for (Map.Entry<Integer, Integer> entry : linkRefToCorrect.entrySet()) {
+        for (final Map.Entry<Integer, Integer> entry : linkRefToCorrect.entrySet()) {
           final int first = entry.getKey();
           final int currentEntryPosition = entry.getValue();
 
@@ -232,7 +233,7 @@ public class OSBTreeBucketMultiValue<K> extends ODurablePage {
             }
           }
 
-          final int[] lastEntry = updateAllLinkedListReferences(first, itemToRemove, LINKED_LIST_ITEM_SIZE, diff);
+          final int[] lastEntry = incrementalUpdateAllLinkedListReferences(first, itemToRemove, diff);
 
           if (lastEntry[1] > 0) {
             nexts.put(lastEntry[1], -((counter << 16) | lastEntry[0]));
@@ -254,14 +255,14 @@ public class OSBTreeBucketMultiValue<K> extends ODurablePage {
       final int diff = entrySize;
 
       final SortedMap<Integer, Integer> entriesRefToCorrect = entries.headMap(entryPosition);
-      for (Map.Entry<Integer, Integer> entry : entriesRefToCorrect.entrySet()) {
+      for (final Map.Entry<Integer, Integer> entry : entriesRefToCorrect.entrySet()) {
         final int currentEntryOffset = entry.getValue();
         final int currentEntryPosition = entry.getKey();
 
         setIntValue(currentEntryOffset, currentEntryPosition + diff);
       }
 
-      for (Map.Entry<Integer, Integer> entry : linkRefToCorrect.entrySet()) {
+      for (final Map.Entry<Integer, Integer> entry : linkRefToCorrect.entrySet()) {
         final int first = entry.getKey();
         final int currentEntryPosition = entry.getValue();
 
@@ -310,7 +311,7 @@ public class OSBTreeBucketMultiValue<K> extends ODurablePage {
     return itemsToRemove.size() + 1;
   }
 
-  private void removeMainEntry(int entryIndex, int entryPosition, int keySize) {
+  private void removeMainEntry(final int entryIndex, final int entryPosition, final int keySize) {
     int nextItem;
     int size = getIntValue(SIZE_OFFSET);
 
@@ -493,7 +494,7 @@ public class OSBTreeBucketMultiValue<K> extends ODurablePage {
     return false;
   }
 
-  private void updateAllLinkedListReferences(int firstItem, int boundary, int diffSize) {
+  private void updateAllLinkedListReferences(final int firstItem, final int boundary, final int diffSize) {
     int currentItem = firstItem + diffSize;
 
     while (true) {
@@ -508,15 +509,15 @@ public class OSBTreeBucketMultiValue<K> extends ODurablePage {
     }
   }
 
-  private int[] updateAllLinkedListReferences(int firstItem, int boundary, int currentDiffSize, int diffSize) {
-    int currentItem = firstItem + currentDiffSize;
+  private int[] incrementalUpdateAllLinkedListReferences(final int firstItem, final int boundary, final int diffSize) {
+    int currentItem = firstItem + OSBTreeBucketMultiValue.LINKED_LIST_ITEM_SIZE;
 
     while (true) {
       final int nextItem = getIntValue(currentItem);
 
       if (nextItem > 0 && nextItem < boundary) {
         setIntValue(currentItem, nextItem + diffSize);
-        currentItem = nextItem + currentDiffSize;
+        currentItem = nextItem + OSBTreeBucketMultiValue.LINKED_LIST_ITEM_SIZE;
       } else {
         return new int[] { currentItem, nextItem };
       }
@@ -527,12 +528,12 @@ public class OSBTreeBucketMultiValue<K> extends ODurablePage {
     return getIntValue(SIZE_OFFSET);
   }
 
-  LeafEntry getLeafEntry(int entryIndex) {
+  LeafEntry getLeafEntry(final int entryIndex) {
     assert isLeaf;
 
     int entryPosition = getIntValue(entryIndex * OIntegerSerializer.INT_SIZE + POSITIONS_ARRAY_OFFSET);
 
-    byte[] key;
+    final byte[] key;
     int nextItem = getIntValue(entryPosition);
     entryPosition += OIntegerSerializer.INT_SIZE;
 
@@ -548,7 +549,7 @@ public class OSBTreeBucketMultiValue<K> extends ODurablePage {
       entryPosition += encryptionSize + OIntegerSerializer.INT_SIZE;
     }
 
-    List<ORID> values = new ArrayList<>();
+    final List<ORID> values = new ArrayList<>();
 
     int clusterId = getShortValue(entryPosition);
     entryPosition += OShortSerializer.SHORT_SIZE;
@@ -558,7 +559,7 @@ public class OSBTreeBucketMultiValue<K> extends ODurablePage {
     values.add(new ORecordId(clusterId, clusterPosition));
 
     while (nextItem > 0) {
-      int nextNextItem = getIntValue(nextItem);
+      final int nextNextItem = getIntValue(nextItem);
 
       clusterId = getShortValue(nextItem + OIntegerSerializer.INT_SIZE);
       clusterPosition = getLongValue(nextItem + OShortSerializer.SHORT_SIZE + OIntegerSerializer.INT_SIZE);
@@ -571,18 +572,18 @@ public class OSBTreeBucketMultiValue<K> extends ODurablePage {
     return new LeafEntry(key, values);
   }
 
-  NonLeafEntry getNonLeafEntry(int entryIndex) {
+  NonLeafEntry getNonLeafEntry(final int entryIndex) {
     assert !isLeaf;
 
     int entryPosition = getIntValue(entryIndex * OIntegerSerializer.INT_SIZE + POSITIONS_ARRAY_OFFSET);
 
-    int leftChild = getIntValue(entryPosition);
+    final int leftChild = getIntValue(entryPosition);
     entryPosition += OIntegerSerializer.INT_SIZE;
 
-    int rightChild = getIntValue(entryPosition);
+    final int rightChild = getIntValue(entryPosition);
     entryPosition += OIntegerSerializer.INT_SIZE;
 
-    byte[] key;
+    final byte[] key;
 
     if (encryption == null) {
       final int keySize = getObjectSizeInDirectMemory(keySerializer, entryPosition);
@@ -595,7 +596,7 @@ public class OSBTreeBucketMultiValue<K> extends ODurablePage {
     return new NonLeafEntry(key, leftChild, rightChild);
   }
 
-  int getLeft(int entryIndex) {
+  int getLeft(final int entryIndex) {
     assert !isLeaf;
 
     final int entryPosition = getIntValue(entryIndex * OIntegerSerializer.INT_SIZE + POSITIONS_ARRAY_OFFSET);
@@ -603,7 +604,7 @@ public class OSBTreeBucketMultiValue<K> extends ODurablePage {
     return getIntValue(entryPosition);
   }
 
-  int getRight(int entryIndex) {
+  int getRight(final int entryIndex) {
     assert !isLeaf;
 
     final int entryPosition = getIntValue(entryIndex * OIntegerSerializer.INT_SIZE + POSITIONS_ARRAY_OFFSET);
@@ -618,7 +619,7 @@ public class OSBTreeBucketMultiValue<K> extends ODurablePage {
    *
    * @return the obtained value.
    */
-  List<ORID> getValues(int entryIndex) {
+  List<ORID> getValues(final int entryIndex) {
     assert isLeaf;
 
     int entryPosition = getIntValue(entryIndex * OIntegerSerializer.INT_SIZE + POSITIONS_ARRAY_OFFSET);
@@ -653,7 +654,7 @@ public class OSBTreeBucketMultiValue<K> extends ODurablePage {
     return results;
   }
 
-  public K getKey(int index) {
+  public K getKey(final int index) {
     int entryPosition = getIntValue(index * OIntegerSerializer.INT_SIZE + POSITIONS_ARRAY_OFFSET);
 
     if (!isLeaf) {
@@ -674,7 +675,7 @@ public class OSBTreeBucketMultiValue<K> extends ODurablePage {
     }
   }
 
-  byte[] getRawKey(int index) {
+  byte[] getRawKey(final int index) {
     int entryPosition = getIntValue(index * OIntegerSerializer.INT_SIZE + POSITIONS_ARRAY_OFFSET);
 
     if (!isLeaf) {
@@ -792,7 +793,7 @@ public class OSBTreeBucketMultiValue<K> extends ODurablePage {
 
     int freePointer = getIntValue(FREE_POINTER_OFFSET);
 
-    for (int itemPos : itemsToRemove) {
+    for (final int itemPos : itemsToRemove) {
       if (itemPos > freePointer) {
         moveData(freePointer, freePointer + OIntegerSerializer.INT_SIZE + RID_SIZE, nextItem - freePointer);
       }
@@ -872,10 +873,11 @@ public class OSBTreeBucketMultiValue<K> extends ODurablePage {
     return true;
   }
 
-  boolean addNonLeafEntry(int index, byte[] serializedKey, int leftChild, int rightChild, boolean updateNeighbors) {
+  boolean addNonLeafEntry(final int index, final byte[] serializedKey, final int leftChild, final int rightChild,
+      final boolean updateNeighbors) {
     assert !isLeaf;
 
-    int entrySize = serializedKey.length + 2 * OIntegerSerializer.INT_SIZE;
+    final int entrySize = serializedKey.length + 2 * OIntegerSerializer.INT_SIZE;
 
     int size = size();
     int freePointer = getIntValue(FREE_POINTER_OFFSET);
@@ -916,7 +918,7 @@ public class OSBTreeBucketMultiValue<K> extends ODurablePage {
     return true;
   }
 
-  void setLeftSibling(long pageIndex) {
+  void setLeftSibling(final long pageIndex) {
     setLongValue(LEFT_SIBLING_OFFSET, pageIndex);
   }
 
@@ -924,7 +926,7 @@ public class OSBTreeBucketMultiValue<K> extends ODurablePage {
     return getLongValue(LEFT_SIBLING_OFFSET);
   }
 
-  void setRightSibling(long pageIndex) {
+  void setRightSibling(final long pageIndex) {
     setLongValue(RIGHT_SIBLING_OFFSET, pageIndex);
   }
 
@@ -935,7 +937,7 @@ public class OSBTreeBucketMultiValue<K> extends ODurablePage {
   static class Entry {
     final byte[] key;
 
-    public Entry(byte[] key) {
+    Entry(final byte[] key) {
       this.key = key;
     }
   }
@@ -943,7 +945,7 @@ public class OSBTreeBucketMultiValue<K> extends ODurablePage {
   static final class LeafEntry extends Entry {
     final List<ORID> values;
 
-    LeafEntry(byte[] key, List<ORID> values) {
+    LeafEntry(final byte[] key, final List<ORID> values) {
       super(key);
       this.values = values;
     }
@@ -953,7 +955,7 @@ public class OSBTreeBucketMultiValue<K> extends ODurablePage {
     final int leftChild;
     final int rightChild;
 
-    NonLeafEntry(byte[] key, int leftChild, int rightChild) {
+    NonLeafEntry(final byte[] key, final int leftChild, final int rightChild) {
       super(key);
 
       this.leftChild = leftChild;
