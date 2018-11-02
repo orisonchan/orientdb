@@ -411,8 +411,6 @@ public final class OSBTreeMultiValue<K> extends ODurableComponent {
               }
               try {
                 final OMultiValueNullBucket nullBucket = new OMultiValueNullBucket(nullCacheEntry, true);
-                nullBucket.setNextFreeList(-1);
-                nullBucket.setNext(-1);
                 final boolean added = nullBucket.addValue(value);
                 assert added;
               } finally {
@@ -629,93 +627,139 @@ public final class OSBTreeMultiValue<K> extends ODurableComponent {
     try {
       acquireExclusiveLock();
       try {
-        key = keySerializer.preprocess(key, (Object[]) keyTypes);
+        checkNullSupport(key);
 
-        final BucketSearchResult bucketSearchResult = findBucket(key, atomicOperation);
-        if (bucketSearchResult.itemIndex < 0) {
-          return false;
-        }
+        if (key != null) {
+          key = keySerializer.preprocess(key, (Object[]) keyTypes);
 
-        final long pageIndex = bucketSearchResult.pageIndex;
-        final int itemIndex = bucketSearchResult.itemIndex;
-
-        long leftSibling = -1;
-        long rightSibling = -1;
-
-        int removed;
-        OCacheEntry cacheEntry = loadPageForWrite(atomicOperation, fileId, pageIndex, false);
-        try {
-          final OSBTreeBucketMultiValue<K> bucket = new OSBTreeBucketMultiValue<>(cacheEntry, keySerializer, encryption);
-          removed = bucket.remove(itemIndex);
-
-          if (itemIndex == 0) {
-            leftSibling = bucket.getLeftSibling();
+          final BucketSearchResult bucketSearchResult = findBucket(key, atomicOperation);
+          if (bucketSearchResult.itemIndex < 0) {
+            return false;
           }
 
-          if (itemIndex == bucket.size() - 1) {
-            rightSibling = bucket.getRightSibling();
-          }
-        } finally {
-          releasePageFromWrite(atomicOperation, cacheEntry);
-        }
+          final long pageIndex = bucketSearchResult.pageIndex;
+          final int itemIndex = bucketSearchResult.itemIndex;
 
-        while (leftSibling >= 0) {
-          cacheEntry = loadPageForWrite(atomicOperation, fileId, leftSibling, false);
+          long leftSibling = -1;
+          long rightSibling = -1;
+
+          int removed;
+          OCacheEntry cacheEntry = loadPageForWrite(atomicOperation, fileId, pageIndex, false);
           try {
             final OSBTreeBucketMultiValue<K> bucket = new OSBTreeBucketMultiValue<>(cacheEntry, keySerializer, encryption);
-            final int size = bucket.size();
+            removed = bucket.remove(itemIndex);
 
-            if (size > 0) {
-              if (bucket.getKey(size - 1).equals(key)) {
-                removed += bucket.remove(size - 1);
-
-                if (size <= 1) {
-                  leftSibling = bucket.getLeftSibling();
-                } else {
-                  leftSibling = -1;
-                }
-              } else {
-                leftSibling = -1;
-              }
-            } else {
+            if (itemIndex == 0) {
               leftSibling = bucket.getLeftSibling();
             }
-          } finally {
-            releasePageFromWrite(atomicOperation, cacheEntry);
-          }
-        }
 
-        while (rightSibling >= 0) {
-          cacheEntry = loadPageForWrite(atomicOperation, fileId, rightSibling, false);
-          try {
-            final OSBTreeBucketMultiValue<K> bucket = new OSBTreeBucketMultiValue<>(cacheEntry, keySerializer, encryption);
-            final int size = bucket.size();
-
-            if (size > 0) {
-              if (bucket.getKey(0).equals(key)) {
-                removed += bucket.remove(0);
-
-                if (size <= 1) {
-                  rightSibling = bucket.getRightSibling();
-                } else {
-                  rightSibling = -1;
-                }
-              } else {
-                rightSibling = -1;
-              }
-            } else {
+            if (itemIndex == bucket.size() - 1) {
               rightSibling = bucket.getRightSibling();
             }
           } finally {
             releasePageFromWrite(atomicOperation, cacheEntry);
           }
-        }
 
-        if (removed > 0) {
+          while (leftSibling >= 0) {
+            cacheEntry = loadPageForWrite(atomicOperation, fileId, leftSibling, false);
+            try {
+              final OSBTreeBucketMultiValue<K> bucket = new OSBTreeBucketMultiValue<>(cacheEntry, keySerializer, encryption);
+              final int size = bucket.size();
+
+              if (size > 0) {
+                if (bucket.getKey(size - 1).equals(key)) {
+                  removed += bucket.remove(size - 1);
+
+                  if (size <= 1) {
+                    leftSibling = bucket.getLeftSibling();
+                  } else {
+                    leftSibling = -1;
+                  }
+                } else {
+                  leftSibling = -1;
+                }
+              } else {
+                leftSibling = bucket.getLeftSibling();
+              }
+            } finally {
+              releasePageFromWrite(atomicOperation, cacheEntry);
+            }
+          }
+
+          while (rightSibling >= 0) {
+            cacheEntry = loadPageForWrite(atomicOperation, fileId, rightSibling, false);
+            try {
+              final OSBTreeBucketMultiValue<K> bucket = new OSBTreeBucketMultiValue<>(cacheEntry, keySerializer, encryption);
+              final int size = bucket.size();
+
+              if (size > 0) {
+                if (bucket.getKey(0).equals(key)) {
+                  removed += bucket.remove(0);
+
+                  if (size <= 1) {
+                    rightSibling = bucket.getRightSibling();
+                  } else {
+                    rightSibling = -1;
+                  }
+                } else {
+                  rightSibling = -1;
+                }
+              } else {
+                rightSibling = bucket.getRightSibling();
+              }
+            } finally {
+              releasePageFromWrite(atomicOperation, cacheEntry);
+            }
+          }
+
+          if (removed > 0) {
+            updateSize(-removed, atomicOperation);
+          }
+
+          return removed > 0;
+        } else {
+          final int firstPage;
+
+          {
+            final OCacheEntry entryPointCacheEntry = loadPageForRead(atomicOperation, nullBucketFileId, 0, false);
+            try {
+              final OMultiValueNullEntryPointBucket entryPoint = new OMultiValueNullEntryPointBucket(entryPointCacheEntry);
+              firstPage = entryPoint.getFirstPage();
+            } finally {
+              releasePageFromRead(atomicOperation, entryPointCacheEntry);
+            }
+          }
+
+          int removed = 0;
+          int currentPage = firstPage;
+          while (currentPage >= 0) {
+            final OCacheEntry nullCacheEntry = loadPageForRead(atomicOperation, nullBucketFileId, currentPage, false);
+            try {
+              final OMultiValueNullBucket nullBucket = new OMultiValueNullBucket(nullCacheEntry, false);
+              removed += nullBucket.getSize();
+              currentPage = nullBucket.getNext();
+            } finally {
+              releasePageFromRead(atomicOperation, nullCacheEntry);
+            }
+          }
+
+          {
+            final OCacheEntry entryPointCacheEntry = loadPageForWrite(atomicOperation, nullBucketFileId, 0, false);
+            try {
+              final OMultiValueNullEntryPointBucket entryPoint = new OMultiValueNullEntryPointBucket(entryPointCacheEntry);
+              entryPoint.setSize(0);
+              entryPoint.setFirsPage(-1);
+              entryPoint.setLastPage(-1);
+              entryPoint.setFreeListHeader(-1);
+            } finally {
+              releasePageFromRead(atomicOperation, entryPointCacheEntry);
+            }
+          }
+
           updateSize(-removed, atomicOperation);
-        }
 
-        return removed > 0;
+          return removed > 0;
+        }
       } finally {
         releaseExclusiveLock();
       }
@@ -735,6 +779,8 @@ public final class OSBTreeMultiValue<K> extends ODurableComponent {
       boolean removed;
       acquireExclusiveLock();
       try {
+        checkNullSupport(key);
+
         if (key != null) {
           key = keySerializer.preprocess(key, (Object[]) keyTypes);
 

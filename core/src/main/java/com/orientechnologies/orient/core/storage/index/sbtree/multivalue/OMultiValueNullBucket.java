@@ -56,6 +56,8 @@ final class OMultiValueNullBucket extends ODurablePage {
 
     if (isNew) {
       setIntValue(RIDS_SIZE_OFFSET, 0);
+      setIntValue(NEXT_FREE_LIST_OFFSET, -1);
+      setIntValue(NEXT_OFFSET, -1);
     }
   }
 
@@ -104,6 +106,10 @@ final class OMultiValueNullBucket extends ODurablePage {
     }
 
     return rids;
+  }
+
+  public int getSize() {
+    return getIntValue(RIDS_SIZE_OFFSET);
   }
 
   boolean removeValue(final ORID rid) {
