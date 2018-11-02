@@ -353,109 +353,80 @@ public final class OSBTreeMultiValue<K> extends ODurableComponent {
 
           updateSize(1, atomicOperation);
         } else {
-          final int lastPage;
           final int freeListHeader;
 
           {
             final OCacheEntry entryPointCacheEntry = loadPageForRead(atomicOperation, nullBucketFileId, 0, false);
             try {
               final OMultiValueNullEntryPointBucket entryPoint = new OMultiValueNullEntryPointBucket(entryPointCacheEntry);
-              lastPage = entryPoint.getLastPage();
               freeListHeader = entryPoint.getFreeListHeader();
             } finally {
               releasePageFromRead(atomicOperation, entryPointCacheEntry);
             }
           }
 
-          if (lastPage >= 0) {
-            final OCacheEntry nullCacheEntry = loadPageForWrite(atomicOperation, nullBucketFileId, lastPage, false);
+          if (freeListHeader >= 0) {
+            final OCacheEntry nullCacheEntry = loadPageForWrite(atomicOperation, nullBucketFileId, freeListHeader, false);
             try {
               final OMultiValueNullBucket nullBucket = new OMultiValueNullBucket(nullCacheEntry, false);
-              final boolean added = nullBucket.addValue(value);
-              if (!added) {
-                if (freeListHeader >= 0) {
-                  nullBucket.setNext(freeListHeader);
 
-                  final OCacheEntry entryPointCacheEntry = loadPageForWrite(atomicOperation, nullBucketFileId, 0, false);
-                  try {
-                    final OMultiValueNullEntryPointBucket entryPoint = new OMultiValueNullEntryPointBucket(entryPointCacheEntry);
-                    final OCacheEntry nextNullCacheEntry = loadPageForWrite(atomicOperation, nullBucketFileId, freeListHeader,
-                        false);
-                    try {
-                      final OMultiValueNullBucket nextNullBucket = new OMultiValueNullBucket(nextNullCacheEntry, false);
-                      final boolean nextAdded = nextNullBucket.addValue(value);
-                      assert nextAdded;
-
-                      entryPoint.setFreeListHeader(nextNullBucket.getNext());
-                      nextNullBucket.setNext(-1);
-                    } finally {
-                      releasePageFromWrite(atomicOperation, nextNullCacheEntry);
-                    }
-
-                    entryPoint.setLastPage(freeListHeader);
-                  } finally {
-                    releasePageFromWrite(atomicOperation, entryPointCacheEntry);
-                  }
-                } else {
-                  final OCacheEntry entryPointCacheEntry = loadPageForWrite(atomicOperation, nullBucketFileId, 0, false);
-                  try {
-                    final OMultiValueNullEntryPointBucket entryPoint = new OMultiValueNullEntryPointBucket(entryPointCacheEntry);
-                    final OCacheEntry nextNullCacheEntry;
-                    final int size = entryPoint.getSize();
-
-                    if (getFilledUpTo(atomicOperation, nullBucketFileId) > size + 1) {
-                      nextNullCacheEntry = loadPageForWrite(atomicOperation, nullBucketFileId, size + 1, false);
-                    } else {
-                      nextNullCacheEntry = addPage(atomicOperation, nullBucketFileId);
-                    }
-                    try {
-                      final OMultiValueNullBucket nextNullBucket = new OMultiValueNullBucket(nextNullCacheEntry, true);
-                      final boolean nextAdded = nextNullBucket.addValue(value);
-                      assert nextAdded;
-                      nextNullBucket.setNext(-1);
-                    } finally {
-                      releasePageFromWrite(atomicOperation, nextNullCacheEntry);
-                    }
-
-                    nullBucket.setNext((int) nextNullCacheEntry.getPageIndex());
-
-                    entryPoint.setSize(size + 1);
-                    entryPoint.setLastPage((int) nextNullCacheEntry.getPageIndex());
-                  } finally {
-                    releasePageFromWrite(atomicOperation, entryPointCacheEntry);
-                  }
+              if (nullBucket.isEmpty()) {
+                final OCacheEntry cacheEntryPoint = loadPageForWrite(atomicOperation, nullBucketFileId, 0, false);
+                try {
+                  final OMultiValueNullEntryPointBucket entryPointBucket = new OMultiValueNullEntryPointBucket(cacheEntryPoint);
+                  addToValueList(atomicOperation, entryPointBucket, freeListHeader);
+                } finally {
+                  releasePageFromWrite(atomicOperation, cacheEntryPoint);
                 }
+              }
+
+              final boolean added = nullBucket.addValue(value);
+              assert added;
+
+              if (nullBucket.isFull()) {
+                final OCacheEntry cacheEntryPoint = loadPageForWrite(atomicOperation, nullBucketFileId, 0, false);
+                try {
+                  final OMultiValueNullEntryPointBucket entryPointBucket = new OMultiValueNullEntryPointBucket(cacheEntryPoint);
+                  entryPointBucket.setFreeListHeader(nullBucket.getNextFreeList());
+                } finally {
+                  releasePageFromWrite(atomicOperation, cacheEntryPoint);
+                }
+
+                nullBucket.setNextFreeList(-1);
               }
             } finally {
               releasePageFromWrite(atomicOperation, nullCacheEntry);
             }
           } else {
-            final OCacheEntry entryPointCacheEntry = loadPageForWrite(atomicOperation, nullBucketFileId, 0, false);
+            final OCacheEntry cacheEntryPoint = loadPageForWrite(atomicOperation, nullBucketFileId, 0, false);
             try {
-              final OMultiValueNullEntryPointBucket entryPoint = new OMultiValueNullEntryPointBucket(entryPointCacheEntry);
-              final OCacheEntry nullCacheEntry;
-              assert entryPoint.getSize() == 0;
+              final OMultiValueNullEntryPointBucket entryPointBucket = new OMultiValueNullEntryPointBucket(cacheEntryPoint);
+              final int size = entryPointBucket.getSize();
 
-              if (getFilledUpTo(atomicOperation, nullBucketFileId) > 1) {
-                nullCacheEntry = loadPageForWrite(atomicOperation, nullBucketFileId, 1, false);
-              } else {
+              final OCacheEntry nullCacheEntry;
+              if (getFilledUpTo(atomicOperation, nullBucketFileId) <= size + 1) {
                 nullCacheEntry = addPage(atomicOperation, nullBucketFileId);
+              } else {
+                nullCacheEntry = loadPageForWrite(atomicOperation, nullBucketFileId, size + 1, false);
               }
               try {
                 final OMultiValueNullBucket nullBucket = new OMultiValueNullBucket(nullCacheEntry, true);
-                final boolean nextAdded = nullBucket.addValue(value);
-                assert nextAdded;
+                nullBucket.setNextFreeList(-1);
                 nullBucket.setNext(-1);
+                final boolean added = nullBucket.addValue(value);
+                assert added;
               } finally {
                 releasePageFromWrite(atomicOperation, nullCacheEntry);
               }
 
-              entryPoint.setSize(1);
-              entryPoint.setFirsPage((int) nullCacheEntry.getPageIndex());
-              entryPoint.setLastPage((int) nullCacheEntry.getPageIndex());
+              addToValueList(atomicOperation, entryPointBucket, size + 1);
+
+              entryPointBucket.setSize(size + 1);
+              entryPointBucket.setFreeListHeader(size + 1);
             } finally {
-              releasePageFromWrite(atomicOperation, entryPointCacheEntry);
+              releasePageFromWrite(atomicOperation, cacheEntryPoint);
             }
+
           }
 
           updateSize(1, atomicOperation);
@@ -469,6 +440,27 @@ public final class OSBTreeMultiValue<K> extends ODurableComponent {
     } finally {
       endAtomicOperation(rollback);
     }
+  }
+
+  private void addToValueList(OAtomicOperation atomicOperation, OMultiValueNullEntryPointBucket entryPointBucket, int pageIndex)
+      throws IOException {
+    if (entryPointBucket.getFirstPage() == -1) {
+      entryPointBucket.setFirsPage(pageIndex);
+    }
+
+    final int lastPage = entryPointBucket.getLastPage();
+    if (lastPage >= 0) {
+      final OCacheEntry lastPageEntry = loadPageForWrite(atomicOperation, nullBucketFileId, lastPage, false);
+      try {
+        final OMultiValueNullBucket lastPageBucket = new OMultiValueNullBucket(lastPageEntry, false);
+        assert lastPageBucket.getNext() == -1;
+        lastPageBucket.setNext(pageIndex);
+      } finally {
+        releasePageFromWrite(atomicOperation, lastPageEntry);
+      }
+    }
+
+    entryPointBucket.setLastPage(pageIndex);
   }
 
   private static <K> boolean addEntry(final OSBTreeBucketMultiValue<K> bucketMultiValue, final int index, final boolean isNew,
@@ -851,38 +843,47 @@ public final class OSBTreeMultiValue<K> extends ODurableComponent {
             final OCacheEntry nullCacheEntry = loadPageForWrite(atomicOperation, nullBucketFileId, currentPage, false);
             try {
               final OMultiValueNullBucket nullBucket = new OMultiValueNullBucket(nullCacheEntry, false);
+              final boolean wasFull = nullBucket.isFull();
               if (nullBucket.removeValue(value)) {
                 removed = true;
 
-                if (nullBucket.isEmpty()) {
-                  if (prevPage >= 0) {
-                    final OCacheEntry prevCacheEntry = loadPageForWrite(atomicOperation, nullBucketFileId, prevPage, false);
-                    try {
-                      final OMultiValueNullBucket prevBucket = new OMultiValueNullBucket(prevCacheEntry, false);
-                      prevBucket.setNext(nullBucket.getNext());
-                    } finally {
-                      releasePageFromWrite(atomicOperation, prevCacheEntry);
-                    }
+                final OCacheEntry cacheEntryPoint = loadPageForWrite(atomicOperation, nullBucketFileId, 0, false);
+                try {
+                  final OMultiValueNullEntryPointBucket nullEntryPointBucket = new OMultiValueNullEntryPointBucket(cacheEntryPoint);
+                  if (wasFull) {
+                    nullBucket.setNextFreeList(nullEntryPointBucket.getFreeListHeader());
+                    nullEntryPointBucket.setFreeListHeader(currentPage);
                   }
 
-                  final OCacheEntry entryPointCacheEntry = loadPageForWrite(atomicOperation, nullBucketFileId, 0, false);
-                  try {
-                    final OMultiValueNullEntryPointBucket entryPoint = new OMultiValueNullEntryPointBucket(entryPointCacheEntry);
-                    nullBucket.setNext(entryPoint.getFreeListHeader());
-
-                    entryPoint.setFreeListHeader((int) nullCacheEntry.getPageIndex());
-
-                    if (currentPage == entryPoint.getFirstPage()) {
-                      entryPoint.setFirsPage(nullBucket.getNext());
+                  if (nullBucket.isEmpty()) {
+                    if (prevPage >= 0) {
+                      final OCacheEntry prevPageEntry = loadPageForWrite(atomicOperation, nullBucketFileId, prevPage, false);
+                      try {
+                        final OMultiValueNullBucket prevPageBucket = new OMultiValueNullBucket(prevPageEntry, false);
+                        prevPageBucket.setNext(nullBucket.getNext());
+                      } finally {
+                        releasePageFromWrite(atomicOperation, prevPageEntry);
+                      }
                     }
 
-                    if (currentPage == entryPoint.getLastPage()) {
-                      entryPoint.setLastPage(prevPage);
+                    if (nullEntryPointBucket.getLastPage() == currentPage) {
+                      nullEntryPointBucket.setLastPage(prevPage);
                     }
-                  } finally {
-                    releasePageFromWrite(atomicOperation, entryPointCacheEntry);
+
+                    if (nullEntryPointBucket.getFirstPage() == currentPage) {
+                      assert prevPage == -1;
+                      nullEntryPointBucket.setFirsPage(nullBucket.getNext());
+                    }
+
+                    nullBucket.setNext(-1);
                   }
+                } finally {
+                  releasePageFromWrite(atomicOperation, cacheEntryPoint);
                 }
+              }
+
+              if (removed) {
+                break;
               }
 
               prevPage = currentPage;
@@ -892,6 +893,9 @@ public final class OSBTreeMultiValue<K> extends ODurableComponent {
             }
           }
 
+          if (removed) {
+            updateSize(-1, atomicOperation);
+          }
         }
       } finally {
         releaseExclusiveLock();
@@ -1410,8 +1414,7 @@ public final class OSBTreeMultiValue<K> extends ODurableComponent {
   private UpdateBucketSearchResult splitNonRootBucket(final List<Long> path, final List<Integer> itemPointers, final int keyIndex,
       final K keyToInsert, final long pageIndex, final OSBTreeBucketMultiValue<K> bucketToSplit, final boolean splitLeaf,
       final int indexToSplit, final K separationKey, final byte[] serializedSeparationKey,
-      final List<OSBTreeBucketMultiValue.Entry> rightEntries, final OAtomicOperation atomicOperation)
-      throws IOException {
+      final List<OSBTreeBucketMultiValue.Entry> rightEntries, final OAtomicOperation atomicOperation) throws IOException {
     final OCacheEntry rightBucketEntry = addPage(atomicOperation, fileId);
 
     try {
@@ -1436,8 +1439,7 @@ public final class OSBTreeMultiValue<K> extends ODurableComponent {
         if (rightSiblingPageIndex >= 0) {
           final OCacheEntry rightSiblingBucketEntry = loadPageForWrite(atomicOperation, fileId, rightSiblingPageIndex, false);
           final OSBTreeBucketMultiValue<K> rightSiblingBucket = new OSBTreeBucketMultiValue<>(rightSiblingBucketEntry,
-              keySerializer,
-              encryption);
+              keySerializer, encryption);
           try {
             rightSiblingBucket.setLeftSibling(rightBucketEntry.getPageIndex());
           } finally {
@@ -1504,8 +1506,7 @@ public final class OSBTreeMultiValue<K> extends ODurableComponent {
   private UpdateBucketSearchResult splitRootBucket(final int keyIndex, final K keyToInsert, final OCacheEntry bucketEntry,
       OSBTreeBucketMultiValue<K> bucketToSplit, final boolean splitLeaf, final int indexToSplit, final K separationKey,
       final byte[] serializedSeparationKey, final List<OSBTreeBucketMultiValue.Entry> rightEntries,
-      final OAtomicOperation atomicOperation)
-      throws IOException {
+      final OAtomicOperation atomicOperation) throws IOException {
     final long treeSize = bucketToSplit.getTreeSize();
     final List<OSBTreeBucketMultiValue.Entry> leftEntries = new ArrayList<>(indexToSplit);
 

@@ -45,7 +45,8 @@ import java.util.List;
 final class OMultiValueNullBucket extends ODurablePage {
   private static final int RID_SIZE = OShortSerializer.SHORT_SIZE + OLongSerializer.LONG_SIZE;
 
-  private static final int NEXT_OFFSET = NEXT_FREE_POSITION;
+  private static final int NEXT_FREE_LIST_OFFSET = NEXT_FREE_POSITION;
+  private static final int NEXT_OFFSET           = NEXT_FREE_LIST_OFFSET + OIntegerSerializer.INT_SIZE;
 
   private static final int RIDS_SIZE_OFFSET = NEXT_OFFSET + OIntegerSerializer.INT_SIZE;
   private static final int RIDS_OFFSET      = RIDS_SIZE_OFFSET + OIntegerSerializer.INT_SIZE;
@@ -64,6 +65,14 @@ final class OMultiValueNullBucket extends ODurablePage {
 
   int getNext() {
     return getIntValue(NEXT_OFFSET);
+  }
+
+  void setNextFreeList(final int pageIndex) {
+    setIntValue(NEXT_FREE_LIST_OFFSET, pageIndex);
+  }
+
+  int getNextFreeList() {
+    return getIntValue(NEXT_FREE_LIST_OFFSET);
   }
 
   boolean addValue(final ORID rid) {
@@ -110,6 +119,7 @@ final class OMultiValueNullBucket extends ODurablePage {
       final long clusterPosition = getLongValue(position + OShortSerializer.SHORT_SIZE);
       if (clusterPosition == rid.getClusterPosition()) {
         moveData(position + RID_SIZE, position, end - (position + RID_SIZE));
+        setIntValue(RIDS_SIZE_OFFSET, size - 1);
         return true;
       }
     }
@@ -119,5 +129,16 @@ final class OMultiValueNullBucket extends ODurablePage {
 
   boolean isEmpty() {
     return getIntValue(RIDS_SIZE_OFFSET) == 0;
+  }
+
+  boolean isFull() {
+    final int size = getIntValue(RIDS_SIZE_OFFSET);
+    final int position = size * RID_SIZE + RIDS_OFFSET;
+
+    if (position + RID_SIZE > MAX_PAGE_SIZE_BYTES) {
+      return true;
+    }
+
+    return false;
   }
 }
