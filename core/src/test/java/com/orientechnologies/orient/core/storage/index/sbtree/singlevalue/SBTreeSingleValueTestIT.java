@@ -48,7 +48,7 @@ public class SBTreeSingleValueTestIT {
 
     singleValueTree = new OSBTreeSingleValue<>("singleBTree", ".sbt", ".nbt",
         (OAbstractPaginatedStorage) ((ODatabaseInternal) databaseDocumentTx).getStorage());
-    singleValueTree.create(OUTF8Serializer.INSTANCE, null, 1, true, null);
+    singleValueTree.create(OUTF8Serializer.INSTANCE, null, 1, null);
   }
 
   @After
@@ -98,7 +98,7 @@ public class SBTreeSingleValueTestIT {
 
       singleValueTree = new OSBTreeSingleValue<>("singleBTree", ".sbt", ".nbt",
           (OAbstractPaginatedStorage) ((ODatabaseInternal) databaseDocumentTx).getStorage());
-      singleValueTree.create(OUTF8Serializer.INSTANCE, null, 1, true, null);
+      singleValueTree.create(OUTF8Serializer.INSTANCE, null, 1, null);
     }
   }
 

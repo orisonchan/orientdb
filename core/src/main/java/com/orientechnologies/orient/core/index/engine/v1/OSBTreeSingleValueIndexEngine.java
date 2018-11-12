@@ -53,7 +53,7 @@ public class OSBTreeSingleValueIndexEngine implements OSingleValueIndexEngine {
       ODocument metadata, OEncryption encryption) {
     try {
       //noinspection unchecked
-      sbTree.create(keySerializer, keyTypes, keySize, nullPointerSupport, encryption);
+      sbTree.create(keySerializer, keyTypes, keySize, encryption);
     } catch (IOException e) {
       throw OException.wrapException(new OIndexException("Error of creation of index " + name), e);
     }
@@ -81,7 +81,7 @@ public class OSBTreeSingleValueIndexEngine implements OSingleValueIndexEngine {
   public void load(String indexName, OBinarySerializer valueSerializer, boolean isAutomatic, OBinarySerializer keySerializer,
       OType[] keyTypes, boolean nullPointerSupport, int keySize, Map<String, String> engineProperties, OEncryption encryption) {
     //noinspection unchecked
-    sbTree.load(indexName, keySerializer, keyTypes, keySize, nullPointerSupport, encryption);
+    sbTree.load(indexName, keySerializer, keyTypes, keySize, encryption);
   }
 
   @Override
@@ -208,11 +208,9 @@ public class OSBTreeSingleValueIndexEngine implements OSingleValueIndexEngine {
     } else {
       int counter = 0;
 
-      if (sbTree.isNullPointerSupport()) {
-        final Object nullValue = sbTree.get(null);
-        if (nullValue != null) {
-          counter += transformer.transformFromValue(nullValue).size();
-        }
+      final Object nullValue = sbTree.get(null);
+      if (nullValue != null) {
+        counter += transformer.transformFromValue(nullValue).size();
       }
 
       final Object firstKey = sbTree.firstKey();
