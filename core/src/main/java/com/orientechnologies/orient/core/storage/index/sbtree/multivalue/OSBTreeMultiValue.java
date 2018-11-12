@@ -89,7 +89,6 @@ public final class OSBTreeMultiValue<K> extends ODurableComponent {
   private              int                   keySize;
   private              OBinarySerializer<K>  keySerializer;
   private              OType[]               keyTypes;
-  private              boolean               nullPointerSupport;
   private              OEncryption           encryption;
 
   public OSBTreeMultiValue(final String name, final String dataFileExtension, final String nullFileExtension,
@@ -104,7 +103,7 @@ public final class OSBTreeMultiValue<K> extends ODurableComponent {
   }
 
   public void create(final OBinarySerializer<K> keySerializer, final OType[] keyTypes, final int keySize,
-      final boolean nullPointerSupport, final OEncryption encryption) throws IOException {
+      final OEncryption encryption) throws IOException {
     assert keySerializer != null;
 
     boolean rollback = false;
@@ -123,13 +122,9 @@ public final class OSBTreeMultiValue<K> extends ODurableComponent {
         this.encryption = encryption;
         this.keySerializer = keySerializer;
 
-        this.nullPointerSupport = nullPointerSupport;
-
         fileId = addFile(atomicOperation, getFullName());
 
-        if (nullPointerSupport) {
-          nullBucketFileId = addFile(atomicOperation, getName() + nullFileExtension);
-        }
+        nullBucketFileId = addFile(atomicOperation, getName() + nullFileExtension);
 
         final OCacheEntry rootCacheEntry = addPage(atomicOperation, fileId);
         try {
@@ -162,22 +157,11 @@ public final class OSBTreeMultiValue<K> extends ODurableComponent {
 
   }
 
-  public boolean isNullPointerSupport() {
-    acquireSharedLock();
-    try {
-      return nullPointerSupport;
-    } finally {
-      releaseSharedLock();
-    }
-  }
-
   public List<ORID> get(K key) {
     atomicOperationsManager.acquireReadLock(this);
     try {
       acquireSharedLock();
       try {
-        checkNullSupport(key);
-
         final OAtomicOperation atomicOperation = OAtomicOperationsManager.getCurrentOperation();
         if (key != null) {
           key = keySerializer.preprocess(key, (Object[]) keyTypes);
@@ -301,8 +285,6 @@ public final class OSBTreeMultiValue<K> extends ODurableComponent {
     try {
       acquireExclusiveLock();
       try {
-        checkNullSupport(key);
-
         if (key != null) {
 
           key = keySerializer.preprocess(key, (Object[]) keyTypes);
@@ -474,11 +456,7 @@ public final class OSBTreeMultiValue<K> extends ODurableComponent {
     acquireExclusiveLock();
     try {
       readCache.closeFile(fileId, true, writeCache);
-
-      if (nullPointerSupport) {
-        readCache.closeFile(nullBucketFileId, true, writeCache);
-      }
-
+      readCache.closeFile(nullBucketFileId, true, writeCache);
     } finally {
       releaseExclusiveLock();
     }
@@ -492,8 +470,16 @@ public final class OSBTreeMultiValue<K> extends ODurableComponent {
       try {
         truncateFile(atomicOperation, fileId);
 
-        if (nullPointerSupport) {
-          truncateFile(atomicOperation, nullBucketFileId);
+        final OCacheEntry entryPointCacheEntry = loadPageForWrite(atomicOperation, nullBucketFileId, 0, false);
+        try {
+          final OMultiValueNullEntryPointBucket entryPoint = new OMultiValueNullEntryPointBucket(entryPointCacheEntry);
+
+          entryPoint.setFreeListHeader(-1);
+          entryPoint.setLastPage(-1);
+          entryPoint.setFirsPage(-1);
+          entryPoint.setSize(0);
+        } finally {
+          releasePageFromWrite(atomicOperation, entryPointCacheEntry);
         }
 
         OCacheEntry cacheEntry = loadPageForWrite(atomicOperation, fileId, ROOT_INDEX, false);
@@ -526,10 +512,7 @@ public final class OSBTreeMultiValue<K> extends ODurableComponent {
       acquireExclusiveLock();
       try {
         deleteFile(atomicOperation, fileId);
-
-        if (nullPointerSupport) {
-          deleteFile(atomicOperation, nullBucketFileId);
-        }
+        deleteFile(atomicOperation, nullBucketFileId);
       } finally {
         releaseExclusiveLock();
       }
@@ -579,8 +562,6 @@ public final class OSBTreeMultiValue<K> extends ODurableComponent {
       }
 
       this.encryption = encryption;
-      this.nullPointerSupport = nullPointerSupport;
-
       final OAtomicOperation atomicOperation = OAtomicOperationsManager.getCurrentOperation();
 
       fileId = openFile(atomicOperation, getFullName());
@@ -627,8 +608,6 @@ public final class OSBTreeMultiValue<K> extends ODurableComponent {
     try {
       acquireExclusiveLock();
       try {
-        checkNullSupport(key);
-
         if (key != null) {
           key = keySerializer.preprocess(key, (Object[]) keyTypes);
 
@@ -779,8 +758,6 @@ public final class OSBTreeMultiValue<K> extends ODurableComponent {
       boolean removed;
       acquireExclusiveLock();
       try {
-        checkNullSupport(key);
-
         if (key != null) {
           key = keySerializer.preprocess(key, (Object[]) keyTypes);
 
@@ -1100,12 +1077,6 @@ public final class OSBTreeMultiValue<K> extends ODurableComponent {
    */
   public void acquireAtomicExclusiveLock() {
     atomicOperationsManager.acquireExclusiveLockTillOperationComplete(this);
-  }
-
-  private void checkNullSupport(final K key) {
-    if (key == null && !nullPointerSupport) {
-      throw new OSBTreeMultiValueException("Null keys are not supported.", this);
-    }
   }
 
   private void updateSize(final long diffSize, final OAtomicOperation atomicOperation) throws IOException {

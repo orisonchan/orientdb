@@ -52,7 +52,7 @@ public class OSBTreeMultiValueIndexEngine implements OMultiValueIndexEngine {
       ODocument metadata, OEncryption encryption) {
     try {
       //noinspection unchecked
-      sbTree.create(keySerializer, keyTypes, keySize, nullPointerSupport, encryption);
+      sbTree.create(keySerializer, keyTypes, keySize, encryption);
     } catch (IOException e) {
       throw OException.wrapException(new OIndexException("Error during creation of index " + name), e);
     }
@@ -209,10 +209,8 @@ public class OSBTreeMultiValueIndexEngine implements OMultiValueIndexEngine {
 
       int counter = 0;
 
-      if (sbTree.isNullPointerSupport()) {
-        if (!sbTree.get(null).isEmpty()) {
-          counter++;
-        }
+      if (!sbTree.get(null).isEmpty()) {
+        counter++;
       }
 
       if (firstKey != null && lastKey != null) {

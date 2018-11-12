@@ -49,7 +49,7 @@ public class SBTreeMultiValueTestIT {
 
     multiValueTree = new OSBTreeMultiValue<>("multiBTree", ".sbt", ".nbt",
         (OAbstractPaginatedStorage) ((ODatabaseInternal) databaseDocumentTx).getStorage());
-    multiValueTree.create(OUTF8Serializer.INSTANCE, null, 1, true, null);
+    multiValueTree.create(OUTF8Serializer.INSTANCE, null, 1, null);
   }
 
   @After
@@ -99,7 +99,7 @@ public class SBTreeMultiValueTestIT {
 
       multiValueTree = new OSBTreeMultiValue<>("multiBTree", ".sbt", ".nbt",
           (OAbstractPaginatedStorage) ((ODatabaseInternal) databaseDocumentTx).getStorage());
-      multiValueTree.create(OUTF8Serializer.INSTANCE, null, 1, true, null);
+      multiValueTree.create(OUTF8Serializer.INSTANCE, null, 1, null);
     }
   }
 
