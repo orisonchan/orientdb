@@ -22,7 +22,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
-public class OSBTreeSingleValueIndexEngine implements OSingleValueIndexEngine {
+public final class OSBTreeSingleValueIndexEngine implements OSingleValueIndexEngine {
   private static final String DATA_FILE_EXTENSION        = ".sbt";
   private static final String NULL_BUCKET_FILE_EXTENSION = ".nbt";
 
@@ -78,10 +78,8 @@ public class OSBTreeSingleValueIndexEngine implements OSingleValueIndexEngine {
   }
 
   @Override
-  public void load(String indexName, OBinarySerializer valueSerializer, boolean isAutomatic, OBinarySerializer keySerializer,
-      OType[] keyTypes, boolean nullPointerSupport, int keySize, Map<String, String> engineProperties, OEncryption encryption) {
-    //noinspection unchecked
-    sbTree.load(indexName, keySerializer, keyTypes, keySize, encryption);
+  public void load(String indexName, String encryptionKey) {
+    sbTree.load(indexName, encryptionKey);
   }
 
   @Override

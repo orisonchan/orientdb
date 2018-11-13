@@ -20,10 +20,14 @@
 
 package com.orientechnologies.orient.core.index.engine;
 
+import com.orientechnologies.common.serialization.types.OBinarySerializer;
+import com.orientechnologies.orient.core.encryption.OEncryption;
 import com.orientechnologies.orient.core.id.ORID;
 import com.orientechnologies.orient.core.index.OIndexKeyUpdater;
+import com.orientechnologies.orient.core.metadata.schema.OType;
 
 import java.io.IOException;
+import java.util.Map;
 
 /**
  * @author Andrey Lomakin (a.lomakin-at-orientdb.com)
@@ -53,4 +57,7 @@ public interface OIndexEngine extends OBaseIndexEngine {
   default int getEngineAPIVersion() {
     return VERSION;
   }
+
+  void load(String indexName, OBinarySerializer valueSerializer, boolean isAutomatic, OBinarySerializer keySerializer,
+      OType[] keyTypes, boolean nullPointerSupport, int keySize, Map<String, String> engineProperties, OEncryption encryption);
 }

@@ -4,13 +4,13 @@ import com.orientechnologies.common.serialization.types.OIntegerSerializer;
 import com.orientechnologies.orient.core.storage.cache.OCacheEntry;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.base.ODurablePage;
 
-final class OMultiValueNullEntryPointBucket extends ODurablePage {
+final class ONullEntryPoint extends ODurablePage {
   private static final int SIZE_OFFSET             = NEXT_FREE_POSITION;
   private static final int FREE_LIST_HEADER_OFFSET = SIZE_OFFSET + OIntegerSerializer.INT_SIZE;
   private static final int FIRST_PAGE_OFFSET       = FREE_LIST_HEADER_OFFSET + OIntegerSerializer.INT_SIZE;
   private static final int LAST_PAGE_OFFSET        = FIRST_PAGE_OFFSET + OIntegerSerializer.INT_SIZE;
 
-  OMultiValueNullEntryPointBucket(final OCacheEntry cacheEntry) {
+  ONullEntryPoint(final OCacheEntry cacheEntry) {
     super(cacheEntry);
   }
 

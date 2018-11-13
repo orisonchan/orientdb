@@ -43,7 +43,7 @@ import java.util.Objects;
  * @author Andrey Lomakin (a.lomakin-at-orientdb.com)
  * @since 8/7/13
  */
-public final class OSBTreeBucketSingleValue<K> extends ODurablePage {
+final class OSBTreeBucketSingleValue<K> extends ODurablePage {
   private static final int RID_SIZE = OShortSerializer.SHORT_SIZE + OLongSerializer.LONG_SIZE;
 
   private static final int FREE_POINTER_OFFSET  = NEXT_FREE_POSITION;
@@ -52,8 +52,7 @@ public final class OSBTreeBucketSingleValue<K> extends ODurablePage {
   private static final int LEFT_SIBLING_OFFSET  = IS_LEAF_OFFSET + OByteSerializer.BYTE_SIZE;
   private static final int RIGHT_SIBLING_OFFSET = LEFT_SIBLING_OFFSET + OLongSerializer.LONG_SIZE;
 
-  private static final int TREE_SIZE_OFFSET       = RIGHT_SIBLING_OFFSET + OLongSerializer.LONG_SIZE;
-  private static final int POSITIONS_ARRAY_OFFSET = TREE_SIZE_OFFSET + OLongSerializer.LONG_SIZE;
+  private static final int POSITIONS_ARRAY_OFFSET = RIGHT_SIBLING_OFFSET + OLongSerializer.LONG_SIZE;
 
   private final boolean isLeaf;
 
@@ -81,8 +80,6 @@ public final class OSBTreeBucketSingleValue<K> extends ODurablePage {
     setByteValue(IS_LEAF_OFFSET, (byte) (isLeaf ? 1 : 0));
     setLongValue(LEFT_SIBLING_OFFSET, -1);
     setLongValue(RIGHT_SIBLING_OFFSET, -1);
-
-    setLongValue(TREE_SIZE_OFFSET, 0);
   }
 
   @SuppressFBWarnings("EI_EXPOSE_REP2")
@@ -94,14 +91,6 @@ public final class OSBTreeBucketSingleValue<K> extends ODurablePage {
 
     this.isLeaf = getByteValue(IS_LEAF_OFFSET) > 0;
     this.keySerializer = keySerializer;
-  }
-
-  public void setTreeSize(final long size) {
-    setLongValue(TREE_SIZE_OFFSET, size);
-  }
-
-  public long getTreeSize() {
-    return getLongValue(TREE_SIZE_OFFSET);
   }
 
   public boolean isEmpty() {

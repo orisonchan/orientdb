@@ -46,7 +46,7 @@ import java.util.concurrent.ConcurrentSkipListMap;
  * @author Andrey Lomakin (a.lomakin-at-orientdb.com)
  * @since 8/7/13
  */
-final class OSBTreeBucketMultiValue<K> extends ODurablePage {
+final class OSBTreeBucket<K> extends ODurablePage {
   private static final int RID_SIZE              = OShortSerializer.SHORT_SIZE + OLongSerializer.LONG_SIZE;
   private static final int LINKED_LIST_ITEM_SIZE = RID_SIZE + OIntegerSerializer.INT_SIZE;
 
@@ -56,8 +56,7 @@ final class OSBTreeBucketMultiValue<K> extends ODurablePage {
   private static final int LEFT_SIBLING_OFFSET  = IS_LEAF_OFFSET + OByteSerializer.BYTE_SIZE;
   private static final int RIGHT_SIBLING_OFFSET = LEFT_SIBLING_OFFSET + OLongSerializer.LONG_SIZE;
 
-  private static final int TREE_SIZE_OFFSET       = RIGHT_SIBLING_OFFSET + OLongSerializer.LONG_SIZE;
-  private static final int POSITIONS_ARRAY_OFFSET = TREE_SIZE_OFFSET + OLongSerializer.LONG_SIZE;
+  private static final int POSITIONS_ARRAY_OFFSET = RIGHT_SIBLING_OFFSET + OLongSerializer.LONG_SIZE;
 
   private final boolean isLeaf;
 
@@ -68,7 +67,7 @@ final class OSBTreeBucketMultiValue<K> extends ODurablePage {
   private final OEncryption encryption;
 
   @SuppressFBWarnings("EI_EXPOSE_REP2")
-  OSBTreeBucketMultiValue(final OCacheEntry cacheEntry, final boolean isLeaf, final OBinarySerializer<K> keySerializer,
+  OSBTreeBucket(final OCacheEntry cacheEntry, final boolean isLeaf, final OBinarySerializer<K> keySerializer,
       final OEncryption encryption) {
     super(cacheEntry);
 
@@ -82,25 +81,15 @@ final class OSBTreeBucketMultiValue<K> extends ODurablePage {
     setByteValue(IS_LEAF_OFFSET, (byte) (isLeaf ? 1 : 0));
     setLongValue(LEFT_SIBLING_OFFSET, -1);
     setLongValue(RIGHT_SIBLING_OFFSET, -1);
-
-    setLongValue(TREE_SIZE_OFFSET, 0);
   }
 
   @SuppressFBWarnings("EI_EXPOSE_REP2")
-  OSBTreeBucketMultiValue(final OCacheEntry cacheEntry, final OBinarySerializer<K> keySerializer, final OEncryption encryption) {
+  OSBTreeBucket(final OCacheEntry cacheEntry, final OBinarySerializer<K> keySerializer, final OEncryption encryption) {
     super(cacheEntry);
     this.encryption = encryption;
 
     this.isLeaf = getByteValue(IS_LEAF_OFFSET) > 0;
     this.keySerializer = keySerializer;
-  }
-
-  void setTreeSize(final long size) {
-    setLongValue(TREE_SIZE_OFFSET, size);
-  }
-
-  long getTreeSize() {
-    return getLongValue(TREE_SIZE_OFFSET);
   }
 
   boolean isEmpty() {
@@ -510,14 +499,14 @@ final class OSBTreeBucketMultiValue<K> extends ODurablePage {
   }
 
   private int[] incrementalUpdateAllLinkedListReferences(final int firstItem, final int boundary, final int diffSize) {
-    int currentItem = firstItem + OSBTreeBucketMultiValue.LINKED_LIST_ITEM_SIZE;
+    int currentItem = firstItem + OSBTreeBucket.LINKED_LIST_ITEM_SIZE;
 
     while (true) {
       final int nextItem = getIntValue(currentItem);
 
       if (nextItem > 0 && nextItem < boundary) {
         setIntValue(currentItem, nextItem + diffSize);
-        currentItem = nextItem + OSBTreeBucketMultiValue.LINKED_LIST_ITEM_SIZE;
+        currentItem = nextItem + OSBTreeBucket.LINKED_LIST_ITEM_SIZE;
       } else {
         return new int[] { currentItem, nextItem };
       }

@@ -28,9 +28,6 @@ public interface OBaseIndexEngine {
 
   void deleteWithoutLoad(String indexName) throws IOException;
 
-  void load(String indexName, OBinarySerializer valueSerializer, boolean isAutomatic, OBinarySerializer keySerializer,
-      OType[] keyTypes, boolean nullPointerSupport, int keySize, Map<String, String> engineProperties, OEncryption encryption);
-
   boolean contains(Object key);
 
   void clear() throws IOException;

@@ -11,4 +11,6 @@ public interface OV1IndexEngine extends OBaseIndexEngine {
   default int getEngineAPIVersion() {
     return VERSION;
   }
+
+  void load(String indexName, String encryptionKey);
 }

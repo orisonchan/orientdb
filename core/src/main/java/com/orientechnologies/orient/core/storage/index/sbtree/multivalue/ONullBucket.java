@@ -42,7 +42,7 @@ import java.util.List;
  * @author Andrey Lomakin (a.lomakin-at-orientdb.com)
  * @since 4/15/14
  */
-final class OMultiValueNullBucket extends ODurablePage {
+final class ONullBucket extends ODurablePage {
   private static final int RID_SIZE = OShortSerializer.SHORT_SIZE + OLongSerializer.LONG_SIZE;
 
   private static final int NEXT_FREE_LIST_OFFSET = NEXT_FREE_POSITION;
@@ -51,7 +51,7 @@ final class OMultiValueNullBucket extends ODurablePage {
   private static final int RIDS_SIZE_OFFSET = NEXT_OFFSET + OIntegerSerializer.INT_SIZE;
   private static final int RIDS_OFFSET      = RIDS_SIZE_OFFSET + OIntegerSerializer.INT_SIZE;
 
-  OMultiValueNullBucket(final OCacheEntry cacheEntry, final boolean isNew) {
+  ONullBucket(final OCacheEntry cacheEntry, final boolean isNew) {
     super(cacheEntry);
 
     if (isNew) {
