@@ -331,7 +331,7 @@ public final class OSBTreeMultiValue<K> extends ODurableComponent {
 
           while (!addEntry(keyBucket, insertionIndex, isNew, keyToInsert, value)) {
             bucketSearchResult = splitBucket(keyBucket, keyBucketCacheEntry, bucketSearchResult.path,
-                bucketSearchResult.pointersIndexes, insertionIndex, key, atomicOperation);
+                bucketSearchResult.insetionIndexes, insertionIndex, key, atomicOperation);
 
             insertionIndex = bucketSearchResult.itemIndex;
 
@@ -1391,14 +1391,13 @@ public final class OSBTreeMultiValue<K> extends ODurableComponent {
   }
 
   private UpdateBucketSearchResult splitBucket(final OSBTreeBucket<K> bucketToSplit, final OCacheEntry entryToSplit,
-      final List<Long> path, final List<Integer> itemPointers, final int keyIndex, final K keyToInsert,
+      final List<Long> path, final List<Integer> insertionIndexes, final int keyIndex, final K keyToInsert,
       final OAtomicOperation atomicOperation) throws IOException {
     final boolean splitLeaf = bucketToSplit.isLeaf();
     final int bucketSize = bucketToSplit.size();
 
     final int indexToSplit = bucketSize >>> 1;
     final byte[] serializedSeparationKey = bucketToSplit.getRawKey(indexToSplit);
-    final K separationKey = deserializeKey(serializedSeparationKey);
 
     final List<OSBTreeBucket.Entry> rightEntries = new ArrayList<>(indexToSplit);
 
@@ -1424,11 +1423,11 @@ public final class OSBTreeMultiValue<K> extends ODurableComponent {
     }
 
     if (entryToSplit.getPageIndex() != ROOT_INDEX) {
-      return splitNonRootBucket(path, itemPointers, keyIndex, keyToInsert, entryToSplit.getPageIndex(), bucketToSplit, splitLeaf,
-          indexToSplit, separationKey, serializedSeparationKey, rightEntries, atomicOperation);
+      return splitNonRootBucket(path, insertionIndexes, keyIndex, keyToInsert, entryToSplit.getPageIndex(), bucketToSplit,
+          splitLeaf, indexToSplit, serializedSeparationKey, rightEntries, atomicOperation);
     } else {
-      return splitRootBucket(keyIndex, keyToInsert, entryToSplit, bucketToSplit, splitLeaf, indexToSplit, separationKey,
-          serializedSeparationKey, rightEntries, atomicOperation);
+      return splitRootBucket(keyIndex, keyToInsert, entryToSplit, bucketToSplit, splitLeaf, indexToSplit, serializedSeparationKey,
+          rightEntries, atomicOperation);
     }
   }
 
@@ -1456,10 +1455,10 @@ public final class OSBTreeMultiValue<K> extends ODurableComponent {
     return keySerializer.deserializeNativeObject(decrypted, 0);
   }
 
-  private UpdateBucketSearchResult splitNonRootBucket(final List<Long> path, final List<Integer> itemPointers, final int keyIndex,
-      final K keyToInsert, final long pageIndex, final OSBTreeBucket<K> bucketToSplit, final boolean splitLeaf,
-      final int indexToSplit, final K separationKey, final byte[] serializedSeparationKey,
-      final List<OSBTreeBucket.Entry> rightEntries, final OAtomicOperation atomicOperation) throws IOException {
+  private UpdateBucketSearchResult splitNonRootBucket(final List<Long> path, final List<Integer> insertionIndexes,
+      final int keyIndex, final K keyToInsert, final long pageIndex, final OSBTreeBucket<K> bucketToSplit, final boolean splitLeaf,
+      final int indexToSplit, final byte[] serializedSeparationKey, final List<OSBTreeBucket.Entry> rightEntries,
+      final OAtomicOperation atomicOperation) throws IOException {
 
     final OCacheEntry rightBucketEntry;
     final OCacheEntry entryPointCacheEntry = loadPageForWrite(atomicOperation, fileId, ENTRY_POINT_INDEX, false);
@@ -1471,12 +1470,16 @@ public final class OSBTreeMultiValue<K> extends ODurableComponent {
         rightBucketEntry = loadPageForWrite(atomicOperation, fileId, pageSize, false);
         entryPoint.setPagesSize(pageSize + 1);
       } else {
+        assert pageSize == getFilledUpTo(atomicOperation, fileId) - 1;
+
         rightBucketEntry = addPage(atomicOperation, fileId);
-        entryPoint.setPagesSize((int) (rightBucketEntry.getPageIndex() + 1));
+        entryPoint.setPagesSize((int) rightBucketEntry.getPageIndex());
       }
     } finally {
       releasePageFromWrite(atomicOperation, entryPointCacheEntry);
     }
+
+    K separationKey = null;
 
     try {
       final OSBTreeBucket<K> newRightBucket = new OSBTreeBucket<>(rightBucketEntry, splitLeaf, keySerializer, encryption);
@@ -1511,14 +1514,18 @@ public final class OSBTreeMultiValue<K> extends ODurableComponent {
       OCacheEntry parentCacheEntry = loadPageForWrite(atomicOperation, fileId, parentIndex, false);
       try {
         OSBTreeBucket<K> parentBucket = new OSBTreeBucket<>(parentCacheEntry, keySerializer, encryption);
-        int insertionIndex = itemPointers.get(itemPointers.size() - 2) + 1;
+        int insertionIndex = insertionIndexes.get(insertionIndexes.size() - 2);
 
         while (!parentBucket
             .addNonLeafEntry(insertionIndex, serializedSeparationKey, (int) pageIndex, (int) rightBucketEntry.getPageIndex(),
                 true)) {
+          if (separationKey == null) {
+            separationKey = deserializeKey(serializedSeparationKey);
+          }
+
           final UpdateBucketSearchResult bucketSearchResult = splitBucket(parentBucket, parentCacheEntry,
-              path.subList(0, path.size() - 1), itemPointers.subList(0, itemPointers.size() - 1), insertionIndex, separationKey,
-              atomicOperation);
+              path.subList(0, path.size() - 1), insertionIndexes.subList(0, insertionIndexes.size() - 1), insertionIndex,
+              separationKey, atomicOperation);
 
           parentIndex = bucketSearchResult.getLastPathItem();
           insertionIndex = bucketSearchResult.itemIndex;
@@ -1540,32 +1547,49 @@ public final class OSBTreeMultiValue<K> extends ODurableComponent {
     }
 
     final ArrayList<Long> resultPath = new ArrayList<>(path.subList(0, path.size() - 1));
-    final ArrayList<Integer> resultItemPointers = new ArrayList<>(itemPointers.subList(0, itemPointers.size() - 1));
+    final ArrayList<Integer> resultInsertionIndexes = new ArrayList<>(insertionIndexes.subList(0, insertionIndexes.size() - 1));
 
-    if (comparator.compare(keyToInsert, separationKey) < 0) {
-      resultPath.add(pageIndex);
-      resultItemPointers.add(keyIndex);
-
-      return new UpdateBucketSearchResult(resultItemPointers, resultPath, keyIndex);
+    if (keyIndex < indexToSplit) {
+      return addToTheLeftNonRootBucket(keyIndex, pageIndex, resultPath, resultInsertionIndexes);
+    } else if (keyIndex > indexToSplit) {
+      return addToTheRightNonRootBucket(keyIndex, splitLeaf, indexToSplit, rightBucketEntry.getPageIndex(), resultPath,
+          resultInsertionIndexes);
+    } else if (splitLeaf && keyToInsert.equals(separationKey != null ? separationKey : deserializeKey(serializedSeparationKey))) {
+      return addToTheRightNonRootBucket(keyIndex, true, indexToSplit, rightBucketEntry.getPageIndex(), resultPath,
+          resultInsertionIndexes);
+    } else {
+      return addToTheLeftNonRootBucket(keyIndex, pageIndex, resultPath, resultInsertionIndexes);
     }
+  }
 
+  private static UpdateBucketSearchResult addToTheRightNonRootBucket(int keyIndex, boolean splitLeaf, int indexToSplit,
+      long rightPageIndex, ArrayList<Long> resultPath, ArrayList<Integer> resultItemPointers) {
     final int parentIndex = resultItemPointers.size() - 1;
     resultItemPointers.set(parentIndex, resultItemPointers.get(parentIndex) + 1);
-    resultPath.add(rightBucketEntry.getPageIndex());
+    resultPath.add(rightPageIndex);
 
     if (splitLeaf) {
       resultItemPointers.add(keyIndex - indexToSplit);
       return new UpdateBucketSearchResult(resultItemPointers, resultPath, keyIndex - indexToSplit);
     }
 
-    resultItemPointers.add(keyIndex - indexToSplit - 1);
-    return new UpdateBucketSearchResult(resultItemPointers, resultPath, keyIndex - indexToSplit - 1);
+    final int insertionIndex = keyIndex - indexToSplit - 1;
+
+    resultItemPointers.add(insertionIndex);
+    return new UpdateBucketSearchResult(resultItemPointers, resultPath, insertionIndex);
+  }
+
+  private static UpdateBucketSearchResult addToTheLeftNonRootBucket(int keyIndex, long pageIndex, ArrayList<Long> resultPath,
+      ArrayList<Integer> resultItemPointers) {
+    resultPath.add(pageIndex);
+    resultItemPointers.add(keyIndex);
+
+    return new UpdateBucketSearchResult(resultItemPointers, resultPath, keyIndex);
   }
 
   private UpdateBucketSearchResult splitRootBucket(final int keyIndex, final K keyToInsert, final OCacheEntry bucketEntry,
-      OSBTreeBucket<K> bucketToSplit, final boolean splitLeaf, final int indexToSplit, final K separationKey,
-      final byte[] serializedSeparationKey, final List<OSBTreeBucket.Entry> rightEntries, final OAtomicOperation atomicOperation)
-      throws IOException {
+      OSBTreeBucket<K> bucketToSplit, final boolean splitLeaf, final int indexToSplit, final byte[] serializedSeparationKey,
+      final List<OSBTreeBucket.Entry> rightEntries, final OAtomicOperation atomicOperation) throws IOException {
     final List<OSBTreeBucket.Entry> leftEntries = new ArrayList<>(indexToSplit);
 
     if (splitLeaf) {
@@ -1602,16 +1626,20 @@ public final class OSBTreeMultiValue<K> extends ODurableComponent {
         leftBucketEntry = loadPageForWrite(atomicOperation, fileId, pageSize, false);
         pageSize++;
       } else {
+        assert pageSize == filledUpTo - 1;
+
         leftBucketEntry = addPage(atomicOperation, fileId);
-        pageSize = (int) (leftBucketEntry.getPageIndex() + 1);
+        pageSize = (int) leftBucketEntry.getPageIndex();
       }
 
       if (pageSize < filledUpTo) {
         rightBucketEntry = loadPageForWrite(atomicOperation, fileId, pageSize, false);
         pageSize++;
       } else {
+        assert pageSize == filledUpTo;
+
         rightBucketEntry = addPage(atomicOperation, fileId);
-        pageSize = (int) (rightBucketEntry.getPageIndex() + 1);
+        pageSize = (int) rightBucketEntry.getPageIndex();
       }
 
       entryPoint.setPagesSize(pageSize);
@@ -1653,14 +1681,19 @@ public final class OSBTreeMultiValue<K> extends ODurableComponent {
 
     final ArrayList<Integer> itemPointers = new ArrayList<>();
 
-    if (comparator.compare(keyToInsert, separationKey) < 0) {
-      itemPointers.add(-1);
-      itemPointers.add(keyIndex);
-
-      resultPath.add(leftBucketEntry.getPageIndex());
-      return new UpdateBucketSearchResult(itemPointers, resultPath, keyIndex);
+    if (keyIndex < indexToSplit) {
+      return addToTheLeftRootBucket(keyIndex, leftBucketEntry, resultPath, itemPointers);
+    } else if (keyIndex > indexToSplit) {
+      return addToTheRightRootBucket(keyIndex, splitLeaf, indexToSplit, rightBucketEntry, resultPath, itemPointers);
+    } else if (splitLeaf && keyToInsert.equals(deserializeKey(serializedSeparationKey))) {
+      return addToTheRightRootBucket(keyIndex, true, indexToSplit, rightBucketEntry, resultPath, itemPointers);
+    } else {
+      return addToTheLeftRootBucket(keyIndex, leftBucketEntry, resultPath, itemPointers);
     }
+  }
 
+  private static UpdateBucketSearchResult addToTheRightRootBucket(int keyIndex, boolean splitLeaf, int indexToSplit,
+      OCacheEntry rightBucketEntry, ArrayList<Long> resultPath, ArrayList<Integer> itemPointers) {
     resultPath.add(rightBucketEntry.getPageIndex());
     itemPointers.add(0);
 
@@ -1669,8 +1702,19 @@ public final class OSBTreeMultiValue<K> extends ODurableComponent {
       return new UpdateBucketSearchResult(itemPointers, resultPath, keyIndex - indexToSplit);
     }
 
-    itemPointers.add(keyIndex - indexToSplit - 1);
-    return new UpdateBucketSearchResult(itemPointers, resultPath, keyIndex - indexToSplit - 1);
+    final int itemPointer = keyIndex - indexToSplit - 1;
+    itemPointers.add(itemPointer);
+
+    return new UpdateBucketSearchResult(itemPointers, resultPath, itemPointer);
+  }
+
+  private static UpdateBucketSearchResult addToTheLeftRootBucket(int keyIndex, OCacheEntry leftBucketEntry,
+      ArrayList<Long> resultPath, ArrayList<Integer> itemPointers) {
+    itemPointers.add(-1);
+    itemPointers.add(keyIndex);
+
+    resultPath.add(leftBucketEntry.getPageIndex());
+    return new UpdateBucketSearchResult(itemPointers, resultPath, keyIndex);
   }
 
   private BucketSearchResult findBucket(final K key, final OAtomicOperation atomicOperation) throws IOException {
@@ -1714,7 +1758,7 @@ public final class OSBTreeMultiValue<K> extends ODurableComponent {
     long pageIndex = ROOT_INDEX;
 
     final ArrayList<Long> path = new ArrayList<>();
-    final ArrayList<Integer> itemIndexes = new ArrayList<>();
+    final ArrayList<Integer> insertionIndexes = new ArrayList<>();
 
     while (true) {
       if (path.size() > MAX_PATH_LENGTH) {
@@ -1730,13 +1774,13 @@ public final class OSBTreeMultiValue<K> extends ODurableComponent {
         final int index = keyBucket.find(key);
 
         if (keyBucket.isLeaf()) {
-          itemIndexes.add(index);
-          return new UpdateBucketSearchResult(itemIndexes, path, index);
+          insertionIndexes.add(index);
+          return new UpdateBucketSearchResult(insertionIndexes, path, index);
         }
 
         if (index >= 0) {
           pageIndex = keyBucket.getRight(index);
-          itemIndexes.add(index);
+          insertionIndexes.add(index + 1);
         } else {
           final int insertionIndex = -index - 1;
 
@@ -1746,7 +1790,7 @@ public final class OSBTreeMultiValue<K> extends ODurableComponent {
             pageIndex = keyBucket.getLeft(insertionIndex);
           }
 
-          itemIndexes.add(insertionIndex - 1);
+          insertionIndexes.add(insertionIndex);
         }
       } finally {
         releasePageFromRead(atomicOperation, bucketEntry);
@@ -1822,12 +1866,12 @@ public final class OSBTreeMultiValue<K> extends ODurableComponent {
   }
 
   private static final class UpdateBucketSearchResult {
-    private final List<Integer>   pointersIndexes;
+    private final List<Integer>   insetionIndexes;
     private final ArrayList<Long> path;
     private final int             itemIndex;
 
-    private UpdateBucketSearchResult(final List<Integer> pointersIndexes, final ArrayList<Long> path, final int itemIndex) {
-      this.pointersIndexes = pointersIndexes;
+    private UpdateBucketSearchResult(final List<Integer> insetionIndexes, final ArrayList<Long> path, final int itemIndex) {
+      this.insetionIndexes = insetionIndexes;
       this.path = path;
       this.itemIndex = itemIndex;
     }
@@ -1893,7 +1937,7 @@ public final class OSBTreeMultiValue<K> extends ODurableComponent {
             final OCacheEntry entryPointCacheEntry = loadPageForRead(atomicOperation, fileId, ENTRY_POINT_INDEX, false);
             try {
               final OEntryPoint<K> entryPoint = new OEntryPoint<>(entryPointCacheEntry, false);
-              if (pageIndex >= entryPoint.getPagesSize()) {
+              if (pageIndex >= entryPoint.getPagesSize() + 1) {
                 pageIndex = -1;
                 break;
               }
