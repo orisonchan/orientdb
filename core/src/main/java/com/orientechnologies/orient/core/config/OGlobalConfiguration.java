@@ -967,8 +967,7 @@ public enum OGlobalConfiguration {
       String.class, null),
 
   @OApi(maturity = OApi.MATURITY.NEW) CLIENT_CONNECTION_FETCH_HOST_LIST("client.connection.fetchHostList",
-      "If set true fetch the list of other possible hosts from the distributed environment ",
-      Boolean.class, true),
+      "If set true fetch the list of other possible hosts from the distributed environment ", Boolean.class, true),
 
 
   /**

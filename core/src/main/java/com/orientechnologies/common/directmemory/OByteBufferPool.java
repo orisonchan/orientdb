@@ -71,7 +71,7 @@ public class OByteBufferPool implements OByteBufferPoolMXBean {
       bufferSize = OGlobalConfiguration.DISK_CACHE_PAGE_SIZE.getValueAsInteger();
     }
 
-    final OByteBufferPool newInstance = new OByteBufferPool(bufferSize  * 1024);
+    final OByteBufferPool newInstance = new OByteBufferPool(bufferSize * 1024);
     if (INSTANCE_HOLDER.compareAndSet(null, newInstance)) {
       return newInstance;
     }
