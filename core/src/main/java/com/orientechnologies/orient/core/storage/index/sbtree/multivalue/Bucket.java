@@ -46,9 +46,9 @@ import java.util.concurrent.ConcurrentSkipListMap;
  * @author Andrey Lomakin (a.lomakin-at-orientdb.com)
  * @since 8/7/13
  */
-final class OSBTreeBucket<K> extends ODurablePage {
-  private static final int RID_SIZE              = OShortSerializer.SHORT_SIZE + OLongSerializer.LONG_SIZE;
-  private static final int LINKED_LIST_ITEM_SIZE = RID_SIZE + OIntegerSerializer.INT_SIZE;
+final class Bucket<K> extends ODurablePage {
+  private static final int RID_SIZE                       = OShortSerializer.SHORT_SIZE + OLongSerializer.LONG_SIZE;
+  private static final int SINGLE_ELEMNT_LINKED_ITEM_SIZE = OIntegerSerializer.INT_SIZE + RID_SIZE + OByteSerializer.BYTE_SIZE;
 
   private static final int FREE_POINTER_OFFSET  = NEXT_FREE_POSITION;
   private static final int SIZE_OFFSET          = FREE_POINTER_OFFSET + OIntegerSerializer.INT_SIZE;
@@ -67,7 +67,7 @@ final class OSBTreeBucket<K> extends ODurablePage {
   private final OEncryption encryption;
 
   @SuppressFBWarnings("EI_EXPOSE_REP2")
-  OSBTreeBucket(final OCacheEntry cacheEntry, final boolean isLeaf, final OBinarySerializer<K> keySerializer,
+  Bucket(final OCacheEntry cacheEntry, final boolean isLeaf, final OBinarySerializer<K> keySerializer,
       final OEncryption encryption) {
     super(cacheEntry);
 
@@ -84,7 +84,7 @@ final class OSBTreeBucket<K> extends ODurablePage {
   }
 
   @SuppressFBWarnings("EI_EXPOSE_REP2")
-  OSBTreeBucket(final OCacheEntry cacheEntry, final OBinarySerializer<K> keySerializer, final OEncryption encryption) {
+  Bucket(final OCacheEntry cacheEntry, final OBinarySerializer<K> keySerializer, final OEncryption encryption) {
     super(cacheEntry);
     this.encryption = encryption;
 
@@ -141,15 +141,21 @@ final class OSBTreeBucket<K> extends ODurablePage {
     }
 
     final List<Integer> itemsToRemove = new ArrayList<>();
+    final List<Integer> itemsToRemoveSize = new ArrayList<>();
+
     final int entrySize = keySize + OIntegerSerializer.INT_SIZE + RID_SIZE;
     int totalSpace = entrySize;
 
     while (nextItem > 0) {
-      itemsToRemove.add(nextItem);
       nextItem = getIntValue(nextItem);
-    }
 
-    totalSpace += itemsToRemove.size() * LINKED_LIST_ITEM_SIZE;
+      final int arraySize = 0xFF & getByteValue(nextItem + OIntegerSerializer.INT_SIZE);
+      final int itemSize = arraySize * RID_SIZE + OIntegerSerializer.INT_SIZE + OByteSerializer.BYTE_SIZE;
+      totalSpace += itemSize;
+
+      itemsToRemove.add(nextItem);
+      itemsToRemoveSize.add(itemSize);
+    }
 
     int size = getIntValue(SIZE_OFFSET);
 
@@ -174,13 +180,15 @@ final class OSBTreeBucket<K> extends ODurablePage {
 
     int freeSpacePointer = getIntValue(FREE_POINTER_OFFSET);
 
+    int clearedSpace = 0;
     int counter = 0;
-    for (final int itemToRemove : itemsToRemove) {
-      if (itemToRemove > freeSpacePointer) {
-        moveData(freeSpacePointer, freeSpacePointer + LINKED_LIST_ITEM_SIZE, itemToRemove - freeSpacePointer);
 
-        final SortedMap<Integer, Integer> linkRefToCorrect = nexts.headMap(itemToRemove);
-        final int diff = totalSpace - counter * LINKED_LIST_ITEM_SIZE;
+    for (final int itemToRemove : itemsToRemove) {
+      final int itemSize = itemsToRemoveSize.get(counter);
+
+      if (itemToRemove > freeSpacePointer) {
+        moveData(freeSpacePointer, freeSpacePointer + itemSize, itemToRemove - freeSpacePointer);
+        final int diff = totalSpace - clearedSpace;
 
         final SortedMap<Integer, Integer> entriesRefToCorrect = entries.headMap(itemToRemove);
         for (final Map.Entry<Integer, Integer> entry : entriesRefToCorrect.entrySet()) {
@@ -192,6 +200,7 @@ final class OSBTreeBucket<K> extends ODurablePage {
 
         entriesRefToCorrect.clear();
 
+        final SortedMap<Integer, Integer> linkRefToCorrect = nexts.headMap(itemToRemove);
         for (final Map.Entry<Integer, Integer> entry : linkRefToCorrect.entrySet()) {
           final int first = entry.getKey();
           final int currentEntryPosition = entry.getValue();
@@ -199,10 +208,13 @@ final class OSBTreeBucket<K> extends ODurablePage {
           if (first < itemToRemove) {
             if (currentEntryPosition > 0) {
               final int updatedEntryPosition;
+
               if (currentEntryPosition < itemToRemove) {
                 final int itemsBefore = -Collections.binarySearch(itemsToRemove, currentEntryPosition) - 1;
+
                 if (counter >= itemsBefore) {
-                  updatedEntryPosition = currentEntryPosition + (counter - itemsBefore + 1) * LINKED_LIST_ITEM_SIZE;
+                  updatedEntryPosition = currentEntryPosition + itemsToRemoveSize.subList(itemsBefore, counter + 1).stream()
+                      .mapToInt(Integer::intValue).sum();
                 } else {
                   updatedEntryPosition = currentEntryPosition;
                 }
@@ -216,13 +228,15 @@ final class OSBTreeBucket<K> extends ODurablePage {
               final int prevCounter = compositeEntryPosition >>> 16;
               final int prevEntryPosition = compositeEntryPosition & 0xFFFF;
 
-              final int updatedEntryPosition = (counter - prevCounter) * LINKED_LIST_ITEM_SIZE + prevEntryPosition;
+              final int updatedEntryPosition =
+                  prevEntryPosition + itemsToRemoveSize.subList(prevCounter, counter + 1).stream().mapToInt(Integer::intValue)
+                      .sum();
 
               setIntValue(updatedEntryPosition, first + diff);
             }
           }
 
-          final int[] lastEntry = incrementalUpdateAllLinkedListReferences(first, itemToRemove, diff);
+          final int[] lastEntry = incrementalUpdateAllLinkedListReferences(first, itemSize, itemToRemove, diff);
 
           if (lastEntry[1] > 0) {
             nexts.put(lastEntry[1], -((counter << 16) | lastEntry[0]));
@@ -230,17 +244,17 @@ final class OSBTreeBucket<K> extends ODurablePage {
         }
 
         linkRefToCorrect.clear();
-
       }
 
+      clearedSpace += itemsToRemoveSize.get(counter);
       counter++;
-      freeSpacePointer += LINKED_LIST_ITEM_SIZE;
+
+      freeSpacePointer += itemSize;
     }
 
     if (entryPosition > freeSpacePointer) {
       moveData(freeSpacePointer, freeSpacePointer + entrySize, entryPosition - freeSpacePointer);
 
-      final SortedMap<Integer, Integer> linkRefToCorrect = nexts.headMap(entryPosition);
       final int diff = entrySize;
 
       final SortedMap<Integer, Integer> entriesRefToCorrect = entries.headMap(entryPosition);
@@ -251,6 +265,7 @@ final class OSBTreeBucket<K> extends ODurablePage {
         setIntValue(currentEntryOffset, currentEntryPosition + diff);
       }
 
+      final SortedMap<Integer, Integer> linkRefToCorrect = nexts.headMap(entryPosition);
       for (final Map.Entry<Integer, Integer> entry : linkRefToCorrect.entrySet()) {
         final int first = entry.getKey();
         final int currentEntryPosition = entry.getValue();
@@ -260,7 +275,8 @@ final class OSBTreeBucket<K> extends ODurablePage {
 
           final int itemsBefore = -Collections.binarySearch(itemsToRemove, currentEntryPosition) - 1;
           if (itemsToRemove.size() > itemsBefore) {
-            updatedEntryPosition = currentEntryPosition + (itemsToRemove.size() - itemsBefore) * LINKED_LIST_ITEM_SIZE;
+            updatedEntryPosition = currentEntryPosition + itemsToRemoveSize.subList(itemsBefore, itemsToRemove.size()).stream()
+                .mapToInt(Integer::intValue).sum();
           } else {
             updatedEntryPosition = currentEntryPosition;
           }
@@ -276,7 +292,8 @@ final class OSBTreeBucket<K> extends ODurablePage {
           final int prevEntryPosition = compositeEntryPosition & 0xFFFF;
 
           final int updatedEntryPosition =
-              entrySize + (itemsToRemove.size() - prevCounter - 1) * LINKED_LIST_ITEM_SIZE + prevEntryPosition;
+              entrySize + itemsToRemoveSize.subList(prevCounter, itemsToRemove.size()).stream().mapToInt(Integer::intValue).sum()
+                  + prevEntryPosition;
 
           setIntValue(updatedEntryPosition, first + diff);
         }
@@ -390,16 +407,31 @@ final class OSBTreeBucket<K> extends ODurablePage {
 
       if (clusterId == value.getClusterId() && clusterPosition == value.getClusterPosition()) {
         final int nextNextItem = getIntValue(nextItem);
-        final byte[] nextValue = getBinaryValue(nextItem + OIntegerSerializer.INT_SIZE, RID_SIZE);
+        final int nextItemSize = 0xFF & getByteValue(nextItem + OIntegerSerializer.INT_SIZE);
 
-        setIntValue(entryPosition, nextNextItem);
+        final byte[] nextValue = getBinaryValue(nextItem + OIntegerSerializer.INT_SIZE + OByteSerializer.BYTE_SIZE, RID_SIZE);
+
+        assert nextItemSize > 0;
+        final int freePointer = getIntValue(FREE_POINTER_OFFSET);
+        if (nextItemSize == 1) {
+          setIntValue(entryPosition, nextNextItem);
+          setIntValue(FREE_POINTER_OFFSET, freePointer + OIntegerSerializer.INT_SIZE + RID_SIZE + OByteSerializer.BYTE_SIZE);
+        } else {
+          setByteValue(nextItem + OIntegerSerializer.INT_SIZE, (byte) (nextItemSize - 1));
+          setIntValue(FREE_POINTER_OFFSET, freePointer + RID_SIZE);
+        }
+
         setBinaryValue(entryPosition + OIntegerSerializer.INT_SIZE + keySize, nextValue);
 
-        final int freePointer = getIntValue(FREE_POINTER_OFFSET);
-        setIntValue(FREE_POINTER_OFFSET, freePointer + OIntegerSerializer.INT_SIZE + RID_SIZE);
+        if (nextItem > freePointer || nextItemSize > 1) {
+          if (nextItemSize == 1) {
+            moveData(freePointer, freePointer + SINGLE_ELEMNT_LINKED_ITEM_SIZE, nextItem - freePointer);
+          } else {
+            moveData(freePointer, freePointer + RID_SIZE,
+                nextItem + OIntegerSerializer.INT_SIZE + OByteSerializer.BYTE_SIZE - freePointer);
+          }
 
-        if (nextItem > freePointer) {
-          moveData(freePointer, freePointer + LINKED_LIST_ITEM_SIZE, nextItem - freePointer);
+          final int diff = nextItemSize > 1 ? RID_SIZE : OIntegerSerializer.INT_SIZE + OByteSerializer.BYTE_SIZE + RID_SIZE;
 
           final int size = getIntValue(SIZE_OFFSET);
           int currentPositionOffset = POSITIONS_ARRAY_OFFSET;
@@ -409,18 +441,18 @@ final class OSBTreeBucket<K> extends ODurablePage {
             final int updatedEntryPosition;
 
             if (currentEntryPosition < nextItem) {
-              updatedEntryPosition = currentEntryPosition + LINKED_LIST_ITEM_SIZE;
+              updatedEntryPosition = currentEntryPosition + diff;
               setIntValue(currentPositionOffset, updatedEntryPosition);
             } else {
               updatedEntryPosition = currentEntryPosition;
             }
 
             final int currentNextItem = getIntValue(updatedEntryPosition);
-            if (currentNextItem > 0 && currentNextItem < nextItem) {
+            if (currentNextItem > 0 && currentNextItem < nextItem + diff) {
               //update reference to the first item of linked list
-              setIntValue(updatedEntryPosition, currentNextItem + LINKED_LIST_ITEM_SIZE);
+              setIntValue(updatedEntryPosition, currentNextItem + diff);
 
-              updateAllLinkedListReferences(currentNextItem, nextItem, LINKED_LIST_ITEM_SIZE);
+              updateAllLinkedListReferences(currentNextItem, nextItem + diff, diff);
             }
 
             currentPositionOffset += OIntegerSerializer.INT_SIZE;
@@ -433,45 +465,93 @@ final class OSBTreeBucket<K> extends ODurablePage {
 
         while (nextItem > 0) {
           final int nextNextItem = getIntValue(nextItem);
-          clusterId = getShortValue(nextItem + OIntegerSerializer.INT_SIZE);
-          clusterPosition = getLongValue(nextItem + OIntegerSerializer.INT_SIZE + OShortSerializer.SHORT_SIZE);
+          final int nextItemSize = 0xFF & getByteValue(nextItem + OIntegerSerializer.INT_SIZE);
 
-          if (clusterId == value.getClusterId() && clusterPosition == value.getClusterPosition()) {
-            setIntValue(prevItem, nextNextItem);
+          if (nextItemSize == 1) {
+            clusterId = getShortValue(nextItem + OIntegerSerializer.INT_SIZE + OByteSerializer.BYTE_SIZE);
+            clusterPosition = getLongValue(
+                nextItem + OIntegerSerializer.INT_SIZE + OByteSerializer.BYTE_SIZE + OShortSerializer.SHORT_SIZE);
 
-            final int freePointer = getIntValue(FREE_POINTER_OFFSET);
-            setIntValue(FREE_POINTER_OFFSET, freePointer + LINKED_LIST_ITEM_SIZE);
+            if (clusterId == value.getClusterId() && clusterPosition == value.getClusterPosition()) {
+              setIntValue(prevItem, nextNextItem);
 
-            if (nextItem > freePointer) {
-              moveData(freePointer, freePointer + LINKED_LIST_ITEM_SIZE, nextItem - freePointer);
+              final int freePointer = getIntValue(FREE_POINTER_OFFSET);
+              setIntValue(FREE_POINTER_OFFSET, freePointer + SINGLE_ELEMNT_LINKED_ITEM_SIZE);
 
-              final int size = getIntValue(SIZE_OFFSET);
-              int currentPositionOffset = POSITIONS_ARRAY_OFFSET;
+              if (nextItem > freePointer) {
+                moveData(freePointer, freePointer + SINGLE_ELEMNT_LINKED_ITEM_SIZE, nextItem - freePointer);
 
-              for (int i = 0; i < size; i++) {
-                final int currentEntryPosition = getIntValue(currentPositionOffset);
-                final int updatedEntryPosition;
+                final int size = getIntValue(SIZE_OFFSET);
+                int currentPositionOffset = POSITIONS_ARRAY_OFFSET;
 
-                if (currentEntryPosition < nextItem) {
-                  updatedEntryPosition = currentEntryPosition + LINKED_LIST_ITEM_SIZE;
-                  setIntValue(currentPositionOffset, updatedEntryPosition);
-                } else {
-                  updatedEntryPosition = currentEntryPosition;
+                for (int i = 0; i < size; i++) {
+                  final int currentEntryPosition = getIntValue(currentPositionOffset);
+                  final int updatedEntryPosition;
+
+                  if (currentEntryPosition < nextItem) {
+                    updatedEntryPosition = currentEntryPosition + SINGLE_ELEMNT_LINKED_ITEM_SIZE;
+                    setIntValue(currentPositionOffset, updatedEntryPosition);
+                  } else {
+                    updatedEntryPosition = currentEntryPosition;
+                  }
+
+                  final int currentNextItem = getIntValue(updatedEntryPosition);
+                  if (currentNextItem > 0 && currentNextItem < nextItem) {
+                    //update reference to the first item of linked list
+                    setIntValue(updatedEntryPosition, currentNextItem + SINGLE_ELEMNT_LINKED_ITEM_SIZE);
+
+                    updateAllLinkedListReferences(currentNextItem, nextItem, SINGLE_ELEMNT_LINKED_ITEM_SIZE);
+                  }
+
+                  currentPositionOffset += OIntegerSerializer.INT_SIZE;
+                }
+              }
+
+              return true;
+            }
+          } else {
+            for (int i = 0; i < nextItemSize; i++) {
+              clusterId = getShortValue(nextItem + OIntegerSerializer.INT_SIZE + OByteSerializer.BYTE_SIZE + i * RID_SIZE);
+              clusterPosition = getLongValue(
+                  nextItem + OIntegerSerializer.INT_SIZE + OShortSerializer.SHORT_SIZE + OByteSerializer.BYTE_SIZE + i * RID_SIZE);
+
+              if (clusterId == value.getClusterId() && clusterPosition == value.getClusterPosition()) {
+                final int freePointer = getIntValue(FREE_POINTER_OFFSET);
+                setIntValue(FREE_POINTER_OFFSET, freePointer + RID_SIZE);
+
+                setByteValue(nextItem + OIntegerSerializer.INT_SIZE, (byte) (nextItemSize - 1));
+
+                moveData(freePointer, freePointer + RID_SIZE,
+                    nextItem + OIntegerSerializer.INT_SIZE + OByteSerializer.BYTE_SIZE + i * RID_SIZE - freePointer);
+
+                final int size = getIntValue(SIZE_OFFSET);
+                int currentPositionOffset = POSITIONS_ARRAY_OFFSET;
+
+                for (int n = 0; n < size; n++) {
+                  final int currentEntryPosition = getIntValue(currentPositionOffset);
+                  final int updatedEntryPosition;
+
+                  if (currentEntryPosition < nextItem) {
+                    updatedEntryPosition = currentEntryPosition + RID_SIZE;
+                    setIntValue(currentPositionOffset, updatedEntryPosition);
+                  } else {
+                    updatedEntryPosition = currentEntryPosition;
+                  }
+
+                  final int currentNextItem = getIntValue(updatedEntryPosition);
+                  if (currentNextItem > 0 && currentNextItem < nextItem + RID_SIZE) {
+                    //update reference to the first item of linked list
+                    setIntValue(updatedEntryPosition, currentNextItem + RID_SIZE);
+
+                    updateAllLinkedListReferences(currentNextItem, nextItem + RID_SIZE, RID_SIZE);
+                  }
+
+                  currentPositionOffset += OIntegerSerializer.INT_SIZE;
                 }
 
-                final int currentNextItem = getIntValue(updatedEntryPosition);
-                if (currentNextItem > 0 && currentNextItem < nextItem) {
-                  //update reference to the first item of linked list
-                  setIntValue(updatedEntryPosition, currentNextItem + LINKED_LIST_ITEM_SIZE);
-
-                  updateAllLinkedListReferences(currentNextItem, nextItem, LINKED_LIST_ITEM_SIZE);
-                }
-
-                currentPositionOffset += OIntegerSerializer.INT_SIZE;
+                return true;
               }
             }
-
-            return true;
           }
 
           prevItem = nextItem;
@@ -498,15 +578,16 @@ final class OSBTreeBucket<K> extends ODurablePage {
     }
   }
 
-  private int[] incrementalUpdateAllLinkedListReferences(final int firstItem, final int boundary, final int diffSize) {
-    int currentItem = firstItem + OSBTreeBucket.LINKED_LIST_ITEM_SIZE;
+  private int[] incrementalUpdateAllLinkedListReferences(final int firstItem, final int itemSize, final int boundary,
+      final int diffSize) {
+    int currentItem = firstItem + itemSize;
 
     while (true) {
       final int nextItem = getIntValue(currentItem);
 
       if (nextItem > 0 && nextItem < boundary) {
         setIntValue(currentItem, nextItem + diffSize);
-        currentItem = nextItem + OSBTreeBucket.LINKED_LIST_ITEM_SIZE;
+        currentItem = nextItem + itemSize;
       } else {
         return new int[] { currentItem, nextItem };
       }
@@ -549,11 +630,15 @@ final class OSBTreeBucket<K> extends ODurablePage {
 
     while (nextItem > 0) {
       final int nextNextItem = getIntValue(nextItem);
+      final int nextItemSize = 0xFF & getByteValue(nextItem + OIntegerSerializer.INT_SIZE);
 
-      clusterId = getShortValue(nextItem + OIntegerSerializer.INT_SIZE);
-      clusterPosition = getLongValue(nextItem + OShortSerializer.SHORT_SIZE + OIntegerSerializer.INT_SIZE);
+      for (int i = 0; i < nextItemSize; i++) {
+        clusterId = getShortValue(nextItem + OIntegerSerializer.INT_SIZE + OByteSerializer.BYTE_SIZE + i * RID_SIZE);
+        clusterPosition = getLongValue(
+            nextItem + OShortSerializer.SHORT_SIZE + OIntegerSerializer.INT_SIZE + OByteSerializer.BYTE_SIZE + i * RID_SIZE);
 
-      values.add(new ORecordId(clusterId, clusterPosition));
+        values.add(new ORecordId(clusterId, clusterPosition));
+      }
 
       nextItem = nextNextItem;
     }
@@ -631,11 +716,15 @@ final class OSBTreeBucket<K> extends ODurablePage {
 
     while (nextItem > 0) {
       final int nextNextItem = getIntValue(nextItem);
+      final int nextItemSize = 0xFF & getByteValue(nextItem + OIntegerSerializer.INT_SIZE);
 
-      clusterId = getShortValue(nextItem + OIntegerSerializer.INT_SIZE);
-      clusterPosition = getLongValue(nextItem + OIntegerSerializer.INT_SIZE + OShortSerializer.SHORT_SIZE);
+      for (int i = 0; i < nextItemSize; i++) {
+        clusterId = getShortValue(nextItem + OIntegerSerializer.INT_SIZE + OByteSerializer.BYTE_SIZE + i * RID_SIZE);
+        clusterPosition = getLongValue(
+            nextItem + OIntegerSerializer.INT_SIZE + OShortSerializer.SHORT_SIZE + OByteSerializer.BYTE_SIZE + i * RID_SIZE);
 
-      results.add(new ORecordId(clusterId, clusterPosition));
+        results.add(new ORecordId(clusterId, clusterPosition));
+      }
 
       nextItem = nextNextItem;
     }
@@ -700,8 +789,9 @@ final class OSBTreeBucket<K> extends ODurablePage {
 
         addNewLeafEntry(i, key, values.get(0));
 
-        for (int n = 1; n < values.size(); n++) {
-          appendNewLeafEntry(i, values.get(n));
+        int n = 1;
+        while (n < values.size()) {
+          n += appendNewLeafEntries(i, values.subList(n, values.size()));
         }
       }
     }
@@ -726,8 +816,9 @@ final class OSBTreeBucket<K> extends ODurablePage {
 
         addNewLeafEntry(index, key, values.get(0));
 
-        for (int n = 1; n < values.size(); n++) {
-          appendNewLeafEntry(index, values.get(n));
+        int n = 1;
+        while (n < values.size()) {
+          n += appendNewLeafEntries(index, values.subList(n, values.size()));
         }
         index++;
       }
@@ -752,42 +843,134 @@ final class OSBTreeBucket<K> extends ODurablePage {
     }
   }
 
-  void halfSingleEntry() {
+  void cutSingleEntry(final int amountItemsToRemove) {
     assert size() == 1;
 
     final int entryPosition = getIntValue(POSITIONS_ARRAY_OFFSET);
     final List<Integer> items = new ArrayList<>();
-    items.add(entryPosition);
+    final List<Integer> itemSizes = new ArrayList<>();
 
-    int nextItem = entryPosition;
-    while (true) {
-      final int nextNextItem = getIntValue(nextItem);
-      if (nextNextItem != -1) {
-        items.add(nextNextItem);
-      } else {
-        break;
+    {
+      int nextItem = getIntValue(entryPosition);
+
+      while (true) {
+        final int nextNextItem = getIntValue(nextItem);
+        final int nextItemSize = (0xFF & getByteValue(nextItem + OIntegerSerializer.INT_SIZE));
+
+        itemSizes.add(nextItemSize);
+        items.add(nextItem);
+
+        if (nextNextItem == -1) {
+          break;
+        }
+
+        nextItem = nextNextItem;
       }
-
-      nextItem = nextNextItem;
     }
 
-    final int size = items.size();
-    final int halfIndex = size / 2;
-    final List<Integer> itemsToRemove = items.subList(1, halfIndex + 1);
+    int halfIndex = -1;
+    int lastEntrySize = -1;
 
-    final int lastItemPos = items.get(halfIndex);
+    int currentSize = 1;
 
-    final int nextFirsItem = getIntValue(lastItemPos);
-    final byte[] firstRid = getBinaryValue(lastItemPos + OIntegerSerializer.INT_SIZE, RID_SIZE);
+    for (int i = 0; i < itemSizes.size(); i++) {
+      final int itemSize = itemSizes.get(i);
+      currentSize += itemSize;
+
+      if (currentSize >= amountItemsToRemove) {
+        halfIndex = i;
+        lastEntrySize = currentSize - amountItemsToRemove;
+        break;
+      }
+    }
+
+    assert halfIndex >= 0;
+    assert lastEntrySize >= 0;
+
+    final List<Integer> itemsToRemove;
+
+    final byte[] firstRid;
+    if (lastEntrySize == 0) {
+      itemsToRemove = items.subList(1, halfIndex + 1);
+      final int lastItemPos = items.get(halfIndex + 1);
+
+      firstRid = getBinaryValue(lastItemPos + OIntegerSerializer.INT_SIZE + OByteSerializer.BYTE_SIZE, RID_SIZE);
+    } else {
+      itemsToRemove = items.subList(1, halfIndex);
+      final int lastItemPos = items.get(halfIndex);
+
+      firstRid = getBinaryValue(
+          lastItemPos + OIntegerSerializer.INT_SIZE + OByteSerializer.BYTE_SIZE + RID_SIZE * (itemSizes.get(halfIndex)
+              - lastEntrySize), RID_SIZE);
+    }
 
     int freePointer = getIntValue(FREE_POINTER_OFFSET);
 
-    for (final int itemPos : itemsToRemove) {
+    for (int i = 0; i < itemsToRemove.size(); i++) {
+      final int itemPos = itemsToRemove.get(i);
+      final int itemSize = itemSizes.get(i);
+      final int sizeDiff = OIntegerSerializer.INT_SIZE + OByteSerializer.BYTE_SIZE + RID_SIZE * itemSize;
+
       if (itemPos > freePointer) {
-        moveData(freePointer, freePointer + OIntegerSerializer.INT_SIZE + RID_SIZE, nextItem - freePointer);
+        moveData(freePointer, freePointer + sizeDiff, itemPos - freePointer);
       }
 
-      freePointer += OIntegerSerializer.INT_SIZE + RID_SIZE;
+      freePointer += sizeDiff;
+    }
+
+    final int nextFirsItem;
+    {
+      if (lastEntrySize == 1) {
+        final int itemPos = items.get(halfIndex);
+        nextFirsItem = getIntValue(itemPos);
+
+        final int itemSize = 0xFF & getByteValue(itemPos + OIntegerSerializer.INT_SIZE);
+        final int sizeDiff = OIntegerSerializer.INT_SIZE + OByteSerializer.BYTE_SIZE + RID_SIZE * itemSize;
+
+        if (itemPos > freePointer) {
+          moveData(freePointer, freePointer + sizeDiff, itemPos - freePointer);
+        }
+
+        freePointer += sizeDiff;
+
+      } else if (lastEntrySize > 1) {
+        final int itemPos = items.get(halfIndex);
+        final int oldSize = 0xFF & getByteValue(itemPos + OIntegerSerializer.INT_SIZE);
+        final int newSize = lastEntrySize - 1;
+
+        setByteValue(itemPos + OIntegerSerializer.INT_SIZE, (byte) newSize);
+
+        final int spaceDiff = RID_SIZE * (oldSize - newSize);
+        moveData(freePointer, freePointer + spaceDiff,
+            itemPos + OIntegerSerializer.INT_SIZE + OByteSerializer.BYTE_SIZE - freePointer);
+
+        nextFirsItem = itemPos + spaceDiff;
+        freePointer += spaceDiff;
+      } else {
+        final int itemPos = items.get(halfIndex + 1);
+        final int itemSize = 0xFF & getByteValue(itemPos + OIntegerSerializer.INT_SIZE);
+
+        if (itemSize == 1) {
+          nextFirsItem = getIntValue(itemPos);
+          final int sizeDiff = OIntegerSerializer.INT_SIZE + OByteSerializer.BYTE_SIZE + RID_SIZE;
+
+          if (itemPos > freePointer) {
+            moveData(freePointer, freePointer + sizeDiff, itemPos - freePointer);
+          }
+
+          freePointer += sizeDiff;
+        } else {
+          final int newSize = itemSize - 1;
+
+          setByteValue(itemPos + OIntegerSerializer.INT_SIZE, (byte) newSize);
+
+          moveData(freePointer, freePointer + RID_SIZE,
+              itemPos + OIntegerSerializer.INT_SIZE + OByteSerializer.BYTE_SIZE - freePointer);
+
+          nextFirsItem = itemPos + RID_SIZE;
+          freePointer += RID_SIZE;
+        }
+      }
     }
 
     setIntValue(FREE_POINTER_OFFSET, freePointer);
@@ -838,12 +1021,12 @@ final class OSBTreeBucket<K> extends ODurablePage {
   boolean appendNewLeafEntry(final int index, final ORID value) {
     assert isLeaf;
 
-    final int itemSize = OIntegerSerializer.INT_SIZE + RID_SIZE;//next item pointer + RID
+    final int itemSize = OIntegerSerializer.INT_SIZE + RID_SIZE + OByteSerializer.BYTE_SIZE;//next item pointer + RID + size
     int freePointer = getIntValue(FREE_POINTER_OFFSET);
 
     final int size = getIntValue(SIZE_OFFSET);
 
-    if (freePointer - itemSize < size * OIntegerSerializer.INT_SIZE + POSITIONS_ARRAY_OFFSET + itemSize) {
+    if (freePointer - itemSize < size * OIntegerSerializer.INT_SIZE + POSITIONS_ARRAY_OFFSET) {
       return false;
     }
 
@@ -856,10 +1039,47 @@ final class OSBTreeBucket<K> extends ODurablePage {
     setIntValue(entryPosition, freePointer);//update list header
 
     freePointer += setIntValue(freePointer, nextItem);//next item pointer
+    freePointer += setByteValue(freePointer, (byte) 1);//size
     freePointer += setShortValue(freePointer, (short) value.getClusterId());//rid
     setLongValue(freePointer, value.getClusterPosition());
 
     return true;
+  }
+
+  private int appendNewLeafEntries(final int index, final List<ORID> values) {
+    assert isLeaf;
+
+    final int listSize = Math.min(values.size(), 255);
+    final int itemSize =
+        OIntegerSerializer.INT_SIZE + RID_SIZE * listSize + OByteSerializer.BYTE_SIZE;//next item pointer + RIDs + size
+
+    int freePointer = getIntValue(FREE_POINTER_OFFSET);
+
+    final int size = getIntValue(SIZE_OFFSET);
+
+    if (freePointer - itemSize < size * OIntegerSerializer.INT_SIZE + POSITIONS_ARRAY_OFFSET) {
+      return -1;
+    }
+
+    freePointer -= itemSize;
+    setIntValue(FREE_POINTER_OFFSET, freePointer);
+
+    final int entryPosition = getIntValue(index * OIntegerSerializer.INT_SIZE + POSITIONS_ARRAY_OFFSET);
+    final int nextItem = getIntValue(entryPosition);
+
+    setIntValue(entryPosition, freePointer);//update list header
+
+    freePointer += setIntValue(freePointer, nextItem);//next item pointer
+    freePointer += setByteValue(freePointer, (byte) listSize);
+
+    for (int i = 0; i < listSize; i++) {
+      final ORID rid = values.get(i);
+
+      freePointer += setShortValue(freePointer, (short) rid.getClusterId());
+      freePointer += setLongValue(freePointer, rid.getClusterPosition());
+    }
+
+    return listSize;
   }
 
   boolean addNonLeafEntry(final int index, final byte[] serializedKey, final int leftChild, final int rightChild,

@@ -741,6 +741,7 @@ public class SBTreeMultiValueTestIT {
 
       Assert.assertEquals(itemsCount, result.size());
       Set<ORID> resultSet = new HashSet<>(result);
+      Assert.assertEquals(itemsCount, resultSet.size());
 
       for (int i = 0; i < itemsCount; i++) {
         Assert.assertTrue(resultSet.contains(new ORecordId(i % 32000, i)));
