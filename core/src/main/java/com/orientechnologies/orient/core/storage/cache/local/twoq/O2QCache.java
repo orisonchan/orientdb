@@ -438,7 +438,8 @@ public final class O2QCache implements OReadCache {
       OWriteCache writeCache, final int pageCount, boolean verifyChecksums, final OModifiableBoolean cacheHit) throws IOException {
 
     if (pageCount < 1) {
-      throw new IllegalArgumentException("Amount of pages to load from cache should be not less than 1 but passed value is " + pageCount);
+      throw new IllegalArgumentException(
+          "Amount of pages to load from cache should be not less than 1 but passed value is " + pageCount);
     }
 
     boolean removeColdPages = false;
@@ -856,7 +857,8 @@ public final class O2QCache implements OReadCache {
         cachePointer.decrementReadersReferrer();
         cacheEntry.clearCachePointer();
       } else {
-        throw new OStorageException("Page with index " + cacheEntry.getPageIndex() + " for file id " + cacheEntry.getFileId() + " is used and cannot be removed");
+        throw new OStorageException("Page with index " + cacheEntry.getPageIndex() + " for file id " + cacheEntry.getFileId()
+            + " is used and cannot be removed");
       }
     }
 
@@ -866,7 +868,8 @@ public final class O2QCache implements OReadCache {
         cachePointer.decrementReadersReferrer();
         cacheEntry.clearCachePointer();
       } else {
-        throw new OStorageException("Page with index " + cacheEntry.getPageIndex() + " for file id " + cacheEntry.getFileId() + " is used and cannot be removed");
+        throw new OStorageException("Page with index " + cacheEntry.getPageIndex() + " for file id " + cacheEntry.getFileId()
+            + " is used and cannot be removed");
       }
     }
 

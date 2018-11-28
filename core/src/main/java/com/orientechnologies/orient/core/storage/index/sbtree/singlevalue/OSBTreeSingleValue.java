@@ -131,7 +131,7 @@ public final class OSBTreeSingleValue<K> extends ODurableComponent {
         fileId = addFile(atomicOperation, getFullName());
         nullBucketFileId = addFile(atomicOperation, getName() + nullFileExtension);
 
-        final OCacheEntry entryPointCacheEntry = addPage(atomicOperation, fileId);
+        final OCacheEntry entryPointCacheEntry = addPage(atomicOperation, fileId, false);
         try {
           final OEntryPoint<K> entryPoint = new OEntryPoint<>(entryPointCacheEntry, keySerializer, keyTypes, keySize, encryption);
           entryPoint.setPagesSize(1);
@@ -139,7 +139,7 @@ public final class OSBTreeSingleValue<K> extends ODurableComponent {
           releasePageFromWrite(atomicOperation, entryPointCacheEntry);
         }
 
-        final OCacheEntry rootCacheEntry = addPage(atomicOperation, fileId);
+        final OCacheEntry rootCacheEntry = addPage(atomicOperation, fileId, false);
         try {
           @SuppressWarnings("unused")
           final OSBTreeBucketSingleValue<K> rootBucket = new OSBTreeBucketSingleValue<>(rootCacheEntry, true, keySerializer,
@@ -148,7 +148,7 @@ public final class OSBTreeSingleValue<K> extends ODurableComponent {
           releasePageFromWrite(atomicOperation, rootCacheEntry);
         }
 
-        final OCacheEntry nullCacheEntry = addPage(atomicOperation, nullBucketFileId);
+        final OCacheEntry nullCacheEntry = addPage(atomicOperation, nullBucketFileId, false);
         try {
           @SuppressWarnings("unused")
           final ONullBucket nullBucket = new ONullBucket(nullCacheEntry, true);
@@ -1080,7 +1080,7 @@ public final class OSBTreeSingleValue<K> extends ODurableComponent {
       } else {
         assert pageSize == getFilledUpTo(atomicOperation, fileId) - 1;
 
-        rightBucketEntry = addPage(atomicOperation, fileId);
+        rightBucketEntry = addPage(atomicOperation, fileId, false);
         entryPoint.setPagesSize((int) rightBucketEntry.getPageIndex());
       }
     } finally {
@@ -1194,7 +1194,7 @@ public final class OSBTreeSingleValue<K> extends ODurableComponent {
         pageSize++;
       } else {
         assert pageSize == filledUpTo - 1;
-        leftBucketEntry = addPage(atomicOperation, fileId);
+        leftBucketEntry = addPage(atomicOperation, fileId, false);
         pageSize = (int) leftBucketEntry.getPageIndex();
       }
 
@@ -1203,7 +1203,7 @@ public final class OSBTreeSingleValue<K> extends ODurableComponent {
         pageSize++;
       } else {
         assert pageSize == filledUpTo;
-        rightBucketEntry = addPage(atomicOperation, fileId);
+        rightBucketEntry = addPage(atomicOperation, fileId, false);
         pageSize = (int) rightBucketEntry.getPageIndex();
       }
 

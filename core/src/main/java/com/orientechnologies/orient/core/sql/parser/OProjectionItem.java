@@ -141,7 +141,7 @@ public class OProjectionItem extends SimpleNode {
       result = expression.execute(iCurrentRecord, ctx);
     }
     if (nestedProjection != null) {
-      if(result instanceof ODocument && ((ODocument) result).isEmpty()){
+      if (result instanceof ODocument && ((ODocument) result).isEmpty()) {
         ((ODocument) result).load(null);
       }
       result = nestedProjection.apply(expression, result, ctx);

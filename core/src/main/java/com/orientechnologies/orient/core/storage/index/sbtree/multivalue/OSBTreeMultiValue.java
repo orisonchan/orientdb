@@ -132,7 +132,7 @@ public final class OSBTreeMultiValue<K> extends ODurableComponent {
 
         nullBucketFileId = addFile(atomicOperation, getName() + nullFileExtension);
 
-        final OCacheEntry entryPointCacheEntry = addPage(atomicOperation, fileId);
+        final OCacheEntry entryPointCacheEntry = addPage(atomicOperation, fileId, false);
         try {
           final OEntryPoint<K> entryPoint = new OEntryPoint<>(entryPointCacheEntry, keySerializer, keyTypes, keySize, encryption);
           entryPoint.setPagesSize(1);
@@ -140,7 +140,7 @@ public final class OSBTreeMultiValue<K> extends ODurableComponent {
           releasePageFromWrite(atomicOperation, entryPointCacheEntry);
         }
 
-        final OCacheEntry rootCacheEntry = addPage(atomicOperation, fileId);
+        final OCacheEntry rootCacheEntry = addPage(atomicOperation, fileId, false);
         try {
           @SuppressWarnings("unused")
           final Bucket<K> rootBucket = new Bucket<>(rootCacheEntry, true, keySerializer, encryption);
@@ -148,7 +148,7 @@ public final class OSBTreeMultiValue<K> extends ODurableComponent {
           releasePageFromWrite(atomicOperation, rootCacheEntry);
         }
 
-        final OCacheEntry nullCacheEntry = addPage(atomicOperation, nullBucketFileId);
+        final OCacheEntry nullCacheEntry = addPage(atomicOperation, nullBucketFileId, false);
         try {
           final ONullEntryPoint entryPoint = new ONullEntryPoint(nullCacheEntry);
 
@@ -406,7 +406,7 @@ public final class OSBTreeMultiValue<K> extends ODurableComponent {
 
               final OCacheEntry nullCacheEntry;
               if (getFilledUpTo(atomicOperation, nullBucketFileId) <= size + 1) {
-                nullCacheEntry = addPage(atomicOperation, nullBucketFileId);
+                nullCacheEntry = addPage(atomicOperation, nullBucketFileId, false);
               } else {
                 nullCacheEntry = loadPageForWrite(atomicOperation, nullBucketFileId, size + 1, false);
               }
@@ -1475,7 +1475,7 @@ public final class OSBTreeMultiValue<K> extends ODurableComponent {
       } else {
         assert pageSize == getFilledUpTo(atomicOperation, fileId) - 1;
 
-        rightBucketEntry = addPage(atomicOperation, fileId);
+        rightBucketEntry = addPage(atomicOperation, fileId, false);
         entryPoint.setPagesSize((int) rightBucketEntry.getPageIndex());
       }
     } finally {
@@ -1635,7 +1635,7 @@ public final class OSBTreeMultiValue<K> extends ODurableComponent {
       } else {
         assert pageSize == filledUpTo - 1;
 
-        leftBucketEntry = addPage(atomicOperation, fileId);
+        leftBucketEntry = addPage(atomicOperation, fileId, false);
         pageSize = (int) leftBucketEntry.getPageIndex();
       }
 
@@ -1645,7 +1645,7 @@ public final class OSBTreeMultiValue<K> extends ODurableComponent {
       } else {
         assert pageSize == filledUpTo;
 
-        rightBucketEntry = addPage(atomicOperation, fileId);
+        rightBucketEntry = addPage(atomicOperation, fileId, false);
         pageSize = (int) rightBucketEntry.getPageIndex();
       }
 

@@ -858,7 +858,8 @@ public final class OWOWCache extends OAbstractWriteCache implements OWriteCache,
           throw new OStorageException("File with name '" + fileName + "'' already exists in storage '" + storageName + "'");
         } else {
           throw new OStorageException(
-              "File with given name '" + fileName + "' already exists but has different id " + existingFileId + " vs. proposed " + fileId);
+              "File with given name '" + fileName + "' already exists but has different id " + existingFileId + " vs. proposed "
+                  + fileId);
         }
       }
 
@@ -1619,7 +1620,8 @@ public final class OWOWCache extends OAbstractWriteCache implements OWriteCache,
         if (magicNumber != MAGIC_NUMBER_WITH_CHECKSUM && magicNumber != MAGIC_NUMBER_WITHOUT_CHECKSUM) {
           magicNumberIncorrect = true;
           if (commandOutputListener != null) {
-            commandOutputListener.onMessage("Error: Magic number for page " + (pos / pageSize) + " in file '" + fileName + "' does not match!\n");
+            commandOutputListener
+                .onMessage("Error: Magic number for page " + (pos / pageSize) + " in file '" + fileName + "' does not match!\n");
           }
           fileIsCorrect = false;
         }
@@ -1634,7 +1636,8 @@ public final class OWOWCache extends OAbstractWriteCache implements OWriteCache,
           if (storedCRC32 != calculatedCRC32) {
             checkSumIncorrect = true;
             if (commandOutputListener != null) {
-              commandOutputListener.onMessage("Error: Checksum for page " + (pos / pageSize) + " in file '" + fileName + "' is incorrect!\n");
+              commandOutputListener
+                  .onMessage("Error: Checksum for page " + (pos / pageSize) + " in file '" + fileName + "' is incorrect!\n");
             }
             fileIsCorrect = false;
           }
