@@ -91,11 +91,11 @@ import com.orientechnologies.orient.core.sql.filter.OSQLPredicate;
 import com.orientechnologies.orient.core.storage.OCluster;
 import com.orientechnologies.orient.core.storage.ORawBuffer;
 import com.orientechnologies.orient.core.storage.OStorage;
+import com.orientechnologies.orient.core.storage.cluster.OClusterPageDebug;
+import com.orientechnologies.orient.core.storage.cluster.OPaginatedCluster;
+import com.orientechnologies.orient.core.storage.cluster.OPaginatedClusterDebug;
+import com.orientechnologies.orient.core.storage.disk.OLocalPaginatedStorage;
 import com.orientechnologies.orient.core.storage.impl.local.OAbstractPaginatedStorage;
-import com.orientechnologies.orient.core.storage.impl.local.paginated.OClusterPageDebug;
-import com.orientechnologies.orient.core.storage.impl.local.paginated.OLocalPaginatedStorage;
-import com.orientechnologies.orient.core.storage.impl.local.paginated.OPaginatedCluster;
-import com.orientechnologies.orient.core.storage.impl.local.paginated.OPaginatedClusterDebug;
 import com.orientechnologies.orient.core.util.OURLConnection;
 import com.orientechnologies.orient.core.util.OURLHelper;
 import com.orientechnologies.orient.server.config.OServerConfigurationManager;
@@ -165,8 +165,9 @@ public class OConsoleDatabaseApp extends OrientConsole implements OCommandOutput
       new OSignalHandler().installDefaultSignals(signal -> restoreTerminal());
 
       final OConsoleDatabaseApp console = new OConsoleDatabaseApp(args);
+
       if (tty)
-        console.setReader(new TTYConsoleReader());
+        console.setReader(new TTYConsoleReader(console.historyEnabled()));
 
       result = console.run();
 

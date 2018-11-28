@@ -148,7 +148,7 @@ public class OLocalHashTable<K, V> extends ODurableComponent implements OHashTab
 
         directory.create(atomicOperation);
 
-        final OCacheEntry hashStateEntry = addPage(atomicOperation, fileStateId);
+        final OCacheEntry hashStateEntry = addPage(atomicOperation, fileStateId, false);
         pinPage(atomicOperation, hashStateEntry);
 
         try {
@@ -406,7 +406,7 @@ public class OLocalHashTable<K, V> extends ODurableComponent implements OHashTab
 
           OCacheEntry cacheEntry = loadPageForWrite(atomicOperation, nullBucketFileId, 0, false);
           if (cacheEntry == null) {
-            cacheEntry = addPage(atomicOperation, nullBucketFileId);
+            cacheEntry = addPage(atomicOperation, nullBucketFileId, false);
           }
 
           try {
@@ -1296,7 +1296,7 @@ public class OLocalHashTable<K, V> extends ODurableComponent implements OHashTab
       boolean isNew;
       OCacheEntry cacheEntry;
       if (getFilledUpTo(atomicOperation, nullBucketFileId) == 0) {
-        cacheEntry = addPage(atomicOperation, nullBucketFileId);
+        cacheEntry = addPage(atomicOperation, nullBucketFileId, false);
         isNew = true;
       } else {
         cacheEntry = loadPageForWrite(atomicOperation, nullBucketFileId, 0, false);
@@ -1786,7 +1786,7 @@ public class OLocalHashTable<K, V> extends ODurableComponent implements OHashTab
     int newBucketDepth = bucketDepth + 1;
 
     final long updatedBucketIndex = pageIndex;
-    final OCacheEntry newBucketCacheEntry = addPage(atomicOperation, fileId);
+    final OCacheEntry newBucketCacheEntry = addPage(atomicOperation, fileId, false);
 
     try {
       final OHashIndexBucket<K, V> newBucket = new OHashIndexBucket<>(newBucketDepth, newBucketCacheEntry, keySerializer,
@@ -1844,7 +1844,7 @@ public class OLocalHashTable<K, V> extends ODurableComponent implements OHashTab
     truncateFile(atomicOperation, fileId);
 
     for (long pageIndex = 0; pageIndex < MAX_LEVEL_SIZE; pageIndex++) {
-      final OCacheEntry cacheEntry = addPage(atomicOperation, fileId);
+      final OCacheEntry cacheEntry = addPage(atomicOperation, fileId, false);
       assert cacheEntry.getPageIndex() == pageIndex;
 
       try {
