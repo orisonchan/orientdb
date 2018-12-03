@@ -49,7 +49,6 @@ import com.orientechnologies.orient.core.config.OContextConfiguration;
 import com.orientechnologies.orient.core.config.OGlobalConfiguration;
 import com.orientechnologies.orient.core.config.OStorageClusterConfiguration;
 import com.orientechnologies.orient.core.config.OStorageConfiguration;
-import com.orientechnologies.orient.core.config.OStorageConfigurationImpl;
 import com.orientechnologies.orient.core.config.OStorageConfigurationUpdateListener;
 import com.orientechnologies.orient.core.config.OStoragePaginatedClusterConfiguration;
 import com.orientechnologies.orient.core.conflict.ORecordConflictStrategy;
@@ -100,6 +99,7 @@ import com.orientechnologies.orient.core.query.OQueryAbstract;
 import com.orientechnologies.orient.core.record.ORecord;
 import com.orientechnologies.orient.core.record.ORecordInternal;
 import com.orientechnologies.orient.core.record.ORecordVersionHelper;
+import com.orientechnologies.orient.core.record.impl.OBlob;
 import com.orientechnologies.orient.core.record.impl.ODocument;
 import com.orientechnologies.orient.core.record.impl.ODocumentInternal;
 import com.orientechnologies.orient.core.serialization.serializer.binary.impl.index.OCompositeKeySerializer;
@@ -120,6 +120,7 @@ import com.orientechnologies.orient.core.storage.cache.OWriteCache;
 import com.orientechnologies.orient.core.storage.cache.local.OBackgroundExceptionListener;
 import com.orientechnologies.orient.core.storage.cluster.OOfflineCluster;
 import com.orientechnologies.orient.core.storage.cluster.OPaginatedCluster;
+import com.orientechnologies.orient.core.storage.config.OAtomicStorageConfiguration;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.ORecordOperationMetadata;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.ORecordSerializationContext;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.OStorageTransaction;
@@ -338,18 +339,18 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
 
         pessimisticLock = contextConfiguration.getValueAsBoolean(OGlobalConfiguration.STORAGE_PESSIMISTIC_LOCKING);
 
+        initWalAndDiskCache();
+        atomicOperationsManager = new OAtomicOperationsManager(this);
         transaction = new ThreadLocal<>();
-        ((OStorageConfigurationImpl) configuration).load(contextConfiguration);
-        checkPageSizeAndRelatedParameters();
-
-        componentsFactory = new OCurrentStorageComponentsFactory(getConfiguration());
+        configuration = new OAtomicStorageConfiguration(this);
+        ((OAtomicStorageConfiguration) configuration).load(contextConfiguration);
 
         preOpenSteps();
 
-        initWalAndDiskCache(contextConfiguration);
-
-        atomicOperationsManager = new OAtomicOperationsManager(this);
         recoverIfNeeded();
+
+        checkPageSizeAndRelatedParameters();
+        componentsFactory = new OCurrentStorageComponentsFactory(getConfiguration());
 
         openClusters();
         openIndexes();
@@ -435,7 +436,7 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
 
     final Set<String> indexNames = getConfiguration().indexEngines();
     for (String indexName : indexNames) {
-      final OStorageConfigurationImpl.IndexEngineData engineData = getConfiguration().getIndexEngine(indexName);
+      final OStorageConfiguration.IndexEngineData engineData = getConfiguration().getIndexEngine(indexName);
       final OIndexEngine engine = OIndexes
           .createIndexEngine(engineData.getName(), engineData.getAlgorithm(), engineData.getIndexType(),
               engineData.getDurableInNonTxMode(), this, engineData.getVersion(), engineData.getEngineProperties(), null);
@@ -529,12 +530,15 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
 
         pessimisticLock = contextConfiguration.getValueAsBoolean(OGlobalConfiguration.STORAGE_PESSIMISTIC_LOCKING);
 
-        ((OStorageConfigurationImpl) configuration).initConfiguration(contextConfiguration);
-        componentsFactory = new OCurrentStorageComponentsFactory(getConfiguration());
-        transaction = new ThreadLocal<>();
-        initWalAndDiskCache(contextConfiguration);
-
+        initWalAndDiskCache();
         atomicOperationsManager = new OAtomicOperationsManager(this);
+        transaction = new ThreadLocal<>();
+
+        configuration = new OAtomicStorageConfiguration(this);
+        ((OAtomicStorageConfiguration) configuration).create();
+
+        ((OAtomicStorageConfiguration) configuration).initConfiguration(contextConfiguration);
+        componentsFactory = new OCurrentStorageComponentsFactory(getConfiguration());
 
         preCreateSteps();
 
@@ -543,14 +547,12 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
         // ADD THE METADATA CLUSTER TO STORE INTERNAL STUFF
         doAddCluster(OMetadataDefault.CLUSTER_INTERNAL_NAME, null);
 
-        ((OStorageConfigurationImpl) configuration).create();
-
-        ((OStorageConfigurationImpl) configuration).setCreationVersion(OConstants.getVersion());
-        ((OStorageConfigurationImpl) configuration)
+        ((OAtomicStorageConfiguration) configuration).setCreationVersion(OConstants.getVersion());
+        ((OAtomicStorageConfiguration) configuration)
             .setPageSize(OGlobalConfiguration.DISK_CACHE_PAGE_SIZE.getValueAsInteger() * 1024);
-        ((OStorageConfigurationImpl) configuration)
+        ((OAtomicStorageConfiguration) configuration)
             .setFreeListBoundary(OGlobalConfiguration.PAGINATED_STORAGE_LOWEST_FREELIST_BOUNDARY.getValueAsInteger() * 1024);
-        ((OStorageConfigurationImpl) configuration).setMaxKeySize(OGlobalConfiguration.SBTREE_MAX_KEY_SIZE.getValueAsInteger());
+        ((OAtomicStorageConfiguration) configuration).setMaxKeySize(OGlobalConfiguration.SBTREE_MAX_KEY_SIZE.getValueAsInteger());
 
         // ADD THE INDEX CLUSTER TO STORE, BY DEFAULT, ALL THE RECORDS OF
         // INDEXING
@@ -567,11 +569,10 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
           clearStorageDirty();
         }
 
-        if (contextConfiguration.getValueAsBoolean(OGlobalConfiguration.STORAGE_MAKE_FULL_CHECKPOINT_AFTER_CREATE)) {
-          makeFullCheckpoint();
-        }
-
         postCreateSteps();
+
+        //binary compatibility with previous version, this record contained configuration of storage
+        createRecord(new ORecordId(0, -1), new byte[] { 0, 0, 0, 0 }, 0, OBlob.RECORD_TYPE, (byte) 0, null);
 
       } catch (InterruptedException e) {
         throw OException.wrapException(new OStorageException("Storage creation was interrupted"), e);
@@ -821,7 +822,8 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
         checkOpenness();
         if (clusterId < 0 || clusterId >= clusters.size()) {
           throw new IllegalArgumentException(
-              "Cluster id '" + clusterId + "' is outside the of range of configured clusters (0-" + (clusters.size() - 1) + ") in database '" + name + "'");
+              "Cluster id '" + clusterId + "' is outside the of range of configured clusters (0-" + (clusters.size() - 1)
+                  + ") in database '" + name + "'");
         }
 
         final OCluster cluster = clusters.get(clusterId);
@@ -839,7 +841,7 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
         clusters.set(clusterId, null);
 
         // UPDATE CONFIGURATION
-        getConfiguration().dropCluster(clusterId);
+        ((OAtomicStorageConfiguration) configuration).dropCluster(clusterId);
 
         return true;
       } catch (Exception e) {
@@ -870,7 +872,8 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
         checkOpenness();
         if (clusterId < 0 || clusterId >= clusters.size()) {
           throw new IllegalArgumentException(
-              "Cluster id '" + clusterId + "' is outside the of range of configured clusters (0-" + (clusters.size() - 1) + ") in database '" + name + "'");
+              "Cluster id '" + clusterId + "' is outside the of range of configured clusters (0-" + (clusters.size() - 1)
+                  + ") in database '" + name + "'");
         }
 
         final OCluster cluster = clusters.get(clusterId);
@@ -913,7 +916,7 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
 
         // UPDATE CONFIGURATION
         makeStorageDirty();
-        ((OStorageConfigurationImpl) configuration).setClusterStatus(clusterId, iStatus);
+        ((OAtomicStorageConfiguration) configuration).setClusterStatus(clusterId, iStatus);
 
         makeFullCheckpoint();
         return true;
@@ -1066,7 +1069,8 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
           .getValueAsBoolean(OGlobalConfiguration.STORAGE_TRACK_CHANGED_RECORDS_IN_WAL)) {
         throw new IllegalStateException(
             "Cannot find records which were changed starting from provided LSN because tracking of rids of changed records in WAL is switched off, "
-                + "to switch it on please set property " + OGlobalConfiguration.STORAGE_TRACK_CHANGED_RECORDS_IN_WAL.getKey() + " to the true value, please note that only records"
+                + "to switch it on please set property " + OGlobalConfiguration.STORAGE_TRACK_CHANGED_RECORDS_IN_WAL.getKey()
+                + " to the true value, please note that only records"
                 + " which are stored after this property was set will be retrieved");
       }
 
@@ -1260,7 +1264,8 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
       if (!OGlobalConfiguration.STORAGE_TRACK_CHANGED_RECORDS_IN_WAL.getValueAsBoolean()) {
         throw new IllegalStateException(
             "Cannot find records which were changed starting from provided LSN because tracking of rids of changed records in WAL is switched off, "
-                + "to switch it on please set property " + OGlobalConfiguration.STORAGE_TRACK_CHANGED_RECORDS_IN_WAL.getKey() + " to the true value, please note that only records"
+                + "to switch it on please set property " + OGlobalConfiguration.STORAGE_TRACK_CHANGED_RECORDS_IN_WAL.getKey()
+                + " to the true value, please note that only records"
                 + " which are stored after this property was set will be retrieved");
       }
 
@@ -2306,9 +2311,9 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
         final OType[] keyTypes = indexDefinition != null ? indexDefinition.getTypes() : null;
         final boolean nullValuesSupport = indexDefinition != null && !indexDefinition.isNullValuesIgnored();
 
-        final OStorageConfigurationImpl.IndexEngineData engineData = new OStorageConfigurationImpl.IndexEngineData(engineName,
-            algorithm, indexType, durableInNonTxMode, version, valueSerializer.getId(), keySerializer.getId(), isAutomatic,
-            keyTypes, nullValuesSupport, keySize, null, null, engineProperties);
+        final OStorageConfiguration.IndexEngineData engineData = new OStorageConfiguration.IndexEngineData(engineName, algorithm,
+            indexType, durableInNonTxMode, version, valueSerializer.getId(), keySerializer.getId(), isAutomatic, keyTypes,
+            nullValuesSupport, keySize, null, null, engineProperties);
 
         final OIndexEngine engine = OIndexes
             .createIndexEngine(engineName, algorithm, indexType, durableInNonTxMode, this, version, engineProperties, null);
@@ -2317,7 +2322,7 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
 
         indexEngineNameMap.put(engineName, engine);
         indexEngines.add(engine);
-        ((OStorageConfigurationImpl) configuration).addIndexEngine(engineName, engineData);
+        ((OAtomicStorageConfiguration) configuration).addIndexEngine(engineName, engineData);
 
         return indexEngines.size() - 1;
       } catch (IOException e) {
@@ -2353,7 +2358,7 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
           final OIndexEngine engine = indexEngineNameMap.remove(engineName);
           if (engine != null) {
             indexEngines.remove(engine);
-            ((OStorageConfigurationImpl) configuration).deleteIndexEngine(engineName);
+            ((OAtomicStorageConfiguration) configuration).deleteIndexEngine(engineName);
             engine.delete();
           }
         }
@@ -2389,19 +2394,15 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
         engine.create(valueSerializer, isAutomatic, keyTypes, nullValuesSupport, keySerializer, keySize, clustersToIndex,
             engineProperties, metadata, encryption);
 
-        if (writeAheadLog != null) {
-          writeAheadLog.flush();
-        }
-
         indexEngineNameMap.put(engineName, engine);
 
         indexEngines.add(engine);
 
-        final OStorageConfigurationImpl.IndexEngineData engineData = new OStorageConfigurationImpl.IndexEngineData(engineName,
-            algorithm, indexType, durableInNonTxMode, version, serializerId, keySerializer.getId(), isAutomatic, keyTypes,
-            nullValuesSupport, keySize, cfgEncryption, cfgEncryptionKey, engineProperties);
+        final OStorageConfiguration.IndexEngineData engineData = new OStorageConfiguration.IndexEngineData(engineName, algorithm,
+            indexType, durableInNonTxMode, version, serializerId, keySerializer.getId(), isAutomatic, keyTypes, nullValuesSupport,
+            keySize, cfgEncryption, cfgEncryptionKey, engineProperties);
 
-        ((OStorageConfigurationImpl) configuration).addIndexEngine(engineName, engineData);
+        ((OAtomicStorageConfiguration) configuration).addIndexEngine(engineName, engineData);
 
         return indexEngines.size() - 1;
       } catch (IOException e) {
@@ -2476,7 +2477,7 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
 
         final String engineName = engine.getName();
         indexEngineNameMap.remove(engineName);
-        ((OStorageConfigurationImpl) configuration).deleteIndexEngine(engineName);
+        ((OAtomicStorageConfiguration) configuration).deleteIndexEngine(engineName);
       } catch (IOException e) {
         throw OException.wrapException(new OStorageException("Error on index deletion"), e);
       } finally {
@@ -3279,7 +3280,8 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
 
           if (transaction.get().getMicroTransaction().getId() != microTransaction.getId()) {
             throw new OStorageException(
-                "Passed in and active micro-transaction are different micro-transactions. Passed in micro-transaction cannot be " + "rolled back.");
+                "Passed in and active micro-transaction are different micro-transactions. Passed in micro-transaction cannot be "
+                    + "rolled back.");
           }
 
           makeStorageDirty();
@@ -3793,8 +3795,9 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
               || iCommand.getParameters().isEmpty()))
           // CACHE THE COMMAND RESULT
           {
-            db.getMetadata().getCommandCache().put(db.getUser(), iCommand.getText(), result, iCommand.getLimit(), executor.getInvolvedClusters(),
-                System.currentTimeMillis() - beginTime);
+            db.getMetadata().getCommandCache()
+                .put(db.getUser(), iCommand.getText(), result, iCommand.getLimit(), executor.getInvolvedClusters(),
+                    System.currentTimeMillis() - beginTime);
           }
         }
 
@@ -4016,7 +4019,7 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
       checkOpenness();
 
       this.recordConflictStrategy = conflictResolver;
-      ((OStorageConfigurationImpl) configuration).setConflictStrategy(conflictResolver.getName());
+      ((OAtomicStorageConfiguration) configuration).setConflictStrategy(conflictResolver.getName());
     } finally {
       stateLock.releaseWriteLock();
     }
@@ -4179,7 +4182,7 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
   protected void preCreateSteps() throws IOException {
   }
 
-  protected abstract void initWalAndDiskCache(OContextConfiguration contextConfiguration) throws IOException, InterruptedException;
+  protected abstract void initWalAndDiskCache() throws IOException, InterruptedException;
 
   protected abstract void postCloseSteps(@SuppressWarnings("unused") boolean onDelete, boolean jvmError) throws IOException;
 
@@ -4210,7 +4213,8 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
     checkOpenness();
 
     if (!rid.isPersistent()) {
-      throw new ORecordNotFoundException(rid, "Cannot read record " + rid + " since the position is invalid in database '" + name + '\'');
+      throw new ORecordNotFoundException(rid,
+          "Cannot read record " + rid + " since the position is invalid in database '" + name + '\'');
     }
 
     if (transaction.get() != null) {
@@ -4243,7 +4247,8 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
     checkOpenness();
 
     if (!rid.isPersistent()) {
-      throw new ORecordNotFoundException(rid, "Cannot read record " + rid + " since the position is invalid in database '" + name + '\'');
+      throw new ORecordNotFoundException(rid,
+          "Cannot read record " + rid + " since the position is invalid in database '" + name + '\'');
     }
 
     if (transaction.get() != null) {
@@ -4716,8 +4721,7 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
   }
 
   private int addClusterInternal(String clusterName, int clusterPos, Object... parameters) throws IOException {
-
-    final OCluster cluster;
+    final OPaginatedCluster cluster;
     if (clusterName != null) {
       clusterName = clusterName.toLowerCase(configuration.getLocaleInstance());
 
@@ -4732,21 +4736,9 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
 
     if (cluster != null) {
       cluster.create(-1);
-
-      if (writeAheadLog != null) {
-        writeAheadLog.flush();
-      }
-
       createdClusterId = registerCluster(cluster);
 
-      ((OPaginatedCluster) cluster).registerInStorageConfig((OStorageConfigurationImpl) configuration);
-      ((OStorageConfigurationImpl) configuration).update();
-    }
-
-    if (OLogManager.instance().isDebugEnabled()) {
-      OLogManager.instance()
-          .debug(this, "Created cluster '%s' in database '%s' with id %d. Clusters: %s", clusterName, url, createdClusterId,
-              clusters);
+      cluster.registerInStorageConfig((OAtomicStorageConfiguration) configuration);
     }
 
     return createdClusterId;
@@ -4773,8 +4765,6 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
       status = STATUS.CLOSING;
 
       if (jvmError.get() == null) {
-        readCache.storeCacheState(writeCache);
-
         if (!onDelete && jvmError.get() == null) {
           makeFullCheckpoint();
         }
@@ -4804,9 +4794,9 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
 
         if (getConfiguration() != null) {
           if (onDelete) {
-            ((OStorageConfigurationImpl) configuration).delete();
+            ((OAtomicStorageConfiguration) configuration).delete();
           } else {
-            ((OStorageConfigurationImpl) configuration).close();
+            ((OAtomicStorageConfiguration) configuration).close();
           }
         }
 
@@ -5157,8 +5147,7 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
   }
 
   @Override
-  public String incrementalBackup(String backupDirectory, OCallable<Void, Void> started)
-      throws UnsupportedOperationException {
+  public String incrementalBackup(String backupDirectory, OCallable<Void, Void> started) throws UnsupportedOperationException {
     throw new UnsupportedOperationException("Incremental backup is supported only in enterprise version");
   }
 
@@ -5564,7 +5553,7 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
     stateLock.acquireWriteLock();
     try {
       checkOpenness();
-      ((OStorageConfigurationImpl) configuration).setConfigurationUpdateListener(storageConfigurationUpdateListener);
+      ((OAtomicStorageConfiguration) configuration).setConfigurationUpdateListener(storageConfigurationUpdateListener);
     } finally {
       stateLock.releaseWriteLock();
     }
@@ -5630,7 +5619,8 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
     final OAtomicOperation atomicOperation = OAtomicOperationsManager.getCurrentOperation();
 
     for (Integer clusterId : clusters.keySet()) {
-      atomicOperationsManager.acquireExclusiveLockTillOperationComplete(atomicOperation, OSBTreeCollectionManagerAbstract.generateLockName(clusterId));
+      atomicOperationsManager
+          .acquireExclusiveLockTillOperationComplete(atomicOperation, OSBTreeCollectionManagerAbstract.generateLockName(clusterId));
     }
 
     for (Map.Entry<String, OTransactionIndexChanges> entry : indexes.entrySet()) {
@@ -5638,7 +5628,8 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
       final OIndexInternal<?> index = entry.getValue().resolveAssociatedIndex(indexName, manager);
 
       if (!index.isUnique()) {
-        atomicOperationsManager.acquireExclusiveLockTillOperationComplete(atomicOperation, OIndexRIDContainerSBTree.generateLockName(indexName));
+        atomicOperationsManager
+            .acquireExclusiveLockTillOperationComplete(atomicOperation, OIndexRIDContainerSBTree.generateLockName(indexName));
       }
     }
   }
@@ -5687,8 +5678,9 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
 
   protected final RuntimeException logAndPrepareForRethrow(RuntimeException runtimeException) {
     if (!(runtimeException instanceof OHighLevelException || runtimeException instanceof ONeedRetryException)) {
-      OLogManager.instance().errorStorage(this, "Exception `%08X` in storage `%s`: %s", runtimeException, System.identityHashCode(runtimeException),
-          getURL(), OConstants.getVersion());
+      OLogManager.instance()
+          .errorStorage(this, "Exception `%08X` in storage `%s`: %s", runtimeException, System.identityHashCode(runtimeException),
+              getURL(), OConstants.getVersion());
     }
     return runtimeException;
   }
@@ -5700,7 +5692,8 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
   private Error logAndPrepareForRethrow(Error error, boolean putInReadOnlyMode) {
     if (!(error instanceof OHighLevelException)) {
       OLogManager.instance()
-          .errorStorage(this, "Exception `%08X` in storage `%s`: %s", error, System.identityHashCode(error), getURL(), OConstants.getVersion());
+          .errorStorage(this, "Exception `%08X` in storage `%s`: %s", error, System.identityHashCode(error), getURL(),
+              OConstants.getVersion());
     }
 
     if (putInReadOnlyMode) {
@@ -5801,9 +5794,8 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
     try {
       checkOpenness();
 
-      final OStorageConfigurationImpl storageConfiguration = (OStorageConfigurationImpl) configuration;
+      final OAtomicStorageConfiguration storageConfiguration = (OAtomicStorageConfiguration) configuration;
       storageConfiguration.setSchemaRecordId(schemaRecordId);
-      storageConfiguration.update();
     } catch (RuntimeException ee) {
       throw logAndPrepareForRethrow(ee);
     } catch (Error ee) {
@@ -5822,9 +5814,8 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
     try {
       checkOpenness();
 
-      final OStorageConfigurationImpl storageConfiguration = (OStorageConfigurationImpl) configuration;
+      final OAtomicStorageConfiguration storageConfiguration = (OAtomicStorageConfiguration) configuration;
       storageConfiguration.setDateFormat(dateFormat);
-      storageConfiguration.update();
     } catch (RuntimeException ee) {
       throw logAndPrepareForRethrow(ee);
     } catch (Error ee) {
@@ -5844,9 +5835,8 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
     try {
       checkOpenness();
 
-      final OStorageConfigurationImpl storageConfiguration = (OStorageConfigurationImpl) configuration;
+      final OAtomicStorageConfiguration storageConfiguration = (OAtomicStorageConfiguration) configuration;
       storageConfiguration.setTimeZone(timeZoneValue);
-      storageConfiguration.update();
     } catch (RuntimeException ee) {
       throw logAndPrepareForRethrow(ee);
     } catch (Error ee) {
@@ -5866,9 +5856,8 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
     try {
       checkOpenness();
 
-      final OStorageConfigurationImpl storageConfiguration = (OStorageConfigurationImpl) configuration;
+      final OAtomicStorageConfiguration storageConfiguration = (OAtomicStorageConfiguration) configuration;
       storageConfiguration.setLocaleLanguage(locale);
-      storageConfiguration.update();
     } catch (RuntimeException ee) {
       throw logAndPrepareForRethrow(ee);
     } catch (Error ee) {
@@ -5888,9 +5877,8 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
     try {
       checkOpenness();
 
-      final OStorageConfigurationImpl storageConfiguration = (OStorageConfigurationImpl) configuration;
+      final OAtomicStorageConfiguration storageConfiguration = (OAtomicStorageConfiguration) configuration;
       storageConfiguration.setCharset(charset);
-      storageConfiguration.update();
     } catch (RuntimeException ee) {
       throw logAndPrepareForRethrow(ee);
     } catch (Error ee) {
@@ -5909,9 +5897,8 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
     try {
       checkOpenness();
 
-      final OStorageConfigurationImpl storageConfiguration = (OStorageConfigurationImpl) configuration;
+      final OAtomicStorageConfiguration storageConfiguration = (OAtomicStorageConfiguration) configuration;
       storageConfiguration.setIndexMgrRecordId(indexMgrRecordId);
-      storageConfiguration.update();
     } catch (RuntimeException ee) {
       throw logAndPrepareForRethrow(ee);
     } catch (Error ee) {
@@ -5930,9 +5917,8 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
     try {
       checkOpenness();
 
-      final OStorageConfigurationImpl storageConfiguration = (OStorageConfigurationImpl) configuration;
+      final OAtomicStorageConfiguration storageConfiguration = (OAtomicStorageConfiguration) configuration;
       storageConfiguration.setDateTimeFormat(dateTimeFormat);
-      storageConfiguration.update();
     } catch (RuntimeException ee) {
       throw logAndPrepareForRethrow(ee);
     } catch (Error ee) {
@@ -5951,9 +5937,8 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
     try {
       checkOpenness();
 
-      final OStorageConfigurationImpl storageConfiguration = (OStorageConfigurationImpl) configuration;
+      final OAtomicStorageConfiguration storageConfiguration = (OAtomicStorageConfiguration) configuration;
       storageConfiguration.setLocaleCountry(localeCountry);
-      storageConfiguration.update();
     } catch (RuntimeException ee) {
       throw logAndPrepareForRethrow(ee);
     } catch (Error ee) {
@@ -5972,9 +5957,8 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
     try {
       checkOpenness();
 
-      final OStorageConfigurationImpl storageConfiguration = (OStorageConfigurationImpl) configuration;
+      final OAtomicStorageConfiguration storageConfiguration = (OAtomicStorageConfiguration) configuration;
       storageConfiguration.setClusterSelection(clusterSelection);
-      storageConfiguration.update();
     } catch (RuntimeException ee) {
       throw logAndPrepareForRethrow(ee);
     } catch (Error ee) {
@@ -5993,9 +5977,8 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
     try {
       checkOpenness();
 
-      final OStorageConfigurationImpl storageConfiguration = (OStorageConfigurationImpl) configuration;
+      final OAtomicStorageConfiguration storageConfiguration = (OAtomicStorageConfiguration) configuration;
       storageConfiguration.setMinimumClusters(minimumClusters);
-      storageConfiguration.update();
     } catch (RuntimeException ee) {
       throw logAndPrepareForRethrow(ee);
     } catch (Error ee) {
@@ -6014,9 +5997,8 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
     try {
       checkOpenness();
 
-      final OStorageConfigurationImpl storageConfiguration = (OStorageConfigurationImpl) configuration;
+      final OAtomicStorageConfiguration storageConfiguration = (OAtomicStorageConfiguration) configuration;
       storageConfiguration.setValidation(validation);
-      storageConfiguration.update();
     } catch (RuntimeException ee) {
       throw logAndPrepareForRethrow(ee);
     } catch (Error ee) {
@@ -6036,9 +6018,8 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
     try {
       checkOpenness();
 
-      final OStorageConfigurationImpl storageConfiguration = (OStorageConfigurationImpl) configuration;
+      final OAtomicStorageConfiguration storageConfiguration = (OAtomicStorageConfiguration) configuration;
       storageConfiguration.removeProperty(property);
-      storageConfiguration.update();
     } catch (RuntimeException ee) {
       throw logAndPrepareForRethrow(ee);
     } catch (Error ee) {
@@ -6059,9 +6040,8 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
     try {
       checkOpenness();
 
-      final OStorageConfigurationImpl storageConfiguration = (OStorageConfigurationImpl) configuration;
+      final OAtomicStorageConfiguration storageConfiguration = (OAtomicStorageConfiguration) configuration;
       storageConfiguration.setProperty(property, value);
-      storageConfiguration.update();
     } catch (RuntimeException ee) {
       throw logAndPrepareForRethrow(ee);
     } catch (Error ee) {
@@ -6081,11 +6061,9 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
     try {
       checkOpenness();
 
-      final OStorageConfigurationImpl storageConfiguration = (OStorageConfigurationImpl) configuration;
+      final OAtomicStorageConfiguration storageConfiguration = (OAtomicStorageConfiguration) configuration;
       storageConfiguration.setRecordSerializer(recordSerializer);
       storageConfiguration.setRecordSerializerVersion(version);
-
-      storageConfiguration.update();
     } catch (RuntimeException ee) {
       throw logAndPrepareForRethrow(ee);
     } catch (Error ee) {
@@ -6106,9 +6084,8 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
     try {
       checkOpenness();
 
-      final OStorageConfigurationImpl storageConfiguration = (OStorageConfigurationImpl) configuration;
+      final OAtomicStorageConfiguration storageConfiguration = (OAtomicStorageConfiguration) configuration;
       storageConfiguration.clearProperties();
-      storageConfiguration.update();
     } catch (RuntimeException ee) {
       throw logAndPrepareForRethrow(ee);
     } catch (Error ee) {

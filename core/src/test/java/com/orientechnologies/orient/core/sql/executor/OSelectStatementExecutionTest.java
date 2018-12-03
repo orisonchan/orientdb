@@ -20,7 +20,16 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.lang.reflect.Array;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 
 import static com.orientechnologies.orient.core.sql.executor.ExecutionPlanPrintUtils.printExecutionPlan;
 
@@ -974,6 +983,9 @@ public class OSelectStatementExecutionTest {
 
   @Test
   public void testFetchFromSingleRid3() {
+    ODocument document = new ODocument();
+    document.save(db.getClusterNameById(0));
+
     OResultSet result = db.query("select from [#0:1, #0:2]");
     printExecutionPlan(result);
     Assert.assertTrue(result.hasNext());
@@ -986,6 +998,9 @@ public class OSelectStatementExecutionTest {
 
   @Test
   public void testFetchFromSingleRid4() {
+    ODocument document = new ODocument();
+    document.save(db.getClusterNameById(0));
+
     OResultSet result = db.query("select from [#0:1, #0:2, #0:100000]");
     printExecutionPlan(result);
     Assert.assertTrue(result.hasNext());

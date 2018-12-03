@@ -21,12 +21,10 @@
 package com.orientechnologies.orient.core.storage.memory;
 
 import com.orientechnologies.orient.core.command.OCommandOutputListener;
-import com.orientechnologies.orient.core.config.OContextConfiguration;
 import com.orientechnologies.orient.core.config.OGlobalConfiguration;
 import com.orientechnologies.orient.core.engine.memory.OEngineMemory;
 import com.orientechnologies.orient.core.storage.cluster.OPaginatedCluster;
 import com.orientechnologies.orient.core.storage.impl.local.OAbstractPaginatedStorage;
-import com.orientechnologies.orient.core.storage.impl.local.paginated.OStorageMemoryConfiguration;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OLogSequenceNumber;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OMemoryWriteAheadLog;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OWriteAheadLog;
@@ -49,12 +47,11 @@ public class ODirectMemoryStorage extends OAbstractPaginatedStorage {
 
   public ODirectMemoryStorage(String name, String filePath, String mode, int id) {
     super(name, filePath, mode, id);
-    configuration = new OStorageMemoryConfiguration(this);
   }
 
   @Override
-  protected void initWalAndDiskCache(OContextConfiguration contextConfiguration) throws IOException {
-    if (configuration.getContextConfiguration().getValueAsBoolean(OGlobalConfiguration.USE_WAL)) {
+  protected void initWalAndDiskCache() throws IOException {
+    if (OGlobalConfiguration.USE_WAL.getValueAsBoolean()) {
       if (writeAheadLog == null)
         writeAheadLog = new OMemoryWriteAheadLog();
     } else

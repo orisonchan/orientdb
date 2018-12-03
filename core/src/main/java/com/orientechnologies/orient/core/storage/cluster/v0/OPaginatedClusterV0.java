@@ -27,7 +27,6 @@ import com.orientechnologies.orient.core.compression.OCompressionFactory;
 import com.orientechnologies.orient.core.config.OContextConfiguration;
 import com.orientechnologies.orient.core.config.OGlobalConfiguration;
 import com.orientechnologies.orient.core.config.OStorageClusterConfiguration;
-import com.orientechnologies.orient.core.config.OStorageConfigurationImpl;
 import com.orientechnologies.orient.core.config.OStoragePaginatedClusterConfiguration;
 import com.orientechnologies.orient.core.conflict.ORecordConflictStrategy;
 import com.orientechnologies.orient.core.db.ODatabaseRecordThreadLocal;
@@ -48,6 +47,7 @@ import com.orientechnologies.orient.core.storage.cluster.OClusterPageDebug;
 import com.orientechnologies.orient.core.storage.cluster.OClusterPositionMapBucket;
 import com.orientechnologies.orient.core.storage.cluster.OPaginatedCluster;
 import com.orientechnologies.orient.core.storage.cluster.OPaginatedClusterDebug;
+import com.orientechnologies.orient.core.storage.config.OAtomicStorageConfiguration;
 import com.orientechnologies.orient.core.storage.impl.local.OAbstractPaginatedStorage;
 import com.orientechnologies.orient.core.storage.impl.local.OClusterBrowseEntry;
 import com.orientechnologies.orient.core.storage.impl.local.OClusterBrowsePage;
@@ -181,9 +181,8 @@ public final class OPaginatedClusterV0 extends OPaginatedCluster {
     }
   }
 
-  public void registerInStorageConfig(OStorageConfigurationImpl root) {
-    root.addCluster(config);
-    root.update();
+  public void registerInStorageConfig(OAtomicStorageConfiguration root) {
+    root.updateCluster(config);
   }
 
   @Override
@@ -1535,7 +1534,8 @@ public final class OPaginatedClusterV0 extends OPaginatedCluster {
   private void setRecordConflictStrategy(final String stringValue) {
     recordConflictStrategy = Orient.instance().getRecordConflictStrategy().getStrategy(stringValue);
     config.conflictStrategy = stringValue;
-    ((OStorageConfigurationImpl) storageLocal.getConfiguration()).update();
+
+    ((OAtomicStorageConfiguration) storageLocal.getConfiguration()).updateCluster(config);
   }
 
   private void updateClusterState(long sizeDiff, long recordsSizeDiff, OAtomicOperation atomicOperation) throws IOException {
@@ -1572,7 +1572,7 @@ public final class OPaginatedClusterV0 extends OPaginatedCluster {
     try {
       encryption = OEncryptionFactory.INSTANCE.getEncryption(iMethod, iKey);
       config.encryption = iMethod;
-      ((OStorageConfigurationImpl) storageLocal.getConfiguration()).update();
+      ((OAtomicStorageConfiguration) storageLocal.getConfiguration()).updateCluster(config);
     } catch (IllegalArgumentException e) {
       throw OException
           .wrapException(new OPaginatedClusterException("Invalid value for " + ATTRIBUTES.ENCRYPTION + " attribute", this), e);
@@ -1587,7 +1587,7 @@ public final class OPaginatedClusterV0 extends OPaginatedCluster {
       }
 
       config.recordOverflowGrowFactor = growFactor;
-      ((OStorageConfigurationImpl) storageLocal.getConfiguration()).update();
+      ((OAtomicStorageConfiguration) storageLocal.getConfiguration()).updateCluster(config);
     } catch (NumberFormatException nfe) {
       throw OException.wrapException(new OPaginatedClusterException(
           "Invalid value for cluster attribute " + OCluster.ATTRIBUTES.RECORD_OVERFLOW_GROW_FACTOR + " was passed [" + stringValue
@@ -1603,7 +1603,7 @@ public final class OPaginatedClusterV0 extends OPaginatedCluster {
       }
 
       config.recordGrowFactor = growFactor;
-      ((OStorageConfigurationImpl) storageLocal.getConfiguration()).update();
+      ((OAtomicStorageConfiguration) storageLocal.getConfiguration()).updateCluster(config);
     } catch (NumberFormatException nfe) {
       throw OException.wrapException(new OPaginatedClusterException(
           "Invalid value for cluster attribute " + OCluster.ATTRIBUTES.RECORD_GROW_FACTOR + " was passed [" + stringValue + "]",
@@ -1620,7 +1620,7 @@ public final class OPaginatedClusterV0 extends OPaginatedCluster {
     storageLocal.renameCluster(getName(), newName);
     setName(newName);
 
-    ((OStorageConfigurationImpl) storageLocal.getConfiguration()).update();
+    ((OAtomicStorageConfiguration) storageLocal.getConfiguration()).updateCluster(config);
   }
 
   private static OPhysicalPosition createPhysicalPosition(final byte recordType, final long clusterPosition, final int version) {

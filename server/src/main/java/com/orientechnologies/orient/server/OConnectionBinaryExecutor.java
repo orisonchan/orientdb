@@ -151,7 +151,6 @@ import com.orientechnologies.orient.core.command.OCommandRequestText;
 import com.orientechnologies.orient.core.command.OCommandResultListener;
 import com.orientechnologies.orient.core.config.OContextConfiguration;
 import com.orientechnologies.orient.core.config.OGlobalConfiguration;
-import com.orientechnologies.orient.core.config.OStorageConfigurationImpl;
 import com.orientechnologies.orient.core.db.ODatabaseDocumentInternal;
 import com.orientechnologies.orient.core.db.ODatabaseRecordThreadLocal;
 import com.orientechnologies.orient.core.db.ODatabaseType;
@@ -193,6 +192,7 @@ import com.orientechnologies.orient.core.storage.ORecordMetadata;
 import com.orientechnologies.orient.core.storage.OStorage;
 import com.orientechnologies.orient.core.storage.OStorageProxy;
 import com.orientechnologies.orient.core.storage.cluster.OOfflineClusterException;
+import com.orientechnologies.orient.core.storage.config.OAtomicStorageConfiguration;
 import com.orientechnologies.orient.core.storage.index.sbtree.OTreeInternal;
 import com.orientechnologies.orient.core.storage.index.sbtreebonsai.local.OSBTreeBonsai;
 import com.orientechnologies.orient.core.storage.ridbag.sbtree.OBonsaiCollectionPointer;
@@ -413,7 +413,7 @@ public final class OConnectionBinaryExecutor implements OBinaryRequestExecutor {
       final byte[] record = connection.getDatabase().getStorage().callInLock(new Callable<byte[]>() {
         @Override
         public byte[] call() throws Exception {
-          return ((OStorageConfigurationImpl) connection.getDatabase().getStorage().getConfiguration())
+          return ((OAtomicStorageConfiguration) connection.getDatabase().getStorage().getConfiguration())
               .toStream(connection.getData().protocolVersion, Charset.forName("UTF-8"));
         }
       }, false);
@@ -474,7 +474,7 @@ public final class OConnectionBinaryExecutor implements OBinaryRequestExecutor {
       final byte[] record = connection.getDatabase().getStorage().callInLock(new Callable<byte[]>() {
         @Override
         public byte[] call() throws Exception {
-          return ((OStorageConfigurationImpl) connection.getDatabase().getStorage().getConfiguration())
+          return ((OAtomicStorageConfiguration) connection.getDatabase().getStorage().getConfiguration())
               .toStream(connection.getData().protocolVersion, Charset.forName("UTF-8"));
         }
       }, false);

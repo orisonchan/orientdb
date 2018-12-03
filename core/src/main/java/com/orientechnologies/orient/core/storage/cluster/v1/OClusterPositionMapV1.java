@@ -39,8 +39,8 @@ import java.util.Arrays;
 public final class OClusterPositionMapV1 extends OClusterPositionMap {
   private long fileId;
 
-  OClusterPositionMapV1(OAbstractPaginatedStorage storage, String name, String lockName) {
-    super(storage, name, DEF_EXTENSION, lockName);
+  OClusterPositionMapV1(OAbstractPaginatedStorage storage, String name, String lockName, String extension) {
+    super(storage, name, extension, lockName);
   }
 
   public void open(final OAtomicOperation atomicOperation) throws IOException {
