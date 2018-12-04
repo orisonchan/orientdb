@@ -408,7 +408,9 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
    * any data corruption. Till JVM is not restarted storage will be put in read-only state.
    */
   public final void handleJVMError(Error e) {
-    jvmError.compareAndSet(null, e);
+    if (jvmError.compareAndSet(null, e)) {
+      OLogManager.instance().errorNoDb(this, "JVM error was thrown", e);
+    }
   }
 
   /**
