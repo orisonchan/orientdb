@@ -40,8 +40,10 @@ import com.orientechnologies.orient.core.storage.impl.local.OAbstractPaginatedSt
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.DirectoryStream;
 import java.nio.file.FileStore;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -508,20 +510,31 @@ public class OrientDBEmbedded implements OrientDBInternal {
     T create(OAbstractPaginatedStorage storage);
   }
 
-  protected void scanDatabaseDirectory(final File directory, DatabaseFound found) {
-    if (directory.exists() && directory.isDirectory()) {
-      final File[] files = directory.listFiles();
-      if (files != null)
-        for (File db : files) {
-          if (db.isDirectory()) {
-            final File plocalFile = new File(db.getAbsolutePath() + "/database.ocf");
-            final String dbPath = db.getPath().replace('\\', '/');
-            final int lastBS = dbPath.lastIndexOf('/', dbPath.length() - 1) + 1;// -1 of dbPath may be ended with slash
-            if (plocalFile.exists()) {
-              found.found(OIOUtils.getDatabaseNameFromPath(dbPath.substring(lastBS)));
+  private void scanDatabaseDirectory(final File directory, DatabaseFound found) {
+    try {
+      if (directory.exists() && directory.isDirectory()) {
+        final File[] files = directory.listFiles();
+        if (files != null)
+          for (File db : files) {
+            if (db.isDirectory()) {
+              final Path dbPath = Paths.get(db.getAbsolutePath());
+              try (DirectoryStream<Path> stream = Files.newDirectoryStream(dbPath)) {
+                stream.forEach((p) -> {
+                  if (!Files.isDirectory(p)) {
+                    final String fileName = p.getFileName().toString();
+
+                    if (fileName.equals("database.ocf") || (fileName.startsWith("config") && fileName.endsWith(".cm"))) {
+                      final int count = p.getNameCount();
+                      found.found(OIOUtils.getDatabaseNameFromPath(p.subpath(count - 2, count - 1).toString()));
+                    }
+                  }
+                });
+              }
             }
           }
-        }
+      }
+    } catch (IOException e) {
+      throw OException.wrapException(new ODatabaseException("Exception during scanning of database directory"), e);
     }
   }
 

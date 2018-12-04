@@ -5561,6 +5561,26 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
     }
   }
 
+  public void pauseConfigurationUpdateNotifications() {
+    stateLock.acquireReadLock();
+    try {
+      checkOpenness();
+      ((OAtomicStorageConfiguration) configuration).pauseUpdateNotifications();
+    } finally {
+      stateLock.releaseReadLock();
+    }
+  }
+
+  public void fireConfigurationUpdateNotifications() {
+    stateLock.acquireReadLock();
+    try {
+      checkOpenness();
+      ((OAtomicStorageConfiguration) configuration).fireUpdateNotifications();
+    } finally {
+      stateLock.releaseReadLock();
+    }
+  }
+
   private static final class ORIDOLockManager extends OComparableLockManager<ORID> {
     ORIDOLockManager() {
       super(true, -1);

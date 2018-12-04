@@ -36,6 +36,7 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -45,6 +46,14 @@ import java.util.Set;
 import java.util.TimeZone;
 
 public final class OAtomicStorageConfiguration implements OStorageConfiguration {
+
+  public static final String MAP_FILE  = ".ccm";
+  public static final String DATA_FILE = ".cd";
+
+  public static final String TREE_DATA_FILE = ".bd";
+  public static final String TREE_NULL_FILE = ".nd";
+
+  private static final String COMPONENT_NAME                   = "config";
   private static final String VERSION_PROPERTY                 = "version";
   private static final String SCHEMA_RECORD_ID_PROPERTY        = "schemaRecordId";
   private static final String INDEX_MANAGER_RECORD_ID_PROPERTY = "indexManagerRecordId";
@@ -76,6 +85,7 @@ public final class OAtomicStorageConfiguration implements OStorageConfiguration 
   private static final String ENGINE_PREFIX_PROPERTY   = "engine_";
 
   private static final String PROPERTIES = "properties";
+  private static final String CLUSTERS   = "clusters";
 
   private static final String[] INT_PROPERTIES = new String[] { MINIMUM_CLUSTERS_PROPERTY, VERSION_PROPERTY,
       BINARY_FORMAT_VERSION_PROPERTY, RECORD_SERIALIZER_VERSION_PROPERTY, PAGE_SIZE_PROPERTY, FREE_LIST_BOUNDARY_PROPERTY,
@@ -101,10 +111,13 @@ public final class OAtomicStorageConfiguration implements OStorageConfiguration 
 
   private OStorageConfigurationUpdateListener updateListener;
 
+  private boolean pauseNotifications;
+
   public OAtomicStorageConfiguration(OAbstractPaginatedStorage storage) {
     initConfiguration(new OContextConfiguration());
-    cluster = OPaginatedClusterFactory.createCluster("config", OPaginatedCluster.getLatestBinaryVersion(), storage, ".cd", ".cm");
-    btree = new OSBTree<>("config", ".bd", ".nd", storage);
+    cluster = OPaginatedClusterFactory
+        .createCluster(COMPONENT_NAME, OPaginatedCluster.getLatestBinaryVersion(), storage, DATA_FILE, MAP_FILE);
+    btree = new OSBTree<>(COMPONENT_NAME, TREE_DATA_FILE, TREE_NULL_FILE, storage);
     this.atomicOperationsManager = storage.getAtomicOperationsManager();
 
     this.storage = storage;
@@ -122,6 +135,7 @@ public final class OAtomicStorageConfiguration implements OStorageConfiguration 
 
       preloadIntProperties();
       preloadStringProperties();
+      preloadClusters();
       preloadConfigurationProperties();
       recalculateDateTimeFormatInstance();
       recalculateDateInstance();
@@ -156,6 +170,8 @@ public final class OAtomicStorageConfiguration implements OStorageConfiguration 
       btree.close();
 
       cache.clear();
+
+      pauseNotifications = false;
     } finally {
       lock.releaseWriteLock();
     }
@@ -164,10 +180,12 @@ public final class OAtomicStorageConfiguration implements OStorageConfiguration 
   public OAtomicStorageConfiguration load(final OContextConfiguration configuration) throws OSerializationException, IOException {
     lock.acquireWriteLock();
     try {
+      pauseNotifications = false;
+
       initConfiguration(configuration);
 
       cluster.open();
-      btree.load("config", OStringSerializer.INSTANCE, OLinkSerializer.INSTANCE, null, 1, false, null);
+      btree.load(COMPONENT_NAME, OStringSerializer.INSTANCE, OLinkSerializer.INSTANCE, null, 1, false, null);
 
       readConfiguration();
       readMinimumClusters();
@@ -175,6 +193,7 @@ public final class OAtomicStorageConfiguration implements OStorageConfiguration 
       preloadIntProperties();
       preloadStringProperties();
       preloadConfigurationProperties();
+      preloadClusters();
       recalculateDateTimeFormatInstance();
       recalculateDateInstance();
     } finally {
@@ -182,6 +201,24 @@ public final class OAtomicStorageConfiguration implements OStorageConfiguration 
     }
 
     return this;
+  }
+
+  public void pauseUpdateNotifications() {
+    lock.acquireWriteLock();
+    try {
+      pauseNotifications = true;
+    } finally {
+      lock.releaseWriteLock();
+    }
+  }
+
+  public void fireUpdateNotifications() {
+    lock.acquireWriteLock();
+    try {
+      pauseNotifications = false;
+    } finally {
+      lock.releaseWriteLock();
+    }
   }
 
   public void setMinimumClusters(final int minimumClusters) {
@@ -1034,7 +1071,7 @@ public final class OAtomicStorageConfiguration implements OStorageConfiguration 
       }
 
       boolean rollback = false;
-      atomicOperationsManager.startAtomicOperation("dbConfig", true);
+      atomicOperationsManager.startAtomicOperation(COMPONENT_NAME, true);
       try {
         for (String key : keysToRemove) {
           btree.remove(key);
@@ -1160,19 +1197,41 @@ public final class OAtomicStorageConfiguration implements OStorageConfiguration 
   public void updateCluster(OStorageClusterConfiguration config) {
     lock.acquireWriteLock();
     try {
+      @SuppressWarnings("unchecked")
+      List<OStorageClusterConfiguration> clusters = (List<OStorageClusterConfiguration>) cache.get(CLUSTERS);
+      if (config.getId() < clusters.size()) {
+        clusters.set(config.getId(), config);
+      } else {
+        final int diff = config.getId() - clusters.size();
+        for (int i = 0; i < diff; i++) {
+          clusters.add(null);
+        }
+
+        clusters.add(config);
+        assert clusters.size() - 1 == config.getId();
+      }
+
       storeProperty(CLUSTERS_PREFIX_PROPERTY + config.getId(), updateClusterConfig(config));
     } finally {
       lock.releaseWriteLock();
     }
   }
 
-  public void setClusterStatus(final int clusterId, final OStorageClusterConfiguration.STATUS iStatus) {
+  public void setClusterStatus(final int clusterId, final OStorageClusterConfiguration.STATUS status) {
     lock.acquireWriteLock();
     try {
+      @SuppressWarnings("unchecked")
+      List<OStorageClusterConfiguration> clusters = (List<OStorageClusterConfiguration>) cache.get(CLUSTERS);
+
+      if (clusterId < clusters.size()) {
+        final OStorageClusterConfiguration config = clusters.get(clusterId);
+        config.setStatus(status);
+      }
+
       final byte[] property = readProperty(CLUSTERS_PREFIX_PROPERTY + clusterId);
       if (property != null) {
         final OStorageClusterConfiguration clusterCfg = deserializeStorageClusterConfig(clusterId, property);
-        clusterCfg.setStatus(iStatus);
+        clusterCfg.setStatus(status);
         updateCluster(clusterCfg);
       }
     } finally {
@@ -1184,45 +1243,54 @@ public final class OAtomicStorageConfiguration implements OStorageConfiguration 
   public List<OStorageClusterConfiguration> getClusters() {
     lock.acquireReadLock();
     try {
-      final List<OStorageClusterConfiguration> clusters = new ArrayList<>();
-      OSBTree.OSBTreeCursor<String, OIdentifiable> cursor = btree.iterateEntriesMajor(CLUSTERS_PREFIX_PROPERTY, false, true);
-
-      Map.Entry<String, OIdentifiable> entry = cursor.next(-1);
-      while (entry != null) {
-        if (!entry.getKey().startsWith(CLUSTERS_PREFIX_PROPERTY)) {
-          break;
-        }
-
-        final int id = Integer.parseInt(entry.getKey().substring(CLUSTERS_PREFIX_PROPERTY.length()));
-        final ORawBuffer buffer = cluster.readRecord(entry.getValue().getIdentity().getClusterPosition(), false);
-
-        if (clusters.size() <= id) {
-          final int diff = id - clusters.size();
-
-          for (int i = 0; i < diff; i++) {
-            clusters.add(null);
-          }
-
-          clusters.add(deserializeStorageClusterConfig(id, buffer.buffer));
-          assert id == clusters.size() - 1;
-        } else {
-          clusters.set(id, deserializeStorageClusterConfig(id, buffer.buffer));
-        }
-
-        entry = cursor.next(-1);
-      }
-
-      return clusters;
-    } catch (IOException e) {
-      throw OException.wrapException(new OStorageException("Error during reading list of clusters"), e);
+      //noinspection unchecked
+      return Collections.unmodifiableList((List<OStorageClusterConfiguration>) cache.get(CLUSTERS));
     } finally {
       lock.releaseReadLock();
     }
   }
 
+  private void preloadClusters() throws IOException {
+    final List<OStorageClusterConfiguration> clusters = new ArrayList<>();
+    OSBTree.OSBTreeCursor<String, OIdentifiable> cursor = btree.iterateEntriesMajor(CLUSTERS_PREFIX_PROPERTY, false, true);
+
+    Map.Entry<String, OIdentifiable> entry = cursor.next(-1);
+    while (entry != null) {
+      if (!entry.getKey().startsWith(CLUSTERS_PREFIX_PROPERTY)) {
+        break;
+      }
+
+      final int id = Integer.parseInt(entry.getKey().substring(CLUSTERS_PREFIX_PROPERTY.length()));
+      final ORawBuffer buffer = cluster.readRecord(entry.getValue().getIdentity().getClusterPosition(), false);
+
+      if (clusters.size() <= id) {
+        final int diff = id - clusters.size();
+
+        for (int i = 0; i < diff; i++) {
+          clusters.add(null);
+        }
+
+        clusters.add(deserializeStorageClusterConfig(id, buffer.buffer));
+        assert id == clusters.size() - 1;
+      } else {
+        clusters.set(id, deserializeStorageClusterConfig(id, buffer.buffer));
+      }
+
+      entry = cursor.next(-1);
+    }
+
+    cache.put(CLUSTERS, clusters);
+  }
+
   public void dropCluster(int clusterId) {
     lock.acquireWriteLock();
     try {
+      @SuppressWarnings("unchecked")
+      List<OStorageClusterConfiguration> clusters = (List<OStorageClusterConfiguration>) cache.get(CLUSTERS);
+      if (clusterId < clusters.size()) {
+        clusters.set(clusterId, null);
+      }
+
       dropProperty(CLUSTERS_PREFIX_PROPERTY + clusterId);
     } finally {
       lock.releaseWriteLock();
@@ -1448,7 +1516,7 @@ public final class OAtomicStorageConfiguration implements OStorageConfiguration 
   private void dropProperty(String name) {
     try {
       boolean rollback = false;
-      atomicOperationsManager.startAtomicOperation("dbConfig", true);
+      atomicOperationsManager.startAtomicOperation(COMPONENT_NAME, true);
       try {
         final OIdentifiable identifiable = btree.remove(name);
 
@@ -1465,7 +1533,7 @@ public final class OAtomicStorageConfiguration implements OStorageConfiguration 
       throw OException.wrapException(new OStorageException("Error during drop of property " + name), e);
     }
 
-    if (updateListener != null) {
+    if (updateListener != null && !pauseNotifications) {
       updateListener.onUpdate(this);
     }
   }
@@ -1526,7 +1594,7 @@ public final class OAtomicStorageConfiguration implements OStorageConfiguration 
   private void storeProperty(String name, byte[] property) {
     try {
       boolean rollback = false;
-      atomicOperationsManager.startAtomicOperation("dbConfig", true);
+      atomicOperationsManager.startAtomicOperation(COMPONENT_NAME, true);
       try {
         OIdentifiable identity = btree.get(name);
         if (identity == null) {
@@ -1546,7 +1614,7 @@ public final class OAtomicStorageConfiguration implements OStorageConfiguration 
       throw OException.wrapException(new OStorageException("Error during update of configuration property " + name), e);
     }
 
-    if (updateListener != null) {
+    if (updateListener != null && !pauseNotifications) {
       updateListener.onUpdate(this);
     }
   }
