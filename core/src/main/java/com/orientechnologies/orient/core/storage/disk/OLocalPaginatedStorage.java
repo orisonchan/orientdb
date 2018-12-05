@@ -43,6 +43,7 @@ import com.orientechnologies.orient.core.storage.cluster.OClusterPositionMap;
 import com.orientechnologies.orient.core.storage.config.OAtomicStorageConfiguration;
 import com.orientechnologies.orient.core.storage.fs.OFileClassic;
 import com.orientechnologies.orient.core.storage.impl.local.OAbstractPaginatedStorage;
+import com.orientechnologies.orient.core.storage.impl.local.OStorageConfigurationSegment;
 import com.orientechnologies.orient.core.storage.impl.local.OStorageVariableParser;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.OPaginatedStorageDirtyFlag;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OLogSequenceNumber;
@@ -93,8 +94,9 @@ public class OLocalPaginatedStorage extends OAbstractPaginatedStorage {
       OClusterPositionMap.DEF_EXTENSION, OSBTreeIndexEngine.DATA_FILE_EXTENSION, OPrefixBTreeIndexEngine.DATA_FILE_EXTENSION,
       OPrefixBTreeIndexEngine.NULL_BUCKET_FILE_EXTENSION, OIndexRIDContainer.INDEX_FILE_EXTENSION,
       OSBTreeCollectionManagerShared.DEFAULT_EXTENSION, OSBTreeIndexEngine.NULL_BUCKET_FILE_EXTENSION,
-      O2QCache.CACHE_STATISTIC_FILE_EXTENSION, OAtomicStorageConfiguration.MAP_FILE, OAtomicStorageConfiguration.DATA_FILE,
-      OAtomicStorageConfiguration.TREE_DATA_FILE, OAtomicStorageConfiguration.TREE_NULL_FILE };
+      O2QCache.CACHE_STATISTIC_FILE_EXTENSION, OAtomicStorageConfiguration.MAP_FILE_EXTENSION,
+      OAtomicStorageConfiguration.DATA_FILE_EXTENSION, OAtomicStorageConfiguration.TREE_DATA_FILE_EXTENSION,
+      OAtomicStorageConfiguration.TREE_NULL_FILE_EXTENSION };
 
   private static final int ONE_KB = 1024;
 
@@ -427,7 +429,19 @@ public class OLocalPaginatedStorage extends OAbstractPaginatedStorage {
   }
 
   @Override
-  protected void preOpenSteps() throws IOException {
+  protected void preOpenSteps(OContextConfiguration contextConfiguration) throws IOException {
+    if (!OAtomicStorageConfiguration.exists(writeCache) && Files.exists(storagePath.resolve("database.ocf"))) {
+      final OStorageConfigurationSegment oldConfig = new OStorageConfigurationSegment(this);
+      oldConfig.load(contextConfiguration);
+
+      final OAtomicStorageConfiguration atomicConfiguration = new OAtomicStorageConfiguration(this);
+      atomicConfiguration.create(contextConfiguration, oldConfig);
+      configuration = atomicConfiguration;
+
+      oldConfig.close();
+      Files.deleteIfExists(storagePath.resolve("database.ocf"));
+    }
+
     if (configuration.getBinaryFormatVersion() >= 11) {
       if (dirtyFlag.exists())
         dirtyFlag.open();

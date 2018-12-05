@@ -24,6 +24,7 @@ import com.orientechnologies.orient.core.metadata.schema.OType;
 import com.orientechnologies.orient.core.serialization.serializer.binary.impl.OLinkSerializer;
 import com.orientechnologies.orient.core.storage.OPhysicalPosition;
 import com.orientechnologies.orient.core.storage.ORawBuffer;
+import com.orientechnologies.orient.core.storage.cache.OWriteCache;
 import com.orientechnologies.orient.core.storage.cluster.OPaginatedCluster;
 import com.orientechnologies.orient.core.storage.disk.OLocalPaginatedStorage;
 import com.orientechnologies.orient.core.storage.impl.local.OAbstractPaginatedStorage;
@@ -47,18 +48,20 @@ import java.util.TimeZone;
 
 public final class OAtomicStorageConfiguration implements OStorageConfiguration {
 
-  public static final String MAP_FILE  = ".ccm";
-  public static final String DATA_FILE = ".cd";
+  public static final String MAP_FILE_EXTENSION  = ".ccm";
+  public static final String DATA_FILE_EXTENSION = ".cd";
 
-  public static final String TREE_DATA_FILE = ".bd";
-  public static final String TREE_NULL_FILE = ".nd";
+  public static final String TREE_DATA_FILE_EXTENSION = ".bd";
+  public static final String TREE_NULL_FILE_EXTENSION = ".nd";
 
   private static final String COMPONENT_NAME                   = "config";
   private static final String VERSION_PROPERTY                 = "version";
   private static final String SCHEMA_RECORD_ID_PROPERTY        = "schemaRecordId";
   private static final String INDEX_MANAGER_RECORD_ID_PROPERTY = "indexManagerRecordId";
-  private static final String LOCALE_LANGUAGE_PROPERTY         = "localeLanguage";
-  private static final String LOCALE_COUNTRY_PROPERTY          = "localeCountry";
+
+  private static final String LOCALE_LANGUAGE_PROPERTY = "localeLanguage";
+  private static final String LOCALE_COUNTRY_PROPERTY  = "localeCountry";
+  private static final String LOCALE_PROPERTY_INSTANCE = "localeInstance";
 
   private static final String DATE_FORMAT_PROPERTY          = "dateFormat";
   private static final String DATE_FORMAT_PROPERTY_INSTANCE = "dateFormatInstance";
@@ -98,7 +101,6 @@ public final class OAtomicStorageConfiguration implements OStorageConfiguration 
 
   private OContextConfiguration configuration;
   private boolean               validation;
-  private Locale                localeInstance;
 
   private final OSBTree<String, OIdentifiable> btree;
   private final OPaginatedCluster              cluster;
@@ -113,10 +115,15 @@ public final class OAtomicStorageConfiguration implements OStorageConfiguration 
 
   private boolean pauseNotifications;
 
+  public static boolean exists(final OWriteCache writeCache) {
+    return writeCache.exists(COMPONENT_NAME + DATA_FILE_EXTENSION);
+  }
+
   public OAtomicStorageConfiguration(OAbstractPaginatedStorage storage) {
     cluster = OPaginatedClusterFactory
-        .createCluster(COMPONENT_NAME, OPaginatedCluster.getLatestBinaryVersion(), storage, DATA_FILE, MAP_FILE);
-    btree = new OSBTree<>(COMPONENT_NAME, TREE_DATA_FILE, TREE_NULL_FILE, storage);
+        .createCluster(COMPONENT_NAME, OPaginatedCluster.getLatestBinaryVersion(), storage, DATA_FILE_EXTENSION,
+            MAP_FILE_EXTENSION);
+    btree = new OSBTree<>(COMPONENT_NAME, TREE_DATA_FILE_EXTENSION, TREE_NULL_FILE_EXTENSION, storage);
     this.atomicOperationsManager = storage.getAtomicOperationsManager();
 
     this.storage = storage;
@@ -132,14 +139,23 @@ public final class OAtomicStorageConfiguration implements OStorageConfiguration 
 
       init();
 
-      updateVersion();
-
       preloadIntProperties();
       preloadStringProperties();
       preloadClusters();
       preloadConfigurationProperties();
       recalculateDateTimeFormatInstance();
       recalculateDateInstance();
+      recalculateLocale();
+    } finally {
+      lock.releaseWriteLock();
+    }
+  }
+
+  public void create(OContextConfiguration contextConfiguration, OStorageConfiguration source) throws IOException {
+    lock.acquireWriteLock();
+    try {
+      create(contextConfiguration);
+      copy(source);
     } finally {
       lock.releaseWriteLock();
     }
@@ -197,6 +213,7 @@ public final class OAtomicStorageConfiguration implements OStorageConfiguration 
       preloadClusters();
       recalculateDateTimeFormatInstance();
       recalculateDateInstance();
+      recalculateLocale();
     } finally {
       lock.releaseWriteLock();
     }
@@ -469,6 +486,10 @@ public final class OAtomicStorageConfiguration implements OStorageConfiguration 
     updateIntProperty(VERSION_PROPERTY, CURRENT_VERSION);
   }
 
+  private void updateVersion(int version) {
+    updateIntProperty(VERSION_PROPERTY, version);
+  }
+
   @Override
   public int getVersion() {
     lock.acquireReadLock();
@@ -527,6 +548,8 @@ public final class OAtomicStorageConfiguration implements OStorageConfiguration 
     lock.acquireWriteLock();
     try {
       updateStringProperty(LOCALE_LANGUAGE_PROPERTY, value, true);
+
+      recalculateLocale();
     } finally {
       lock.releaseWriteLock();
     }
@@ -546,6 +569,8 @@ public final class OAtomicStorageConfiguration implements OStorageConfiguration 
     lock.acquireWriteLock();
     try {
       updateStringProperty(LOCALE_COUNTRY_PROPERTY, value, true);
+
+      recalculateLocale();
     } finally {
       lock.releaseWriteLock();
     }
@@ -719,6 +744,10 @@ public final class OAtomicStorageConfiguration implements OStorageConfiguration 
 
   private void updateBinaryFormatVersion() {
     updateIntProperty(BINARY_FORMAT_VERSION_PROPERTY, CURRENT_BINARY_FORMAT_VERSION);
+  }
+
+  private void updateBinaryFormatVersion(int version) {
+    updateIntProperty(BINARY_FORMAT_VERSION_PROPERTY, version);
   }
 
   @Override
@@ -1020,21 +1049,21 @@ public final class OAtomicStorageConfiguration implements OStorageConfiguration 
   public Locale getLocaleInstance() {
     lock.acquireReadLock();
     try {
-      if (localeInstance == null) {
-        try {
-          localeInstance = new Locale(getLocaleLanguage(), getLocaleCountry());
-        } catch (RuntimeException e) {
-          localeInstance = Locale.getDefault();
-          OLogManager.instance()
-              .errorNoDb(this, "Error during initialization of locale, default one %s will be used", e, localeInstance);
-
-        }
-      }
-
-      return localeInstance;
+      return (Locale) cache.get(LOCALE_PROPERTY_INSTANCE);
     } finally {
       lock.releaseReadLock();
     }
+  }
+
+  private void recalculateLocale() {
+    Locale locale;
+    try {
+      locale = new Locale(getLocaleLanguage(), getLocaleCountry());
+    } catch (RuntimeException e) {
+      locale = Locale.getDefault();
+    }
+
+    cache.put(LOCALE_PROPERTY_INSTANCE, locale);
   }
 
   @Override
@@ -1696,6 +1725,56 @@ public final class OAtomicStorageConfiguration implements OStorageConfiguration 
 
     setRecordSerializerVersion(0);
     validation = getContextConfiguration().getValueAsBoolean(OGlobalConfiguration.DB_VALIDATION);
+  }
+
+  private void copy(OStorageConfiguration storageConfiguration) {
+    updateVersion(storageConfiguration.getVersion());
+    updateBinaryFormatVersion(storageConfiguration.getBinaryFormatVersion());
+
+    setCharset(storageConfiguration.getCharset());
+    setSchemaRecordId(storageConfiguration.getSchemaRecordId());
+    setIndexMgrRecordId(storageConfiguration.getIndexMgrRecordId());
+
+    final TimeZone timeZone = storageConfiguration.getTimeZone();
+    assert timeZone != null;
+
+    setTimeZone(timeZone);
+    setDateFormat(storageConfiguration.getDateFormat());
+    setDateTimeFormat(storageConfiguration.getDateTimeFormat());
+
+    this.configuration = storageConfiguration.getContextConfiguration();
+
+    setMinimumClusters(storageConfiguration.getMinimumClusters());
+
+    setLocaleCountry(storageConfiguration.getLocaleCountry());
+    setLocaleLanguage(storageConfiguration.getLocaleLanguage());
+
+    final List<OStorageEntryConfiguration> properties = storageConfiguration.getProperties();
+    for (OStorageEntryConfiguration property : properties) {
+      setProperty(property.name, property.value);
+    }
+
+    setClusterSelection(storageConfiguration.getClusterSelection());
+    setConflictStrategy(storageConfiguration.getConflictStrategy());
+    setValidation(storageConfiguration.isValidationEnabled());
+
+    final Set<String> indexEngines = storageConfiguration.indexEngines();
+    for (final String engine : indexEngines) {
+      addIndexEngine(engine, storageConfiguration.getIndexEngine(engine));
+    }
+
+    setRecordSerializer(storageConfiguration.getRecordSerializer());
+    setRecordSerializerVersion(storageConfiguration.getRecordSerializerVersion());
+
+    final List<OStorageClusterConfiguration> clusters = storageConfiguration.getClusters();
+    for (OStorageClusterConfiguration cluster : clusters) {
+      updateCluster(cluster);
+    }
+
+    setCreationVersion(storageConfiguration.getCreatedAtVersion());
+    setPageSize(storageConfiguration.getPageSize());
+    setFreeListBoundary(storageConfiguration.getFreeListBoundary());
+    setMaxKeySize(storageConfiguration.getMaxKeySize());
   }
 
   private void autoInitClusters() {

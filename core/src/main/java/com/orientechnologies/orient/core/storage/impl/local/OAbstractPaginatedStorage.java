@@ -342,10 +342,15 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
         initWalAndDiskCache(contextConfiguration);
         atomicOperationsManager = new OAtomicOperationsManager(this);
         transaction = new ThreadLocal<>();
-        configuration = new OAtomicStorageConfiguration(this);
-        ((OAtomicStorageConfiguration) configuration).load(contextConfiguration);
 
-        preOpenSteps();
+        if (OAtomicStorageConfiguration.exists(writeCache)) {
+          configuration = new OAtomicStorageConfiguration(this);
+          ((OAtomicStorageConfiguration) configuration).load(contextConfiguration);
+
+          //otherwise delayed to disk based storage to convert old format to new format.
+        }
+
+        preOpenSteps(contextConfiguration);
 
         recoverIfNeeded();
 
@@ -4173,7 +4178,7 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
     return fullCheckpointCount.sum();
   }
 
-  protected void preOpenSteps() throws IOException {
+  protected void preOpenSteps(OContextConfiguration contextConfiguration) throws IOException {
   }
 
   @SuppressWarnings({ "WeakerAccess", "EmptyMethod" })
