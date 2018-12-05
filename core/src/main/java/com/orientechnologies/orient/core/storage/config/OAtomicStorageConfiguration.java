@@ -114,7 +114,6 @@ public final class OAtomicStorageConfiguration implements OStorageConfiguration 
   private boolean pauseNotifications;
 
   public OAtomicStorageConfiguration(OAbstractPaginatedStorage storage) {
-    initConfiguration(new OContextConfiguration());
     cluster = OPaginatedClusterFactory
         .createCluster(COMPONENT_NAME, OPaginatedCluster.getLatestBinaryVersion(), storage, DATA_FILE, MAP_FILE);
     btree = new OSBTree<>(COMPONENT_NAME, TREE_DATA_FILE, TREE_NULL_FILE, storage);
@@ -123,11 +122,13 @@ public final class OAtomicStorageConfiguration implements OStorageConfiguration 
     this.storage = storage;
   }
 
-  public void create() throws IOException {
+  public void create(OContextConfiguration contextConfiguration) throws IOException {
     lock.acquireWriteLock();
     try {
       cluster.create(-1);
       btree.create(OStringSerializer.INSTANCE, OLinkSerializer.INSTANCE, null, 1, false, null);
+
+      this.configuration = contextConfiguration;
 
       init();
 
@@ -182,7 +183,7 @@ public final class OAtomicStorageConfiguration implements OStorageConfiguration 
     try {
       pauseNotifications = false;
 
-      initConfiguration(configuration);
+      this.configuration = configuration;
 
       cluster.open();
       btree.load(COMPONENT_NAME, OStringSerializer.INSTANCE, OLinkSerializer.INSTANCE, null, 1, false, null);
@@ -252,15 +253,6 @@ public final class OAtomicStorageConfiguration implements OStorageConfiguration 
       return mc;
     } finally {
       lock.releaseReadLock();
-    }
-  }
-
-  public void initConfiguration(OContextConfiguration conf) {
-    lock.acquireWriteLock();
-    try {
-      this.configuration = conf;
-    } finally {
-      lock.releaseWriteLock();
     }
   }
 
@@ -1694,8 +1686,10 @@ public final class OAtomicStorageConfiguration implements OStorageConfiguration 
     setFreeListBoundary(-1);
     setMaxKeySize(-1);
 
-    getContextConfiguration().setValue(OGlobalConfiguration.CLASS_MINIMUM_CLUSTERS,
-        OGlobalConfiguration.CLASS_MINIMUM_CLUSTERS.getValueAsInteger()); // 0 = AUTOMATIC
+    if (!configuration.getContextKeys().contains(OGlobalConfiguration.CLASS_MINIMUM_CLUSTERS.getKey())) {
+      configuration.setValue(OGlobalConfiguration.CLASS_MINIMUM_CLUSTERS,
+          OGlobalConfiguration.CLASS_MINIMUM_CLUSTERS.getValueAsInteger()); // 0 = AUTOMATIC
+    }
     autoInitClusters();
 
     updateMinimumClusters();//store inside of configuration

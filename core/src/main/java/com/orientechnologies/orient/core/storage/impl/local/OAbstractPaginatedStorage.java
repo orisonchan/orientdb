@@ -339,7 +339,7 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
 
         pessimisticLock = contextConfiguration.getValueAsBoolean(OGlobalConfiguration.STORAGE_PESSIMISTIC_LOCKING);
 
-        initWalAndDiskCache();
+        initWalAndDiskCache(contextConfiguration);
         atomicOperationsManager = new OAtomicOperationsManager(this);
         transaction = new ThreadLocal<>();
         configuration = new OAtomicStorageConfiguration(this);
@@ -532,14 +532,13 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
 
         pessimisticLock = contextConfiguration.getValueAsBoolean(OGlobalConfiguration.STORAGE_PESSIMISTIC_LOCKING);
 
-        initWalAndDiskCache();
+        initWalAndDiskCache(contextConfiguration);
         atomicOperationsManager = new OAtomicOperationsManager(this);
         transaction = new ThreadLocal<>();
 
         configuration = new OAtomicStorageConfiguration(this);
-        ((OAtomicStorageConfiguration) configuration).create();
+        ((OAtomicStorageConfiguration) configuration).create(contextConfiguration);
 
-        ((OAtomicStorageConfiguration) configuration).initConfiguration(contextConfiguration);
         componentsFactory = new OCurrentStorageComponentsFactory(getConfiguration());
 
         preCreateSteps();
@@ -4184,7 +4183,7 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
   protected void preCreateSteps() throws IOException {
   }
 
-  protected abstract void initWalAndDiskCache() throws IOException, InterruptedException;
+  protected abstract void initWalAndDiskCache(OContextConfiguration contextConfiguration) throws IOException, InterruptedException;
 
   protected abstract void postCloseSteps(@SuppressWarnings("unused") boolean onDelete, boolean jvmError) throws IOException;
 
