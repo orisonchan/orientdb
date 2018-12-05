@@ -54,7 +54,7 @@ public final class OAtomicStorageConfiguration implements OStorageConfiguration 
   public static final String TREE_DATA_FILE_EXTENSION = ".bd";
   public static final String TREE_NULL_FILE_EXTENSION = ".nd";
 
-  private static final String COMPONENT_NAME                   = "config";
+  public static final  String COMPONENT_NAME                   = "config";
   private static final String VERSION_PROPERTY                 = "version";
   private static final String SCHEMA_RECORD_ID_PROPERTY        = "schemaRecordId";
   private static final String INDEX_MANAGER_RECORD_ID_PROPERTY = "indexManagerRecordId";
@@ -113,7 +113,7 @@ public final class OAtomicStorageConfiguration implements OStorageConfiguration 
 
   private OStorageConfigurationUpdateListener updateListener;
 
-  private boolean pauseNotifications;
+  private final ThreadLocal<Boolean> pauseNotifications = ThreadLocal.withInitial(() -> false);
 
   public static boolean exists(final OWriteCache writeCache) {
     return writeCache.exists(COMPONENT_NAME + DATA_FILE_EXTENSION);
@@ -188,7 +188,6 @@ public final class OAtomicStorageConfiguration implements OStorageConfiguration 
 
       cache.clear();
 
-      pauseNotifications = false;
     } finally {
       lock.releaseWriteLock();
     }
@@ -197,8 +196,6 @@ public final class OAtomicStorageConfiguration implements OStorageConfiguration 
   public OAtomicStorageConfiguration load(final OContextConfiguration configuration) throws OSerializationException, IOException {
     lock.acquireWriteLock();
     try {
-      pauseNotifications = false;
-
       this.configuration = configuration;
 
       cluster.open();
@@ -224,7 +221,7 @@ public final class OAtomicStorageConfiguration implements OStorageConfiguration 
   public void pauseUpdateNotifications() {
     lock.acquireWriteLock();
     try {
-      pauseNotifications = true;
+      pauseNotifications.set(true);
     } finally {
       lock.releaseWriteLock();
     }
@@ -233,7 +230,11 @@ public final class OAtomicStorageConfiguration implements OStorageConfiguration 
   public void fireUpdateNotifications() {
     lock.acquireWriteLock();
     try {
-      pauseNotifications = false;
+      pauseNotifications.set(false);
+
+      if (updateListener != null) {
+        updateListener.onUpdate(this);
+      }
     } finally {
       lock.releaseWriteLock();
     }
@@ -1554,7 +1555,7 @@ public final class OAtomicStorageConfiguration implements OStorageConfiguration 
       throw OException.wrapException(new OStorageException("Error during drop of property " + name), e);
     }
 
-    if (updateListener != null && !pauseNotifications) {
+    if (updateListener != null && !pauseNotifications.get()) {
       updateListener.onUpdate(this);
     }
   }
@@ -1635,7 +1636,7 @@ public final class OAtomicStorageConfiguration implements OStorageConfiguration 
       throw OException.wrapException(new OStorageException("Error during update of configuration property " + name), e);
     }
 
-    if (updateListener != null && !pauseNotifications) {
+    if (updateListener != null && !pauseNotifications.get()) {
       updateListener.onUpdate(this);
     }
   }

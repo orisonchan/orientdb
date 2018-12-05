@@ -34,6 +34,7 @@ import com.orientechnologies.orient.core.serialization.serializer.record.ORecord
 import com.orientechnologies.orient.core.serialization.serializer.record.ORecordSerializerFactory;
 import com.orientechnologies.orient.core.sql.parser.OStatement;
 import com.orientechnologies.orient.core.storage.OStorage;
+import com.orientechnologies.orient.core.storage.config.OAtomicStorageConfiguration;
 import com.orientechnologies.orient.core.storage.disk.OLocalPaginatedStorage;
 import com.orientechnologies.orient.core.storage.impl.local.OAbstractPaginatedStorage;
 
@@ -523,7 +524,8 @@ public class OrientDBEmbedded implements OrientDBInternal {
                   if (!Files.isDirectory(p)) {
                     final String fileName = p.getFileName().toString();
 
-                    if (fileName.equals("database.ocf") || (fileName.startsWith("config") && fileName.endsWith(".cm"))) {
+                    if (fileName.equals("database.ocf") || (fileName.startsWith(OAtomicStorageConfiguration.COMPONENT_NAME)
+                        && fileName.endsWith(OAtomicStorageConfiguration.DATA_FILE_EXTENSION))) {
                       final int count = p.getNameCount();
                       found.found(OIOUtils.getDatabaseNameFromPath(p.subpath(count - 2, count - 1).toString()));
                     }
