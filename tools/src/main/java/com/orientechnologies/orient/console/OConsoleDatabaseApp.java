@@ -128,6 +128,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Scanner;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 public class OConsoleDatabaseApp extends OrientConsole implements OCommandOutputListener, OProgressListener {
@@ -227,7 +228,7 @@ public class OConsoleDatabaseApp extends OrientConsole implements OCommandOutput
       bout.write(c);
     }
 
-    p.waitFor();
+    p.waitFor(10, TimeUnit.SECONDS);
 
     return p.exitValue();
   }
