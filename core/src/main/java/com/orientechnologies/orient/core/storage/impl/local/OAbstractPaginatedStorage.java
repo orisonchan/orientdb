@@ -499,7 +499,9 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
    * any data corruption. Till JVM is not restarted storage will be put in read-only state.
    */
   public final void handleJVMError(Error e) {
-    jvmError.compareAndSet(null, e);
+    if (jvmError.compareAndSet(null, e)) {
+      OLogManager.instance().errorNoDb(this, "JVM error was thrown", e);
+    }
   }
 
   /**
@@ -2043,7 +2045,7 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
    * @return The list of operations applied by the transaction
    */
   @Override
-  public final List<ORecordOperation> commit(final OTransactionInternal clientTx) {
+  public List<ORecordOperation> commit(final OTransactionInternal clientTx) {
     return commit(clientTx, false);
   }
 
@@ -3467,7 +3469,7 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
   }
 
   @Override
-  public final void rollback(final OTransactionInternal clientTx) {
+  public void rollback(final OTransactionInternal clientTx) {
     try {
       checkOpenness();
       stateLock.acquireReadLock();
@@ -5363,13 +5365,12 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
   }
 
   @Override
-  public final String incrementalBackup(String backupDirectory, OCallable<Void, Void> started)
-      throws UnsupportedOperationException {
+  public String incrementalBackup(String backupDirectory, OCallable<Void, Void> started) throws UnsupportedOperationException {
     throw new UnsupportedOperationException("Incremental backup is supported only in enterprise version");
   }
 
   @Override
-  public final void restoreFromIncrementalBackup(String filePath) {
+  public void restoreFromIncrementalBackup(String filePath) {
     throw new UnsupportedOperationException("Incremental backup is supported only in enterprise version");
   }
 
