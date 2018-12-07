@@ -24,6 +24,17 @@ import com.orientechnologies.common.serialization.types.OIntegerSerializer;
 import com.orientechnologies.common.util.OPair;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.cas.OEmptyWALRecord;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.cas.OWriteableWALRecord;
+import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.clusterpositionmap.OClusterPositionMapAddOperation;
+import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.clusterpositionmap.OClusterPositionMapAllocateOperation;
+import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.clusterpositionmap.OClusterPositionMapNewPageOperation;
+import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.clusterpositionmap.OClusterPositionMapRemoveOperation;
+import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.clusterpositionmap.OClusterPositionMapResurrectOperation;
+import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.clusterpositionmap.OClusterPositionMapSetOperation;
+import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.clusterpositionmap.OClusterPositionMapUndoAddOperation;
+import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.clusterpositionmap.OClusterPositionMapUndoAllocateOperation;
+import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.clusterpositionmap.OClusterPositionMapUndoRemove;
+import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.clusterpositionmap.OClusterPositionMapUndoResurrectOperation;
+import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.clusterpositionmap.OClusterPositionMapUndoSetOperation;
 import com.sun.jna.Native;
 import com.sun.jna.Pointer;
 import net.jpountz.lz4.LZ4Compressor;
@@ -38,6 +49,17 @@ import java.util.Map;
 import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.ATOMIC_UNIT_END_RECORD;
 import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.ATOMIC_UNIT_START_RECORD;
 import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.CHECKPOINT_END_RECORD;
+import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.CLUSTER_POSITION_MAP_ADD;
+import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.CLUSTER_POSITION_MAP_ALLOCATE;
+import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.CLUSTER_POSITION_MAP_NEW_PAGE;
+import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.CLUSTER_POSITION_MAP_REMOVE;
+import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.CLUSTER_POSITION_MAP_RESURRECT;
+import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.CLUSTER_POSITION_MAP_SET;
+import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.CLUSTER_POSITION_MAP_UNDO_ADD;
+import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.CLUSTER_POSITION_MAP_UNDO_ALLOCATE;
+import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.CLUSTER_POSITION_MAP_UNDO_REMOVE;
+import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.CLUSTER_POSITION_MAP_UNDO_RESURRECT;
+import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.CLUSTER_POSITION_MAP_UNDO_SET;
 import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.EMPTY_WAL_RECORD;
 import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.FILE_CREATED_WAL_RECORD;
 import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.FILE_DELETED_WAL_RECORD;
@@ -153,15 +175,49 @@ public final class OWALRecordsFactory {
     case EMPTY_WAL_RECORD:
       walRecord = new OEmptyWALRecord();
       break;
+    case CLUSTER_POSITION_MAP_NEW_PAGE:
+      walRecord = new OClusterPositionMapNewPageOperation();
+      break;
+    case CLUSTER_POSITION_MAP_ADD:
+      walRecord = new OClusterPositionMapAddOperation();
+      break;
+    case CLUSTER_POSITION_MAP_ALLOCATE:
+      walRecord = new OClusterPositionMapAllocateOperation();
+      break;
+    case CLUSTER_POSITION_MAP_SET:
+      walRecord = new OClusterPositionMapSetOperation();
+      break;
+    case CLUSTER_POSITION_MAP_RESURRECT:
+      walRecord = new OClusterPositionMapResurrectOperation();
+      break;
+    case CLUSTER_POSITION_MAP_REMOVE:
+      walRecord = new OClusterPositionMapRemoveOperation();
+      break;
+    case CLUSTER_POSITION_MAP_UNDO_ADD:
+      walRecord = new OClusterPositionMapUndoAddOperation();
+      break;
+    case CLUSTER_POSITION_MAP_UNDO_ALLOCATE:
+      walRecord = new OClusterPositionMapUndoAllocateOperation();
+      break;
+    case CLUSTER_POSITION_MAP_UNDO_SET:
+      walRecord = new OClusterPositionMapUndoSetOperation();
+      break;
+    case CLUSTER_POSITION_MAP_UNDO_RESURRECT:
+      walRecord = new OClusterPositionMapUndoResurrectOperation();
+      break;
+    case CLUSTER_POSITION_MAP_UNDO_REMOVE:
+      walRecord = new OClusterPositionMapUndoRemove();
+      break;
     default:
-      if (idToTypeMap.containsKey(content[0]))
+      if (idToTypeMap.containsKey(content[0])) {
         try {
           walRecord = (OWriteableWALRecord) idToTypeMap.get(content[0]).newInstance();
         } catch (final InstantiationException | IllegalAccessException e) {
           throw new IllegalStateException("Cannot deserialize passed in record", e);
         }
-      else
+      } else {
         throw new IllegalStateException("Cannot deserialize passed in wal record.");
+      }
     }
 
     walRecord.fromStream(content, 1);

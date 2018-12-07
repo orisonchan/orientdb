@@ -301,7 +301,7 @@ public class SBTreeWALTestIT extends SBTreeTestIT {
 
               try {
                 ODurablePage durablePage = new ODurablePage(cacheEntry);
-                durablePage.restoreChanges(updatePageRecord.getChanges());
+                //TODO replace by restore from local changes
                 durablePage.setLsn(new OLogSequenceNumber(0, 0));
               } finally {
                 expectedReadCache.releaseFromWrite(cacheEntry, expectedWriteCache);

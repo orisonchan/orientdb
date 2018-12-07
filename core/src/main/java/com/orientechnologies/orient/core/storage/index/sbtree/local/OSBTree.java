@@ -130,20 +130,20 @@ public class OSBTree<K, V> extends ODurableComponent {
         this.valueSerializer = valueSerializer;
         this.nullPointerSupport = nullPointerSupport;
 
-        fileId = addFile(atomicOperation, getFullName());
+        fileId = addFile(getFullName());
 
         if (nullPointerSupport) {
-          nullBucketFileId = addFile(atomicOperation, getName() + nullFileExtension);
+          nullBucketFileId = addFile(getName() + nullFileExtension);
         }
 
-        final OCacheEntry rootCacheEntry = addPage(atomicOperation, fileId, false);
+        OSBTreeBucket<K, V> rootBucket = null;
+        final OCacheEntry rootCacheEntry = addPage(fileId, false);
         try {
-          OSBTreeBucket<K, V> rootBucket = new OSBTreeBucket<>(rootCacheEntry, true, keySerializer, keyTypes, valueSerializer,
-              encryption);
+          rootBucket = new OSBTreeBucket<>(rootCacheEntry, true, keySerializer, keyTypes, valueSerializer, encryption);
           rootBucket.setTreeSize(0);
 
         } finally {
-          releasePageFromWrite(atomicOperation, rootCacheEntry);
+          releasePageFromWrite(rootBucket);
         }
       } finally {
         releaseExclusiveLock();
@@ -176,28 +176,28 @@ public class OSBTree<K, V> extends ODurableComponent {
         if (key != null) {
           key = keySerializer.preprocess(key, (Object[]) keyTypes);
 
-          BucketSearchResult bucketSearchResult = findBucket(key, atomicOperation);
+          BucketSearchResult bucketSearchResult = findBucket(key);
           if (bucketSearchResult.itemIndex < 0) {
             return null;
           }
 
           long pageIndex = bucketSearchResult.getLastPathItem();
-          OCacheEntry keyBucketCacheEntry = loadPageForRead(atomicOperation, fileId, pageIndex, false);
+          OCacheEntry keyBucketCacheEntry = loadPageForRead(fileId, pageIndex, false);
           try {
             OSBTreeBucket<K, V> keyBucket = new OSBTreeBucket<>(keyBucketCacheEntry, keySerializer, keyTypes, valueSerializer,
                 encryption);
 
             OSBTreeBucket.SBTreeEntry<K, V> treeEntry = keyBucket.getEntry(bucketSearchResult.itemIndex);
-            return readValue(treeEntry.value, atomicOperation);
+            return readValue(treeEntry.value);
           } finally {
-            releasePageFromRead(atomicOperation, keyBucketCacheEntry);
+            releasePageFromRead(keyBucketCacheEntry);
           }
         } else {
-          if (getFilledUpTo(atomicOperation, nullBucketFileId) == 0) {
+          if (getFilledUpTo(nullBucketFileId) == 0) {
             return null;
           }
 
-          final OCacheEntry nullBucketCacheEntry = loadPageForRead(atomicOperation, nullBucketFileId, 0, false);
+          final OCacheEntry nullBucketCacheEntry = loadPageForRead(nullBucketFileId, 0, false);
           try {
             final ONullBucket<V> nullBucket = new ONullBucket<>(nullBucketCacheEntry, valueSerializer, false);
             final OSBTreeValue<V> treeValue = nullBucket.getValue();
@@ -205,9 +205,9 @@ public class OSBTree<K, V> extends ODurableComponent {
               return null;
             }
 
-            return readValue(treeValue, atomicOperation);
+            return readValue(treeValue);
           } finally {
-            releasePageFromRead(atomicOperation, nullBucketCacheEntry);
+            releasePageFromRead(nullBucketCacheEntry);
           }
         }
       } finally {
@@ -251,9 +251,9 @@ public class OSBTree<K, V> extends ODurableComponent {
                 getName());
           }
 
-          BucketSearchResult bucketSearchResult = findBucket(key, atomicOperation);
+          BucketSearchResult bucketSearchResult = findBucket(key);
 
-          OCacheEntry keyBucketCacheEntry = loadPageForWrite(atomicOperation, fileId, bucketSearchResult.getLastPathItem(), false);
+          OCacheEntry keyBucketCacheEntry = loadPageForWrite(fileId, bucketSearchResult.getLastPathItem(), false);
           OSBTreeBucket<K, V> keyBucket = new OSBTreeBucket<>(keyBucketCacheEntry, keySerializer, keyTypes, valueSerializer,
               encryption);
 
@@ -286,7 +286,7 @@ public class OSBTree<K, V> extends ODurableComponent {
                 failure = false;
               } finally {
                 if (failure || ignored) {
-                  releasePageFromWrite(atomicOperation, keyBucketCacheEntry);
+                  releasePageFromWrite(keyBucket);
                 }
               }
             }
@@ -315,7 +315,7 @@ public class OSBTree<K, V> extends ODurableComponent {
 
               if (oldRawValue.length == serializeValue.length) {
                 keyBucket.updateValue(bucketSearchResult.itemIndex, serializeValue, oldRawValue);
-                releasePageFromWrite(atomicOperation, keyBucketCacheEntry);
+                releasePageFromWrite(keyBucket);
 
                 return true;
               } else {
@@ -329,45 +329,46 @@ public class OSBTree<K, V> extends ODurableComponent {
             }
 
             while (!keyBucket.addLeafEntry(insertionIndex, rawKey, serializeValue)) {
-              releasePageFromWrite(atomicOperation, keyBucketCacheEntry);
+              releasePageFromWrite(keyBucket);
 
               bucketSearchResult = splitBucket(bucketSearchResult.path, insertionIndex, key, atomicOperation);
 
               insertionIndex = bucketSearchResult.itemIndex;
 
-              keyBucketCacheEntry = loadPageForWrite(atomicOperation, fileId, bucketSearchResult.getLastPathItem(), false);
+              keyBucketCacheEntry = loadPageForWrite(fileId, bucketSearchResult.getLastPathItem(), false);
 
               keyBucket = new OSBTreeBucket<>(keyBucketCacheEntry, keySerializer, keyTypes, valueSerializer, encryption);
             }
 
-            releasePageFromWrite(atomicOperation, keyBucketCacheEntry);
+            releasePageFromWrite(keyBucket);
 
             if (sizeDiff != 0) {
-              updateSize(sizeDiff, atomicOperation);
+              updateSize(sizeDiff);
             }
           } else if (updatedValue.isRemove()) {
             removeKey(atomicOperation, bucketSearchResult);
-            releasePageFromWrite(atomicOperation, keyBucketCacheEntry);
+            releasePageFromWrite(keyBucket);
           } else if (updatedValue.isNothing()) {
-            releasePageFromWrite(atomicOperation, keyBucketCacheEntry);
+            releasePageFromWrite(keyBucket);
           }
         } else {
           OCacheEntry cacheEntry;
           boolean isNew = false;
 
-          if (getFilledUpTo(atomicOperation, nullBucketFileId) == 0) {
-            cacheEntry = addPage(atomicOperation, nullBucketFileId, false);
+          if (getFilledUpTo(nullBucketFileId) == 0) {
+            cacheEntry = addPage(nullBucketFileId, false);
             isNew = true;
           } else {
-            cacheEntry = loadPageForWrite(atomicOperation, nullBucketFileId, 0, false);
+            cacheEntry = loadPageForWrite(nullBucketFileId, 0, false);
           }
 
           int sizeDiff = 0;
 
+          ONullBucket<V> nullBucket = null;
           try {
-            final ONullBucket<V> nullBucket = new ONullBucket<>(cacheEntry, valueSerializer, isNew);
+            nullBucket = new ONullBucket<>(cacheEntry, valueSerializer, isNew);
             final OSBTreeValue<V> oldValue = nullBucket.getValue();
-            final V oldValueValue = oldValue == null ? null : readValue(oldValue, atomicOperation);
+            final V oldValueValue = oldValue == null ? null : readValue(oldValue);
             OIndexUpdateAction<V> updatedValue = updater.update(oldValueValue, bonsayFileId);
             if (updatedValue.isChange()) {
               V value = updatedValue.getValue();
@@ -376,7 +377,7 @@ public class OSBTree<K, V> extends ODurableComponent {
 
               long valueLink = -1;
               if (createLinkToTheValue) {
-                valueLink = createLinkToTheValue(value, atomicOperation);
+                valueLink = createLinkToTheValue(value);
               }
 
               final OSBTreeValue<V> treeValue = new OSBTreeValue<>(createLinkToTheValue, valueLink,
@@ -395,16 +396,16 @@ public class OSBTree<K, V> extends ODurableComponent {
 
               nullBucket.setValue(treeValue);
             } else if (updatedValue.isRemove()) {
-              removeNullBucket(atomicOperation);
+              removeNullBucket();
             } else if (updatedValue.isNothing()) {
               //Do Nothing
             }
           } finally {
-            releasePageFromWrite(atomicOperation, cacheEntry);
+            releasePageFromWrite(nullBucket);
           }
 
           sizeDiff++;
-          updateSize(sizeDiff, atomicOperation);
+          updateSize(sizeDiff);
         }
 
         return true;
@@ -443,23 +444,23 @@ public class OSBTree<K, V> extends ODurableComponent {
     try {
       acquireExclusiveLock();
       try {
-        truncateFile(atomicOperation, fileId);
+        truncateFile(fileId);
 
         if (nullPointerSupport) {
-          truncateFile(atomicOperation, nullBucketFileId);
+          truncateFile(nullBucketFileId);
         }
 
-        OCacheEntry cacheEntry = loadPageForWrite(atomicOperation, fileId, ROOT_INDEX, false);
+        OCacheEntry cacheEntry = loadPageForWrite(fileId, ROOT_INDEX, false);
         if (cacheEntry == null) {
-          cacheEntry = addPage(atomicOperation, fileId, false);
+          cacheEntry = addPage(fileId, false);
         }
 
+        OSBTreeBucket<K, V> rootBucket = null;
         try {
-          OSBTreeBucket<K, V> rootBucket = new OSBTreeBucket<>(cacheEntry, true, keySerializer, keyTypes, valueSerializer,
-              encryption);
+          rootBucket = new OSBTreeBucket<>(cacheEntry, true, keySerializer, keyTypes, valueSerializer, encryption);
           rootBucket.setTreeSize(0);
         } finally {
-          releasePageFromWrite(atomicOperation, cacheEntry);
+          releasePageFromWrite(rootBucket);
         }
       } finally {
         releaseExclusiveLock();
@@ -478,10 +479,10 @@ public class OSBTree<K, V> extends ODurableComponent {
     try {
       acquireExclusiveLock();
       try {
-        deleteFile(atomicOperation, fileId);
+        deleteFile(fileId);
 
         if (nullPointerSupport) {
-          deleteFile(atomicOperation, nullBucketFileId);
+          deleteFile(nullBucketFileId);
         }
       } finally {
         releaseExclusiveLock();
@@ -500,14 +501,14 @@ public class OSBTree<K, V> extends ODurableComponent {
     try {
       acquireExclusiveLock();
       try {
-        if (isFileExists(atomicOperation, getFullName())) {
-          final long fileId = openFile(atomicOperation, getFullName());
-          deleteFile(atomicOperation, fileId);
+        if (isFileExists(getFullName())) {
+          final long fileId = openFile(getFullName());
+          deleteFile(fileId);
         }
 
-        if (isFileExists(atomicOperation, getName() + nullFileExtension)) {
-          final long nullFileId = openFile(atomicOperation, getName() + nullFileExtension);
-          deleteFile(atomicOperation, nullFileId);
+        if (isFileExists(getName() + nullFileExtension)) {
+          final long nullFileId = openFile(getName() + nullFileExtension);
+          deleteFile(nullFileId);
         }
       } finally {
         releaseExclusiveLock();
@@ -536,9 +537,9 @@ public class OSBTree<K, V> extends ODurableComponent {
 
       final OAtomicOperation atomicOperation = OAtomicOperationsManager.getCurrentOperation();
 
-      fileId = openFile(atomicOperation, getFullName());
+      fileId = openFile(getFullName());
       if (nullPointerSupport) {
-        nullBucketFileId = openFile(atomicOperation, name + nullFileExtension);
+        nullBucketFileId = openFile(name + nullFileExtension);
       }
 
       this.keySerializer = keySerializer;
@@ -557,13 +558,13 @@ public class OSBTree<K, V> extends ODurableComponent {
       try {
         OAtomicOperation atomicOperation = OAtomicOperationsManager.getCurrentOperation();
 
-        OCacheEntry rootCacheEntry = loadPageForRead(atomicOperation, fileId, ROOT_INDEX, false);
+        OCacheEntry rootCacheEntry = loadPageForRead(fileId, ROOT_INDEX, false);
         try {
           OSBTreeBucket<K, V> rootBucket = new OSBTreeBucket<>(rootCacheEntry, keySerializer, keyTypes, valueSerializer,
               encryption);
           return rootBucket.getTreeSize();
         } finally {
-          releasePageFromRead(atomicOperation, rootCacheEntry);
+          releasePageFromRead(rootCacheEntry);
         }
       } finally {
         releaseSharedLock();
@@ -586,18 +587,18 @@ public class OSBTree<K, V> extends ODurableComponent {
         if (key != null) {
           key = keySerializer.preprocess(key, (Object[]) keyTypes);
 
-          BucketSearchResult bucketSearchResult = findBucket(key, atomicOperation);
+          BucketSearchResult bucketSearchResult = findBucket(key);
           if (bucketSearchResult.itemIndex < 0) {
             return null;
           }
 
           removedValue = valueSerializer.deserializeNativeObject(removeKey(atomicOperation, bucketSearchResult), 0);
         } else {
-          if (getFilledUpTo(atomicOperation, nullBucketFileId) == 0) {
+          if (getFilledUpTo(nullBucketFileId) == 0) {
             return null;
           }
 
-          removedValue = removeNullBucket(atomicOperation);
+          removedValue = removeNullBucket();
         }
         return removedValue;
       } finally {
@@ -611,41 +612,42 @@ public class OSBTree<K, V> extends ODurableComponent {
     }
   }
 
-  private V removeNullBucket(OAtomicOperation atomicOperation) throws IOException {
+  private V removeNullBucket() throws IOException {
     V removedValue;
-    OCacheEntry nullCacheEntry = loadPageForWrite(atomicOperation, nullBucketFileId, 0, false);
+    ONullBucket<V> nullBucket = null;
+    OCacheEntry nullCacheEntry = loadPageForWrite(nullBucketFileId, 0, false);
     try {
-      ONullBucket<V> nullBucket = new ONullBucket<>(nullCacheEntry, valueSerializer, false);
+      nullBucket = new ONullBucket<>(nullCacheEntry, valueSerializer, false);
       OSBTreeValue<V> treeValue = nullBucket.getValue();
 
       if (treeValue != null) {
-        removedValue = readValue(treeValue, atomicOperation);
+        removedValue = readValue(treeValue);
         nullBucket.removeValue();
       } else {
         removedValue = null;
       }
     } finally {
-      releasePageFromWrite(atomicOperation, nullCacheEntry);
+      releasePageFromWrite(nullBucket);
     }
 
     if (removedValue != null) {
-      updateSize(-1, atomicOperation);
+      updateSize(-1);
     }
     return removedValue;
   }
 
   private byte[] removeKey(OAtomicOperation atomicOperation, BucketSearchResult bucketSearchResult) throws IOException {
     byte[] removedValue;
-    OCacheEntry keyBucketCacheEntry = loadPageForWrite(atomicOperation, fileId, bucketSearchResult.getLastPathItem(), false);
+    OSBTreeBucket<K, V> keyBucket = null;
+    OCacheEntry keyBucketCacheEntry = loadPageForWrite(fileId, bucketSearchResult.getLastPathItem(), false);
     try {
-      OSBTreeBucket<K, V> keyBucket = new OSBTreeBucket<>(keyBucketCacheEntry, keySerializer, keyTypes, valueSerializer,
-          encryption);
+      keyBucket = new OSBTreeBucket<>(keyBucketCacheEntry, keySerializer, keyTypes, valueSerializer, encryption);
 
       removedValue = keyBucket.getRawValue(bucketSearchResult.itemIndex);
       keyBucket.remove(bucketSearchResult.itemIndex, null, removedValue);
-      updateSize(-1, atomicOperation);
+      updateSize(-1);
     } finally {
-      releasePageFromWrite(atomicOperation, keyBucketCacheEntry);
+      releasePageFromWrite(keyBucket);
     }
     return removedValue;
   }
@@ -674,17 +676,17 @@ public class OSBTree<K, V> extends ODurableComponent {
       try {
         OAtomicOperation atomicOperation = OAtomicOperationsManager.getCurrentOperation();
 
-        final BucketSearchResult searchResult = firstItem(atomicOperation);
+        final BucketSearchResult searchResult = firstItem();
         if (searchResult == null) {
           return null;
         }
 
-        final OCacheEntry cacheEntry = loadPageForRead(atomicOperation, fileId, searchResult.getLastPathItem(), false);
+        final OCacheEntry cacheEntry = loadPageForRead(fileId, searchResult.getLastPathItem(), false);
         try {
           OSBTreeBucket<K, V> bucket = new OSBTreeBucket<>(cacheEntry, keySerializer, keyTypes, valueSerializer, encryption);
           return bucket.getKey(searchResult.itemIndex);
         } finally {
-          releasePageFromRead(atomicOperation, cacheEntry);
+          releasePageFromRead(cacheEntry);
         }
       } finally {
         releaseSharedLock();
@@ -703,17 +705,17 @@ public class OSBTree<K, V> extends ODurableComponent {
       try {
         OAtomicOperation atomicOperation = OAtomicOperationsManager.getCurrentOperation();
 
-        final BucketSearchResult searchResult = lastItem(atomicOperation);
+        final BucketSearchResult searchResult = lastItem();
         if (searchResult == null) {
           return null;
         }
 
-        final OCacheEntry cacheEntry = loadPageForRead(atomicOperation, fileId, searchResult.getLastPathItem(), false);
+        final OCacheEntry cacheEntry = loadPageForRead(fileId, searchResult.getLastPathItem(), false);
         try {
           OSBTreeBucket<K, V> bucket = new OSBTreeBucket<>(cacheEntry, keySerializer, keyTypes, valueSerializer, encryption);
           return bucket.getKey(searchResult.itemIndex);
         } finally {
-          releasePageFromRead(atomicOperation, cacheEntry);
+          releasePageFromRead(cacheEntry);
         }
       } finally {
         releaseSharedLock();
@@ -731,7 +733,7 @@ public class OSBTree<K, V> extends ODurableComponent {
       acquireSharedLock();
       try {
         OAtomicOperation atomicOperation = OAtomicOperationsManager.getCurrentOperation();
-        final BucketSearchResult searchResult = firstItem(atomicOperation);
+        final BucketSearchResult searchResult = firstItem();
         if (searchResult == null) {
           return prefetchSize -> null;
         }
@@ -784,62 +786,63 @@ public class OSBTree<K, V> extends ODurableComponent {
     }
   }
 
-  private long createLinkToTheValue(V value, OAtomicOperation atomicOperation) throws IOException {
+  private long createLinkToTheValue(V value) throws IOException {
     byte[] serializeValue = new byte[valueSerializer.getObjectSize(value)];
     valueSerializer.serializeNativeObject(value, serializeValue, 0);
 
     final int amountOfPages = OSBTreeValuePage.calculateAmountOfPage(serializeValue.length);
 
     int position = 0;
-    long freeListPageIndex = allocateValuePageFromFreeList(atomicOperation);
+    long freeListPageIndex = allocateValuePageFromFreeList();
 
     OCacheEntry cacheEntry;
     if (freeListPageIndex < 0) {
-      cacheEntry = addPage(atomicOperation, fileId, false);
+      cacheEntry = addPage(fileId, false);
     } else {
-      cacheEntry = loadPageForWrite(atomicOperation, fileId, freeListPageIndex, false);
+      cacheEntry = loadPageForWrite(fileId, freeListPageIndex, false);
     }
 
+    OSBTreeValuePage valuePage = null;
     final long valueLink = cacheEntry.getPageIndex();
     try {
-      OSBTreeValuePage valuePage = new OSBTreeValuePage(cacheEntry, freeListPageIndex >= 0);
+      valuePage = new OSBTreeValuePage(cacheEntry, freeListPageIndex >= 0);
       position = valuePage.fillBinaryContent(serializeValue, position);
 
       valuePage.setNextFreeListPage(-1);
       valuePage.setNextPage(-1);
 
     } finally {
-      releasePageFromWrite(atomicOperation, cacheEntry);
+      releasePageFromWrite(valuePage);
     }
 
     long prevPage = valueLink;
     for (int i = 1; i < amountOfPages; i++) {
-      freeListPageIndex = allocateValuePageFromFreeList(atomicOperation);
+      freeListPageIndex = allocateValuePageFromFreeList();
 
       if (freeListPageIndex < 0) {
-        cacheEntry = addPage(atomicOperation, fileId, false);
+        cacheEntry = addPage(fileId, false);
       } else {
-        cacheEntry = loadPageForWrite(atomicOperation, fileId, freeListPageIndex, false);
+        cacheEntry = loadPageForWrite(fileId, freeListPageIndex, false);
       }
 
       try {
-        OSBTreeValuePage valuePage = new OSBTreeValuePage(cacheEntry, freeListPageIndex >= 0);
+        valuePage = new OSBTreeValuePage(cacheEntry, freeListPageIndex >= 0);
         position = valuePage.fillBinaryContent(serializeValue, position);
 
         valuePage.setNextFreeListPage(-1);
         valuePage.setNextPage(-1);
 
       } finally {
-        releasePageFromWrite(atomicOperation, cacheEntry);
+        releasePageFromWrite(valuePage);
       }
 
-      OCacheEntry prevPageCacheEntry = loadPageForWrite(atomicOperation, fileId, prevPage, false);
+      OCacheEntry prevPageCacheEntry = loadPageForWrite(fileId, prevPage, false);
       try {
-        OSBTreeValuePage valuePage = new OSBTreeValuePage(prevPageCacheEntry, freeListPageIndex >= 0);
+        valuePage = new OSBTreeValuePage(prevPageCacheEntry, freeListPageIndex >= 0);
         valuePage.setNextPage(cacheEntry.getPageIndex());
 
       } finally {
-        releasePageFromWrite(atomicOperation, prevPageCacheEntry);
+        releasePageFromWrite(valuePage);
       }
 
       prevPage = cacheEntry.getPageIndex();
@@ -848,8 +851,8 @@ public class OSBTree<K, V> extends ODurableComponent {
     return valueLink;
   }
 
-  private long allocateValuePageFromFreeList(OAtomicOperation atomicOperation) throws IOException {
-    OCacheEntry rootCacheEntry = loadPageForRead(atomicOperation, fileId, ROOT_INDEX, false);
+  private long allocateValuePageFromFreeList() throws IOException {
+    OCacheEntry rootCacheEntry = loadPageForRead(fileId, ROOT_INDEX, false);
     assert rootCacheEntry != null;
 
     long freeListFirstIndex;
@@ -858,26 +861,27 @@ public class OSBTree<K, V> extends ODurableComponent {
       rootBucket = new OSBTreeBucket<>(rootCacheEntry, keySerializer, keyTypes, valueSerializer, encryption);
       freeListFirstIndex = rootBucket.getValuesFreeListFirstIndex();
     } finally {
-      releasePageFromRead(atomicOperation, rootCacheEntry);
+      releasePageFromRead(rootCacheEntry);
     }
 
     if (freeListFirstIndex >= 0) {
-      OCacheEntry freePageEntry = loadPageForWrite(atomicOperation, fileId, freeListFirstIndex, false);
+      OSBTreeValuePage valuePage = null;
+      OCacheEntry freePageEntry = loadPageForWrite(fileId, freeListFirstIndex, false);
       try {
-        OSBTreeValuePage valuePage = new OSBTreeValuePage(freePageEntry, false);
+        valuePage = new OSBTreeValuePage(freePageEntry, false);
         long nextFreeListIndex = valuePage.getNextFreeListPage();
 
-        rootCacheEntry = loadPageForWrite(atomicOperation, fileId, ROOT_INDEX, false);
+        rootCacheEntry = loadPageForWrite(fileId, ROOT_INDEX, false);
         rootBucket = new OSBTreeBucket<>(rootCacheEntry, keySerializer, keyTypes, valueSerializer, encryption);
         try {
           rootBucket.setValuesFreeListFirstIndex(nextFreeListIndex);
         } finally {
-          releasePageFromWrite(atomicOperation, rootCacheEntry);
+          releasePageFromWrite(rootBucket);
         }
 
         valuePage.setNextFreeListPage(-1);
       } finally {
-        releasePageFromWrite(atomicOperation, freePageEntry);
+        releasePageFromWrite(valuePage);
       }
 
       return freePageEntry.getPageIndex();
@@ -886,13 +890,14 @@ public class OSBTree<K, V> extends ODurableComponent {
     return -1;
   }
 
-  private void updateSize(long diffSize, OAtomicOperation atomicOperation) throws IOException {
-    OCacheEntry rootCacheEntry = loadPageForWrite(atomicOperation, fileId, ROOT_INDEX, false);
+  private void updateSize(long diffSize) throws IOException {
+    OSBTreeBucket<K, V> rootBucket = null;
+    OCacheEntry rootCacheEntry = loadPageForWrite(fileId, ROOT_INDEX, false);
     try {
-      OSBTreeBucket<K, V> rootBucket = new OSBTreeBucket<>(rootCacheEntry, keySerializer, keyTypes, valueSerializer, encryption);
+      rootBucket = new OSBTreeBucket<>(rootCacheEntry, keySerializer, keyTypes, valueSerializer, encryption);
       rootBucket.setTreeSize(rootBucket.getTreeSize() + diffSize);
     } finally {
-      releasePageFromWrite(atomicOperation, rootCacheEntry);
+      releasePageFromWrite(rootBucket);
     }
   }
 
@@ -973,12 +978,12 @@ public class OSBTree<K, V> extends ODurableComponent {
     return key;
   }
 
-  private BucketSearchResult firstItem(OAtomicOperation atomicOperation) throws IOException {
+  private BucketSearchResult firstItem() throws IOException {
     LinkedList<PagePathItemUnit> path = new LinkedList<>();
 
     long bucketIndex = ROOT_INDEX;
 
-    OCacheEntry cacheEntry = loadPageForRead(atomicOperation, fileId, bucketIndex, false);
+    OCacheEntry cacheEntry = loadPageForRead(fileId, bucketIndex, false);
     int itemIndex = 0;
     try {
       OSBTreeBucket<K, V> bucket = new OSBTreeBucket<>(cacheEntry, keySerializer, keyTypes, valueSerializer, encryption);
@@ -1028,23 +1033,23 @@ public class OSBTree<K, V> extends ODurableComponent {
           }
         }
 
-        releasePageFromRead(atomicOperation, cacheEntry);
+        releasePageFromRead(cacheEntry);
 
-        cacheEntry = loadPageForRead(atomicOperation, fileId, bucketIndex, false);
+        cacheEntry = loadPageForRead(fileId, bucketIndex, false);
 
         bucket = new OSBTreeBucket<>(cacheEntry, keySerializer, keyTypes, valueSerializer, encryption);
       }
     } finally {
-      releasePageFromRead(atomicOperation, cacheEntry);
+      releasePageFromRead(cacheEntry);
     }
   }
 
-  private BucketSearchResult lastItem(OAtomicOperation atomicOperation) throws IOException {
+  private BucketSearchResult lastItem() throws IOException {
     LinkedList<PagePathItemUnit> path = new LinkedList<>();
 
     long bucketIndex = ROOT_INDEX;
 
-    OCacheEntry cacheEntry = loadPageForRead(atomicOperation, fileId, bucketIndex, false);
+    OCacheEntry cacheEntry = loadPageForRead(fileId, bucketIndex, false);
 
     OSBTreeBucket<K, V> bucket = new OSBTreeBucket<>(cacheEntry, keySerializer, keyTypes, valueSerializer, encryption);
 
@@ -1096,9 +1101,9 @@ public class OSBTree<K, V> extends ODurableComponent {
           }
         }
 
-        releasePageFromRead(atomicOperation, cacheEntry);
+        releasePageFromRead(cacheEntry);
 
-        cacheEntry = loadPageForRead(atomicOperation, fileId, bucketIndex, false);
+        cacheEntry = loadPageForRead(fileId, bucketIndex, false);
 
         bucket = new OSBTreeBucket<>(cacheEntry, keySerializer, keyTypes, valueSerializer, encryption);
         if (itemIndex == OSBTreeBucket.MAX_PAGE_SIZE_BYTES + 1) {
@@ -1106,7 +1111,7 @@ public class OSBTree<K, V> extends ODurableComponent {
         }
       }
     } finally {
-      releasePageFromRead(atomicOperation, cacheEntry);
+      releasePageFromRead(cacheEntry);
     }
   }
 
@@ -1182,9 +1187,10 @@ public class OSBTree<K, V> extends ODurableComponent {
       throws IOException {
     long pageIndex = path.get(path.size() - 1);
 
-    OCacheEntry bucketEntry = loadPageForWrite(atomicOperation, fileId, pageIndex, false);
+    OSBTreeBucket<K, V> bucketToSplit = null;
+    OCacheEntry bucketEntry = loadPageForWrite(fileId, pageIndex, false);
     try {
-      OSBTreeBucket<K, V> bucketToSplit = new OSBTreeBucket<>(bucketEntry, keySerializer, keyTypes, valueSerializer, encryption);
+      bucketToSplit = new OSBTreeBucket<>(bucketEntry, keySerializer, keyTypes, valueSerializer, encryption);
 
       final boolean splitLeaf = bucketToSplit.isLeaf();
       final int bucketSize = bucketToSplit.size();
@@ -1204,20 +1210,21 @@ public class OSBTree<K, V> extends ODurableComponent {
             rightEntries, atomicOperation);
       } else {
         return splitRootBucket(path, keyIndex, keyToInsert, bucketEntry, bucketToSplit, splitLeaf, indexToSplit, separationKey,
-            rightEntries, atomicOperation);
+            rightEntries);
       }
     } finally {
-      releasePageFromWrite(atomicOperation, bucketEntry);
+      releasePageFromWrite(bucketToSplit);
     }
   }
 
   private BucketSearchResult splitNonRootBucket(List<Long> path, int keyIndex, K keyToInsert, long pageIndex,
       OSBTreeBucket<K, V> bucketToSplit, boolean splitLeaf, int indexToSplit, K separationKey, List<byte[]> rightEntries,
       OAtomicOperation atomicOperation) throws IOException {
-    OCacheEntry rightBucketEntry = addPage(atomicOperation, fileId, false);
+    OCacheEntry rightBucketEntry = addPage(fileId, false);
 
+    OSBTreeBucket<K, V> newRightBucket = null;
     try {
-      OSBTreeBucket<K, V> newRightBucket = new OSBTreeBucket<>(rightBucketEntry, splitLeaf, keySerializer, keyTypes,
+      newRightBucket = new OSBTreeBucket<>(rightBucketEntry, splitLeaf, keySerializer, keyTypes,
           valueSerializer, encryption);
       newRightBucket.addAll(rightEntries);
 
@@ -1231,22 +1238,24 @@ public class OSBTree<K, V> extends ODurableComponent {
 
         bucketToSplit.setRightSibling(rightBucketEntry.getPageIndex());
 
+        OSBTreeBucket<K, V> rightSiblingBucket = null;
         if (rightSiblingPageIndex >= 0) {
-          final OCacheEntry rightSiblingBucketEntry = loadPageForWrite(atomicOperation, fileId, rightSiblingPageIndex, false);
-          OSBTreeBucket<K, V> rightSiblingBucket = new OSBTreeBucket<>(rightSiblingBucketEntry, keySerializer, keyTypes,
+          final OCacheEntry rightSiblingBucketEntry = loadPageForWrite(fileId, rightSiblingPageIndex, false);
+          rightSiblingBucket = new OSBTreeBucket<>(rightSiblingBucketEntry, keySerializer, keyTypes,
               valueSerializer, encryption);
           try {
             rightSiblingBucket.setLeftSibling(rightBucketEntry.getPageIndex());
           } finally {
-            releasePageFromWrite(atomicOperation, rightSiblingBucketEntry);
+            releasePageFromWrite(rightSiblingBucket);
           }
         }
       }
 
+      OSBTreeBucket<K, V> parentBucket = null;
       long parentIndex = path.get(path.size() - 2);
-      OCacheEntry parentCacheEntry = loadPageForWrite(atomicOperation, fileId, parentIndex, false);
+      OCacheEntry parentCacheEntry = loadPageForWrite(fileId, parentIndex, false);
       try {
-        OSBTreeBucket<K, V> parentBucket = new OSBTreeBucket<>(parentCacheEntry, keySerializer, keyTypes, valueSerializer,
+        parentBucket = new OSBTreeBucket<>(parentCacheEntry, keySerializer, keyTypes, valueSerializer,
             encryption);
         OSBTreeBucket.SBTreeEntry<K, V> parentEntry = new OSBTreeBucket.SBTreeEntry<>(pageIndex, rightBucketEntry.getPageIndex(),
             separationKey, null);
@@ -1256,13 +1265,13 @@ public class OSBTree<K, V> extends ODurableComponent {
 
         insertionIndex = -insertionIndex - 1;
         while (!parentBucket.addEntry(insertionIndex, parentEntry, true)) {
-          releasePageFromWrite(atomicOperation, parentCacheEntry);
+          releasePageFromWrite(parentBucket);
 
           BucketSearchResult bucketSearchResult = splitBucket(path.subList(0, path.size() - 1), insertionIndex, separationKey,
               atomicOperation);
 
           parentIndex = bucketSearchResult.getLastPathItem();
-          parentCacheEntry = loadPageForWrite(atomicOperation, fileId, parentIndex, false);
+          parentCacheEntry = loadPageForWrite(fileId, parentIndex, false);
 
           insertionIndex = bucketSearchResult.itemIndex;
 
@@ -1270,11 +1279,11 @@ public class OSBTree<K, V> extends ODurableComponent {
         }
 
       } finally {
-        releasePageFromWrite(atomicOperation, parentCacheEntry);
+        releasePageFromWrite(parentBucket);
       }
 
     } finally {
-      releasePageFromWrite(atomicOperation, rightBucketEntry);
+      releasePageFromWrite(newRightBucket);
     }
 
     ArrayList<Long> resultPath = new ArrayList<>(path.subList(0, path.size() - 1));
@@ -1294,8 +1303,8 @@ public class OSBTree<K, V> extends ODurableComponent {
   }
 
   private BucketSearchResult splitRootBucket(List<Long> path, int keyIndex, K keyToInsert, OCacheEntry bucketEntry,
-      OSBTreeBucket<K, V> bucketToSplit, boolean splitLeaf, int indexToSplit, K separationKey, List<byte[]> rightEntries,
-      OAtomicOperation atomicOperation) throws IOException {
+      OSBTreeBucket<K, V> bucketToSplit, boolean splitLeaf, int indexToSplit, K separationKey, List<byte[]> rightEntries)
+      throws IOException {
     final long freeListPage = bucketToSplit.getValuesFreeListFirstIndex();
     final long treeSize = bucketToSplit.getTreeSize();
 
@@ -1305,11 +1314,12 @@ public class OSBTree<K, V> extends ODurableComponent {
       leftEntries.add(bucketToSplit.getRawEntry(i));
     }
 
-    OCacheEntry leftBucketEntry = addPage(atomicOperation, fileId, false);
+    OSBTreeBucket<K, V> newLeftBucket = null;
+    OCacheEntry leftBucketEntry = addPage(fileId, false);
 
-    OCacheEntry rightBucketEntry = addPage(atomicOperation, fileId, false);
+    OCacheEntry rightBucketEntry = addPage(fileId, false);
     try {
-      OSBTreeBucket<K, V> newLeftBucket = new OSBTreeBucket<>(leftBucketEntry, splitLeaf, keySerializer, keyTypes, valueSerializer,
+      newLeftBucket = new OSBTreeBucket<>(leftBucketEntry, splitLeaf, keySerializer, keyTypes, valueSerializer,
           encryption);
       newLeftBucket.addAll(leftEntries);
 
@@ -1318,11 +1328,12 @@ public class OSBTree<K, V> extends ODurableComponent {
       }
 
     } finally {
-      releasePageFromWrite(atomicOperation, leftBucketEntry);
+      releasePageFromWrite(newLeftBucket);
     }
 
+    OSBTreeBucket<K, V> newRightBucket = null;
     try {
-      OSBTreeBucket<K, V> newRightBucket = new OSBTreeBucket<>(rightBucketEntry, splitLeaf, keySerializer, keyTypes,
+      newRightBucket = new OSBTreeBucket<>(rightBucketEntry, splitLeaf, keySerializer, keyTypes,
           valueSerializer, encryption);
       newRightBucket.addAll(rightEntries);
 
@@ -1330,7 +1341,7 @@ public class OSBTree<K, V> extends ODurableComponent {
         newRightBucket.setLeftSibling(leftBucketEntry.getPageIndex());
       }
     } finally {
-      releasePageFromWrite(atomicOperation, rightBucketEntry);
+      releasePageFromWrite(newRightBucket);
     }
 
     bucketToSplit = new OSBTreeBucket<>(bucketEntry, false, keySerializer, keyTypes, valueSerializer, encryption);
@@ -1358,7 +1369,7 @@ public class OSBTree<K, V> extends ODurableComponent {
     return new BucketSearchResult(keyIndex - indexToSplit - 1, resultPath);
   }
 
-  private BucketSearchResult findBucket(K key, OAtomicOperation atomicOperation) throws IOException {
+  private BucketSearchResult findBucket(K key) throws IOException {
     long pageIndex = ROOT_INDEX;
     final ArrayList<Long> path = new ArrayList<>();
 
@@ -1370,7 +1381,7 @@ public class OSBTree<K, V> extends ODurableComponent {
       }
 
       path.add(pageIndex);
-      final OCacheEntry bucketEntry = loadPageForRead(atomicOperation, fileId, pageIndex, false);
+      final OCacheEntry bucketEntry = loadPageForRead(fileId, pageIndex, false);
       final OSBTreeBucket.SBTreeEntry<K, V> entry;
 
       try {
@@ -1394,7 +1405,7 @@ public class OSBTree<K, V> extends ODurableComponent {
         }
 
       } finally {
-        releasePageFromRead(atomicOperation, bucketEntry);
+        releasePageFromRead(bucketEntry);
       }
 
       if (comparator.compare(key, entry.key) >= 0) {
@@ -1434,12 +1445,12 @@ public class OSBTree<K, V> extends ODurableComponent {
     return key;
   }
 
-  private V readValue(OSBTreeValue<V> sbTreeValue, OAtomicOperation atomicOperation) throws IOException {
+  private V readValue(OSBTreeValue<V> sbTreeValue) throws IOException {
     if (!sbTreeValue.isLink()) {
       return sbTreeValue.getValue();
     }
 
-    OCacheEntry cacheEntry = loadPageForRead(atomicOperation, fileId, sbTreeValue.getLink(), false);
+    OCacheEntry cacheEntry = loadPageForRead(fileId, sbTreeValue.getLink(), false);
 
     OSBTreeValuePage valuePage = new OSBTreeValuePage(cacheEntry, false);
 
@@ -1452,23 +1463,22 @@ public class OSBTree<K, V> extends ODurableComponent {
 
       long nextPage = valuePage.getNextPage();
       if (nextPage >= 0) {
-        releasePageFromRead(atomicOperation, cacheEntry);
+        releasePageFromRead(cacheEntry);
 
-        cacheEntry = loadPageForRead(atomicOperation, fileId, nextPage, false);
+        cacheEntry = loadPageForRead(fileId, nextPage, false);
 
         valuePage = new OSBTreeValuePage(cacheEntry, false);
       }
     }
 
-    releasePageFromRead(atomicOperation, cacheEntry);
+    releasePageFromRead(cacheEntry);
 
     return valueSerializer.deserializeNativeObject(value, 0);
   }
 
-  private Map.Entry<K, V> convertToMapEntry(OSBTreeBucket.SBTreeEntry<K, V> treeEntry, OAtomicOperation atomicOperation)
-      throws IOException {
+  private Map.Entry<K, V> convertToMapEntry(OSBTreeBucket.SBTreeEntry<K, V> treeEntry) throws IOException {
     final K key = treeEntry.key;
-    final V value = readValue(treeEntry.value, atomicOperation);
+    final V value = readValue(treeEntry.value);
 
     return new Map.Entry<K, V>() {
       @Override
@@ -1492,11 +1502,10 @@ public class OSBTree<K, V> extends ODurableComponent {
    * Indicates search behavior in case of {@link OCompositeKey} keys that have less amount of internal keys are used, whether
    * lowest or highest partially matched key should be used.
    */
-  private enum PartialSearchMode {
-    /**
-     * Any partially matched key will be used as search result.
-     */
-    NONE,
+  private enum PartialSearchMode {/**
+   * Any partially matched key will be used as search result.
+   */
+  NONE,
     /**
      * The biggest partially matched key will be used as search result.
      */
@@ -1505,8 +1514,7 @@ public class OSBTree<K, V> extends ODurableComponent {
     /**
      * The smallest partially matched key will be used as search result.
      */
-    LOWEST_BOUNDARY
-  }
+    LOWEST_BOUNDARY}
 
   public interface OSBTreeCursor<K, V> {
     Map.Entry<K, V> next(int prefetchSize);
@@ -1583,12 +1591,12 @@ public class OSBTree<K, V> extends ODurableComponent {
               break;
             }
 
-            if (pageIndex >= getFilledUpTo(atomicOperation, fileId)) {
+            if (pageIndex >= getFilledUpTo(fileId)) {
               pageIndex = -1;
               break;
             }
 
-            final OCacheEntry cacheEntry = loadPageForRead(atomicOperation, fileId, pageIndex, false);
+            final OCacheEntry cacheEntry = loadPageForRead(fileId, pageIndex, false);
             try {
               final OSBTreeBucket<K, V> bucket = new OSBTreeBucket<>(cacheEntry, keySerializer, keyTypes, valueSerializer,
                   encryption);
@@ -1599,12 +1607,12 @@ public class OSBTree<K, V> extends ODurableComponent {
                 continue;
               }
 
-              final Map.Entry<K, V> entry = convertToMapEntry(bucket.getEntry(itemIndex), atomicOperation);
+              final Map.Entry<K, V> entry = convertToMapEntry(bucket.getEntry(itemIndex));
               itemIndex++;
 
               keysCache.add(entry.getKey());
             } finally {
-              releasePageFromRead(atomicOperation, cacheEntry);
+              releasePageFromRead(cacheEntry);
             }
           }
         } finally {
@@ -1680,9 +1688,9 @@ public class OSBTree<K, V> extends ODurableComponent {
           final BucketSearchResult bucketSearchResult;
 
           if (fromKey != null) {
-            bucketSearchResult = findBucket(fromKey, atomicOperation);
+            bucketSearchResult = findBucket(fromKey);
           } else {
-            bucketSearchResult = firstItem(atomicOperation);
+            bucketSearchResult = firstItem();
           }
 
           if (bucketSearchResult == null) {
@@ -1704,7 +1712,7 @@ public class OSBTree<K, V> extends ODurableComponent {
               break;
             }
 
-            final OCacheEntry cacheEntry = loadPageForRead(atomicOperation, fileId, pageIndex, false);
+            final OCacheEntry cacheEntry = loadPageForRead(fileId, pageIndex, false);
             try {
               final OSBTreeBucket<K, V> bucket = new OSBTreeBucket<>(cacheEntry, keySerializer, keyTypes, valueSerializer,
                   encryption);
@@ -1715,11 +1723,12 @@ public class OSBTree<K, V> extends ODurableComponent {
                 continue;
               }
 
-              final Map.Entry<K, V> entry = convertToMapEntry(bucket.getEntry(itemIndex), atomicOperation);
+              final Map.Entry<K, V> entry = convertToMapEntry(bucket.getEntry(itemIndex));
               itemIndex++;
 
               if (fromKey != null && (fromKeyInclusive ?
-                  comparator.compare(entry.getKey(), fromKey) < 0 : comparator.compare(entry.getKey(), fromKey) <= 0)) {
+                  comparator.compare(entry.getKey(), fromKey) < 0 :
+                  comparator.compare(entry.getKey(), fromKey) <= 0)) {
                 continue;
               }
 
@@ -1731,7 +1740,7 @@ public class OSBTree<K, V> extends ODurableComponent {
 
               dataCache.add(entry);
             } finally {
-              releasePageFromRead(atomicOperation, cacheEntry);
+              releasePageFromRead(cacheEntry);
             }
           }
         } finally {
@@ -1809,9 +1818,9 @@ public class OSBTree<K, V> extends ODurableComponent {
           final BucketSearchResult bucketSearchResult;
 
           if (toKey != null) {
-            bucketSearchResult = findBucket(toKey, atomicOperation);
+            bucketSearchResult = findBucket(toKey);
           } else {
-            bucketSearchResult = lastItem(atomicOperation);
+            bucketSearchResult = lastItem();
           }
 
           if (bucketSearchResult == null) {
@@ -1833,7 +1842,7 @@ public class OSBTree<K, V> extends ODurableComponent {
               break;
             }
 
-            final OCacheEntry cacheEntry = loadPageForRead(atomicOperation, fileId, pageIndex, false);
+            final OCacheEntry cacheEntry = loadPageForRead(fileId, pageIndex, false);
             try {
               final OSBTreeBucket<K, V> bucket = new OSBTreeBucket<>(cacheEntry, keySerializer, keyTypes, valueSerializer,
                   encryption);
@@ -1848,11 +1857,12 @@ public class OSBTree<K, V> extends ODurableComponent {
                 continue;
               }
 
-              final Map.Entry<K, V> entry = convertToMapEntry(bucket.getEntry(itemIndex), atomicOperation);
+              final Map.Entry<K, V> entry = convertToMapEntry(bucket.getEntry(itemIndex));
               itemIndex--;
 
               if (toKey != null && (toKeyInclusive ?
-                  comparator.compare(entry.getKey(), toKey) > 0 : comparator.compare(entry.getKey(), toKey) >= 0)) {
+                  comparator.compare(entry.getKey(), toKey) > 0 :
+                  comparator.compare(entry.getKey(), toKey) >= 0)) {
                 continue;
               }
 
@@ -1864,7 +1874,7 @@ public class OSBTree<K, V> extends ODurableComponent {
 
               dataCache.add(entry);
             } finally {
-              releasePageFromRead(atomicOperation, cacheEntry);
+              releasePageFromRead(cacheEntry);
             }
           }
         } finally {

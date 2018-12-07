@@ -22,8 +22,6 @@ package com.orientechnologies.orient.core.storage.impl.local.paginated.atomicope
 import com.orientechnologies.common.log.OLogManager;
 import com.orientechnologies.orient.core.exception.OStorageException;
 import com.orientechnologies.orient.core.storage.cache.OCacheEntry;
-import com.orientechnologies.orient.core.storage.cache.OCacheEntryImpl;
-import com.orientechnologies.orient.core.storage.cache.OCachePointer;
 import com.orientechnologies.orient.core.storage.cache.OReadCache;
 import com.orientechnologies.orient.core.storage.cache.OWriteCache;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.base.ODurablePage;
@@ -84,95 +82,6 @@ public final class OAtomicOperation {
     return operationUnitId;
   }
 
-  public OCacheEntry loadPageForWrite(long fileId, long pageIndex, boolean checkPinnedPages, final int pageCount)
-      throws IOException {
-    assert pageCount > 0;
-
-    fileId = checkFileIdCompatibility(fileId, storageId);
-
-    if (deletedFiles.contains(fileId)) {
-      throw new OStorageException("File with id " + fileId + " is deleted.");
-    }
-
-    FileChanges changesContainer = fileChanges.computeIfAbsent(fileId, k -> new FileChanges());
-
-    if (changesContainer.isNew) {
-      if (pageIndex <= changesContainer.maxNewPageIndex) {
-        OCacheEntryChanges pageChange = changesContainer.pageChangesMap.get(pageIndex);
-        return pageChange;
-      } else {
-        return null;
-      }
-    } else {
-      OCacheEntryChanges pageChangesContainer = changesContainer.pageChangesMap.get(pageIndex);
-
-      if (checkChangesFilledUpTo(changesContainer, pageIndex)) {
-        if (pageChangesContainer == null) {
-          OCacheEntry delegate = readCache.loadForRead(fileId, pageIndex, checkPinnedPages, writeCache, pageCount, true);
-          if (delegate != null) {
-            pageChangesContainer = new OCacheEntryChanges();
-            changesContainer.pageChangesMap.put(pageIndex, pageChangesContainer);
-            pageChangesContainer.delegate = delegate;
-            return pageChangesContainer;
-          }
-        } else {
-          if (pageChangesContainer.isNew) {
-            return pageChangesContainer;
-          } else {
-            // Need to load the page again from cache for locking reasons
-            OCacheEntry delegate = readCache.loadForRead(fileId, pageIndex, checkPinnedPages, writeCache, pageCount, true);
-            pageChangesContainer.delegate = delegate;
-            return pageChangesContainer;
-          }
-        }
-      }
-    }
-    return null;
-  }
-
-  public OCacheEntry loadPageForRead(long fileId, long pageIndex, boolean checkPinnedPages, final int pageCount)
-      throws IOException {
-    assert pageCount > 0;
-
-    fileId = checkFileIdCompatibility(fileId, storageId);
-
-    if (deletedFiles.contains(fileId)) {
-      throw new OStorageException("File with id " + fileId + " is deleted.");
-    }
-
-    FileChanges changesContainer = fileChanges.get(fileId);
-    if (changesContainer == null) {
-      return readCache.loadForRead(fileId, pageIndex, checkPinnedPages, writeCache, pageCount, true);
-    }
-
-    if (changesContainer.isNew) {
-      if (pageIndex <= changesContainer.maxNewPageIndex) {
-        OCacheEntryChanges pageChange = changesContainer.pageChangesMap.get(pageIndex);
-        return pageChange;
-      } else {
-        return null;
-      }
-    } else {
-      OCacheEntryChanges pageChangesContainer = changesContainer.pageChangesMap.get(pageIndex);
-
-      if (checkChangesFilledUpTo(changesContainer, pageIndex)) {
-        if (pageChangesContainer == null) {
-          return readCache.loadForRead(fileId, pageIndex, checkPinnedPages, writeCache, pageCount, true);
-        } else {
-          if (pageChangesContainer.isNew) {
-            return pageChangesContainer;
-          } else {
-            // Need to load the page again from cache for locking reasons
-            OCacheEntry delegate = readCache.loadForRead(fileId, pageIndex, checkPinnedPages, writeCache, pageCount, true);
-            pageChangesContainer.delegate = delegate;
-            return pageChangesContainer;
-          }
-        }
-      }
-    }
-    return null;
-  }
-
   /**
    * Add metadata with given key inside of atomic operation. If metadata with the same key insist inside of atomic operation it will
    * be overwritten.
@@ -199,110 +108,6 @@ public final class OAtomicOperation {
    */
   private Map<String, OAtomicOperationMetadata<?>> getMetadata() {
     return Collections.unmodifiableMap(metadata);
-  }
-
-  public void pinPage(OCacheEntry cacheEntry) {
-    if (deletedFiles.contains(cacheEntry.getFileId())) {
-      throw new OStorageException("File with id " + cacheEntry.getFileId() + " is deleted.");
-    }
-
-    final FileChanges changesContainer = fileChanges.get(cacheEntry.getFileId());
-    assert changesContainer != null;
-
-    final OCacheEntryChanges pageChangesContainer = changesContainer.pageChangesMap.get(cacheEntry.getPageIndex());
-    assert pageChangesContainer != null;
-
-    pageChangesContainer.pinPage = true;
-  }
-
-  public OCacheEntry addPage(long fileId) {
-    fileId = checkFileIdCompatibility(fileId, storageId);
-
-    if (deletedFiles.contains(fileId)) {
-      throw new OStorageException("File with id " + fileId + " is deleted.");
-    }
-
-    final FileChanges changesContainer = fileChanges.get(fileId);
-    assert changesContainer != null;
-
-    final long filledUpTo = internalFilledUpTo(fileId, changesContainer);
-
-    OCacheEntryChanges pageChangesContainer = changesContainer.pageChangesMap.get(filledUpTo);
-    assert pageChangesContainer == null;
-
-    pageChangesContainer = new OCacheEntryChanges();
-    pageChangesContainer.isNew = true;
-
-    changesContainer.pageChangesMap.put(filledUpTo, pageChangesContainer);
-    changesContainer.maxNewPageIndex = filledUpTo;
-    OCacheEntry delegate = new OCacheEntryImpl(fileId, filledUpTo, new OCachePointer(null, null, fileId, filledUpTo));
-    pageChangesContainer.delegate = delegate;
-    return pageChangesContainer;
-  }
-
-  public void releasePageFromRead(OCacheEntry cacheEntry) {
-    if (cacheEntry instanceof OCacheEntryChanges) {
-      releasePageFromWrite(cacheEntry);
-    } else {
-      readCache.releaseFromRead(cacheEntry, writeCache);
-    }
-  }
-
-  public void releasePageFromWrite(OCacheEntry cacheEntry) {
-    OCacheEntryChanges real = (OCacheEntryChanges) cacheEntry;
-    if (deletedFiles.contains(cacheEntry.getFileId())) {
-      throw new OStorageException("File with id " + cacheEntry.getFileId() + " is deleted.");
-    }
-
-    if (cacheEntry.getCachePointer().getBuffer() != null) {
-      readCache.releaseFromRead(real.getDelegate(), writeCache);
-    } else {
-      assert real.isNew || !cacheEntry.isLockAcquiredByCurrentThread();
-    }
-  }
-
-  public long filledUpTo(long fileId) {
-    fileId = checkFileIdCompatibility(fileId, storageId);
-
-    if (deletedFiles.contains(fileId)) {
-      throw new OStorageException("File with id " + fileId + " is deleted.");
-    }
-
-    FileChanges changesContainer = fileChanges.get(fileId);
-
-    return internalFilledUpTo(fileId, changesContainer);
-  }
-
-  private long internalFilledUpTo(long fileId, FileChanges changesContainer) {
-    if (changesContainer == null) {
-      changesContainer = new FileChanges();
-      fileChanges.put(fileId, changesContainer);
-    } else if (changesContainer.isNew || changesContainer.maxNewPageIndex > -2) {
-      return changesContainer.maxNewPageIndex + 1;
-    } else if (changesContainer.truncate) {
-      return 0;
-    }
-
-    return writeCache.getFilledUpTo(fileId);
-  }
-
-  /**
-   * This check if a file was trimmed or trunked in the current atomic operation.
-   *
-   * @param changesContainer changes container to check
-   * @param pageIndex        limit to check against the changes
-   *
-   * @return true if there are no changes or pageIndex still fit, false if the pageIndex do not fit anymore
-   */
-  private static boolean checkChangesFilledUpTo(FileChanges changesContainer, long pageIndex) {
-    if (changesContainer == null) {
-      return true;
-    } else if (changesContainer.isNew || changesContainer.maxNewPageIndex > -2) {
-      return pageIndex < changesContainer.maxNewPageIndex + 1;
-    } else if (changesContainer.truncate) {
-      return false;
-    }
-    return true;
   }
 
   public long addFile(String fileName) {
@@ -486,7 +291,7 @@ public final class OAtomicOperation {
               ODurablePage durablePage = new ODurablePage(cacheEntry);
               cacheEntry.setEndLSN(txEndLsn);
 
-              durablePage.restoreChanges(filePageChanges.changes);
+              //durablePage.restoreChanges(filePageChanges.changes);
               durablePage.setLsn(filePageChanges.getChangeLSN());
 
               if (filePageChanges.pinPage) {
@@ -537,7 +342,7 @@ public final class OAtomicOperation {
 
           try {
             ODurablePage durablePage = new ODurablePage(cacheEntry);
-            durablePage.restoreChanges(filePageChanges.changes);
+            //durablePage.restoreChanges(filePageChanges.changes);
 
             if (filePageChanges.pinPage) {
               readCache.pinPage(cacheEntry, writeCache);

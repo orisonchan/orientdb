@@ -35,6 +35,10 @@ public abstract class OOperationUnitRecord extends OAbstractWALRecord {
     return operationUnitId;
   }
 
+  public void setOperationUnitId(OOperationUnitId operationUnitId) {
+    this.operationUnitId = operationUnitId;
+  }
+
   @Override
   public int toStream(final byte[] content, final int offset) {
     return operationUnitId.toStream(content, offset);
