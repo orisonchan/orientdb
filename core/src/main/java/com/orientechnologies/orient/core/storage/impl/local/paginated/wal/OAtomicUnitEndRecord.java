@@ -25,9 +25,12 @@ import com.orientechnologies.common.serialization.types.OIntegerSerializer;
 import com.orientechnologies.common.serialization.types.OLongSerializer;
 import com.orientechnologies.orient.core.id.ORID;
 import com.orientechnologies.orient.core.id.ORecordId;
+import com.orientechnologies.orient.core.storage.cache.OReadCache;
+import com.orientechnologies.orient.core.storage.cache.OWriteCache;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.ORecordOperationMetadata;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.atomicoperations.OAtomicOperationMetadata;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -39,20 +42,29 @@ import java.util.Set;
  * @since 24.05.13
  */
 public class OAtomicUnitEndRecord extends OOperationUnitBodyRecord {
-  private boolean                                  rollback;
+  private boolean rollback;
 
   private Map<String, OAtomicOperationMetadata<?>> atomicOperationMetadataMap = new LinkedHashMap<>();
 
   public OAtomicUnitEndRecord() {
   }
 
+  @Override
+  public void redo(OReadCache readCache, OWriteCache writeCache) throws IOException {
+    //do nothing
+  }
+
+  @Override
+  public void undo(OReadCache readCache, OWriteCache writeCache) throws IOException {
+    //do nothing
+  }
+
   public OAtomicUnitEndRecord(final OOperationUnitId operationUnitId, final boolean rollback,
       final Map<String, OAtomicOperationMetadata<?>> atomicOperationMetadataMap) {
-    super(operationUnitId);
+    super();
 
+    setOperationUnitId(operationUnitId);
     this.rollback = rollback;
-
-    assert operationUnitId != null;
 
     if (atomicOperationMetadataMap != null && atomicOperationMetadataMap.size() > 0) {
       this.atomicOperationMetadataMap = atomicOperationMetadataMap;
@@ -202,4 +214,5 @@ public class OAtomicUnitEndRecord extends OOperationUnitBodyRecord {
   public byte getId() {
     return WALRecordTypes.ATOMIC_UNIT_END_RECORD;
   }
+
 }

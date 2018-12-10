@@ -1,17 +1,16 @@
 package com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.clusterpositionmap;
 
 import com.orientechnologies.orient.core.storage.cache.OCacheEntry;
+import com.orientechnologies.orient.core.storage.cache.OReadCache;
+import com.orientechnologies.orient.core.storage.cache.OWriteCache;
 import com.orientechnologies.orient.core.storage.cluster.OClusterPositionMapBucket;
-import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OOperationUnitId;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OPageOperationRecord;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes;
 
+import java.io.IOException;
+
 public final class OClusterPositionMapNewPageOperation extends OPageOperationRecord {
   public OClusterPositionMapNewPageOperation() {
-  }
-
-  public OClusterPositionMapNewPageOperation(OOperationUnitId operationUnitId, int pageIndex, long fileId) {
-    super();
   }
 
   @Override
@@ -25,12 +24,17 @@ public final class OClusterPositionMapNewPageOperation extends OPageOperationRec
   }
 
   @Override
-  public void undo(OCacheEntry cacheEntry) {
+  public void undo(OReadCache readCache, OWriteCache writeCache) {
     //do nothing
   }
 
   @Override
-  public void redo(OCacheEntry cacheEntry) {
-    new OClusterPositionMapBucket(cacheEntry, true);
+  public void redo(OReadCache readCache, OWriteCache writeCache) throws IOException {
+    final OCacheEntry cacheEntry = readCache.allocateNewPage(getFileId(), writeCache, true, null, false);
+    try {
+      new OClusterPositionMapBucket(cacheEntry, true);
+    } finally {
+      readCache.releaseFromWrite(cacheEntry, writeCache);
+    }
   }
 }

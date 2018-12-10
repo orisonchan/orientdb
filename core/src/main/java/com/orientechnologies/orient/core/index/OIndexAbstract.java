@@ -45,6 +45,7 @@ import com.orientechnologies.orient.core.storage.cache.OWriteCache;
 import com.orientechnologies.orient.core.storage.impl.local.OAbstractPaginatedStorage;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.atomicoperations.OAtomicOperation;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.atomicoperations.OAtomicOperationsManager;
+import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OFileDeletedWALRecord;
 import com.orientechnologies.orient.core.storage.ridbag.sbtree.OIndexRIDContainer;
 import com.orientechnologies.orient.core.tx.OTransactionIndexChanges;
 import com.orientechnologies.orient.core.tx.OTransactionIndexChangesPerKey;
@@ -983,32 +984,23 @@ public abstract class OIndexAbstract<T> implements OIndexInternal<T> {
     if (valueContainerAlgorithm.equals(ODefaultIndexFactory.SBTREEBONSAI_VALUE_CONTAINER)) {
 
       final OAtomicOperation atomicOperation = OAtomicOperationsManager.getCurrentOperation();
+      assert atomicOperation != null;
 
       final OReadCache readCache = storage.getReadCache();
       final OWriteCache writeCache = storage.getWriteCache();
 
-      if (atomicOperation == null) {
-        try {
-          final String fileName = getName() + OIndexRIDContainer.INDEX_FILE_EXTENSION;
-          if (writeCache.exists(fileName)) {
-            final long fileId = writeCache.loadFile(fileName);
-            readCache.deleteFile(fileId, writeCache);
-          }
-        } catch (IOException e) {
-          OLogManager.instance().error(this, "Cannot delete file for value containers", e);
-        }
-      } else {
-        try {
-          final String fileName = getName() + OIndexRIDContainer.INDEX_FILE_EXTENSION;
-          if (atomicOperation.isFileExists(fileName)) {
-            final long fileId = atomicOperation.loadFile(fileName);
-            atomicOperation.deleteFile(fileId);
-          }
-        } catch (IOException e) {
-          OLogManager.instance().error(this, "Cannot delete file for value containers", e);
-        }
-      }
+      try {
+        final String fileName = getName() + OIndexRIDContainer.INDEX_FILE_EXTENSION;
+        if (writeCache.exists(fileName)) {
+          final long fileId = writeCache.loadFile(fileName);
 
+          atomicOperation.addOperation(new OFileDeletedWALRecord(fileId));
+
+          readCache.deleteFile(fileId, writeCache);
+        }
+      } catch (IOException e) {
+        OLogManager.instance().error(this, "Cannot delete file for value containers", e);
+      }
     }
   }
 

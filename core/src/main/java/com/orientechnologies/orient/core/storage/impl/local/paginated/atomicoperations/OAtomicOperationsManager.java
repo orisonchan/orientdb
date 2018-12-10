@@ -32,13 +32,11 @@ import com.orientechnologies.orient.core.exception.ODatabaseException;
 import com.orientechnologies.orient.core.storage.cache.OReadCache;
 import com.orientechnologies.orient.core.storage.cache.OWriteCache;
 import com.orientechnologies.orient.core.storage.impl.local.OAbstractPaginatedStorage;
-import com.orientechnologies.orient.core.storage.impl.local.paginated.OStorageTransaction;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.base.ODurableComponent;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OLogSequenceNumber;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.ONonTxOperationPerformedWALRecord;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OOperationUnitId;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OWriteAheadLog;
-import com.orientechnologies.orient.core.tx.OTransactionInternal;
 
 import java.io.IOException;
 import java.io.StringWriter;
@@ -92,12 +90,14 @@ public class OAtomicOperationsManager implements OAtomicOperationsMangerMXBean {
     });
   }
 
-  private final OAbstractPaginatedStorage          storage;
-  private final OWriteAheadLog                     writeAheadLog;
   private final OOneEntryPerKeyLockManager<String> lockManager = new OOneEntryPerKeyLockManager<>(true, -1,
       OGlobalConfiguration.COMPONENTS_LOCK_CACHE.getValueAsInteger());
-  private final OReadCache                         readCache;
-  private final OWriteCache                        writeCache;
+
+  private final OAbstractPaginatedStorage storage;
+  private final OWriteAheadLog            writeAheadLog;
+
+  private final OReadCache  readCache;
+  private final OWriteCache writeCache;
 
   private final Map<OOperationUnitId, OPair<String, StackTraceElement[]>> activeAtomicOperations = new ConcurrentHashMap<>();
 
@@ -175,11 +175,10 @@ public class OAtomicOperationsManager implements OAtomicOperationsMangerMXBean {
 
     assert freezeRequests.get() >= 0;
 
-    final boolean useWal = useWal();
     final OOperationUnitId unitId = OOperationUnitId.generateId();
-    final OLogSequenceNumber lsn = useWal ? writeAheadLog.logAtomicOperationStartRecord(true, unitId) : null;
+    final OLogSequenceNumber lsn = writeAheadLog.logAtomicOperationStartRecord(true, unitId);
 
-    operation = new OAtomicOperation(lsn, unitId, readCache, writeCache, storage.getId());
+    operation = new OAtomicOperation(lsn, unitId, storage, readCache, writeCache, writeAheadLog);
     currentOperation.set(operation);
 
     if (trackAtomicOperations) {
@@ -187,7 +186,7 @@ public class OAtomicOperationsManager implements OAtomicOperationsMangerMXBean {
       activeAtomicOperations.put(unitId, new OPair<>(thread.getName(), thread.getStackTrace()));
     }
 
-    if (useWal && trackNonTxOperations && storage.getStorageTransaction() == null) {
+    if (trackNonTxOperations && storage.getStorageTransaction() == null) {
       writeAheadLog.log(new ONonTxOperationPerformedWALRecord());
     }
 
@@ -358,10 +357,8 @@ public class OAtomicOperationsManager implements OAtomicOperationsMangerMXBean {
    * Ends the current atomic operation on this manager.
    *
    * @param rollback {@code true} to indicate a rollback, {@code false} for successful commit.
-   *
-   * @return the LSN produced by committing the current operation or {@code null} if no commit was done.
    */
-  public OLogSequenceNumber endAtomicOperation(boolean rollback) throws IOException {
+  public void endAtomicOperation(boolean rollback) throws IOException {
     final OAtomicOperation operation = currentOperation.get();
 
     if (operation == null) {
@@ -374,21 +371,19 @@ public class OAtomicOperationsManager implements OAtomicOperationsMangerMXBean {
 
     assert counter > 0;
 
-    final OLogSequenceNumber lsn;
     try {
       if (rollback) {
-        operation.rollback();
+        operation.rollbackMark();
       }
 
       if (counter == 1) {
         try {
-          final boolean useWal = useWal();
-
-          if (!operation.isRollback()) {
-            lsn = operation.commitChanges(useWal ? writeAheadLog : null);
-          } else {
-            lsn = null;
+          if (operation.isRollbackMarked()) {
+            operation.rollbackOperations();
           }
+
+          writeAheadLog.logAtomicOperationEndRecord(operation.getOperationUnitId(), rollback, operation.getStartLSN(),
+              operation.getMetadata());
 
           if (trackAtomicOperations) {
             activeAtomicOperations.remove(operation.getOperationUnitId());
@@ -405,8 +400,6 @@ public class OAtomicOperationsManager implements OAtomicOperationsMangerMXBean {
 
           currentOperation.set(null);
         }
-      } else {
-        lsn = null;
       }
     } catch (Error e) {
       final OAbstractPaginatedStorage st = storage;
@@ -421,8 +414,6 @@ public class OAtomicOperationsManager implements OAtomicOperationsMangerMXBean {
         atomicOperationsCount.decrement();
       }
     }
-
-    return lsn;
   }
 
   public void ensureThatComponentsUnlocked() {
@@ -546,20 +537,5 @@ public class OAtomicOperationsManager implements OAtomicOperationsMangerMXBean {
             e);
       }
     }
-  }
-
-  private boolean useWal() {
-    if (writeAheadLog == null) {
-      return false;
-    }
-
-    final OStorageTransaction storageTransaction = storage.getStorageTransaction();
-    if (storageTransaction == null) {
-      return true;
-    }
-
-    final OTransactionInternal clientTx = storageTransaction.getClientTx();
-    return clientTx == null || clientTx.isUsingLog();
-
   }
 }

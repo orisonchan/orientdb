@@ -21,7 +21,10 @@
 package com.orientechnologies.orient.core.storage.impl.local.paginated.wal;
 
 import com.orientechnologies.common.serialization.types.OLongSerializer;
+import com.orientechnologies.orient.core.storage.cache.OReadCache;
+import com.orientechnologies.orient.core.storage.cache.OWriteCache;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 
 /**
@@ -33,6 +36,16 @@ public class OUpdatePageRecord extends OAbstractPageWALRecord {
 
   @SuppressWarnings("WeakerAccess")
   public OUpdatePageRecord() {
+  }
+
+  @Override
+  public void redo(OReadCache readCache, OWriteCache writeCache) throws IOException {
+
+  }
+
+  @Override
+  public void undo(OReadCache readCache, OWriteCache writeCache) throws IOException {
+
   }
 
   public OUpdatePageRecord(final long pageIndex, final long fileId, final OOperationUnitId operationUnitId,

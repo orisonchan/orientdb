@@ -84,8 +84,8 @@ import java.util.zip.ZipOutputStream;
  */
 public class OLocalPaginatedStorage extends OAbstractPaginatedStorage {
 
-  private static final String[] ALL_FILE_EXTENSIONS = { ".cm",".ocf", ".pls", ".pcl", ".oda", ".odh", ".otx", ".ocs", ".oef", ".oem",
-      ".oet", ".fl", OCASDiskWriteAheadLog.WAL_SEGMENT_EXTENSION, OCASDiskWriteAheadLog.MASTER_RECORD_EXTENSION,
+  private static final String[] ALL_FILE_EXTENSIONS = { ".cm", ".ocf", ".pls", ".pcl", ".oda", ".odh", ".otx", ".ocs", ".oef",
+      ".oem", ".oet", ".fl", OCASDiskWriteAheadLog.WAL_SEGMENT_EXTENSION, OCASDiskWriteAheadLog.MASTER_RECORD_EXTENSION,
       OHashTableIndexEngine.BUCKET_FILE_EXTENSION, OHashTableIndexEngine.METADATA_FILE_EXTENSION,
       OHashTableIndexEngine.TREE_FILE_EXTENSION, OHashTableIndexEngine.NULL_BUCKET_FILE_EXTENSION,
       OClusterPositionMap.DEF_EXTENSION, OSBTreeIndexEngine.DATA_FILE_EXTENSION, OPrefixBTreeIndexEngine.DATA_FILE_EXTENSION,
@@ -546,56 +546,53 @@ public class OLocalPaginatedStorage extends OAbstractPaginatedStorage {
 
   @Override
   protected void initWalAndDiskCache(OContextConfiguration contextConfiguration) throws IOException, InterruptedException {
-    if (getConfiguration().getContextConfiguration().getValueAsBoolean(OGlobalConfiguration.USE_WAL)) {
-      fuzzyCheckpointTask = fuzzyCheckpointExecutor.scheduleWithFixedDelay(new PeriodicFuzzyCheckpoint(),
-          OGlobalConfiguration.WAL_FUZZY_CHECKPOINT_INTERVAL.getValueAsInteger(),
-          OGlobalConfiguration.WAL_FUZZY_CHECKPOINT_INTERVAL.getValueAsInteger(), TimeUnit.SECONDS);
+    fuzzyCheckpointTask = fuzzyCheckpointExecutor.scheduleWithFixedDelay(new PeriodicFuzzyCheckpoint(),
+        OGlobalConfiguration.WAL_FUZZY_CHECKPOINT_INTERVAL.getValueAsInteger(),
+        OGlobalConfiguration.WAL_FUZZY_CHECKPOINT_INTERVAL.getValueAsInteger(), TimeUnit.SECONDS);
 
-      final String configWalPath = getConfiguration().getContextConfiguration().getValueAsString(OGlobalConfiguration.WAL_LOCATION);
-      Path walPath;
-      if (configWalPath == null) {
-        walPath = null;
-      } else {
-        walPath = Paths.get(configWalPath);
+    final String configWalPath = getConfiguration().getContextConfiguration().getValueAsString(OGlobalConfiguration.WAL_LOCATION);
+    Path walPath;
+    if (configWalPath == null) {
+      walPath = null;
+    } else {
+      walPath = Paths.get(configWalPath);
+    }
+
+    final OCASDiskWriteAheadLog diskWriteAheadLog = new OCASDiskWriteAheadLog(name, storagePath, walPath,
+        getConfiguration().getContextConfiguration().getValueAsInteger(OGlobalConfiguration.WAL_CACHE_SIZE),
+        getConfiguration().getContextConfiguration().getValueAsInteger(OGlobalConfiguration.WAL_BUFFER_SIZE),
+        getConfiguration().getContextConfiguration().getValueAsLong(OGlobalConfiguration.WAL_SEGMENTS_INTERVAL) * 60
+            * 1_000_000_000L, walMaxSegSize, 10, true, getConfiguration().getLocaleInstance(),
+        OGlobalConfiguration.WAL_MAX_SIZE.getValueAsLong() * 1024 * 1024,
+        OGlobalConfiguration.DISK_CACHE_FREE_SPACE_LIMIT.getValueAsLong() * 1024 * 1024,
+        getConfiguration().getContextConfiguration().getValueAsInteger(OGlobalConfiguration.WAL_COMMIT_TIMEOUT),
+        getConfiguration().getContextConfiguration().getValueAsBoolean(OGlobalConfiguration.WAL_ALLOW_DIRECT_IO),
+        getConfiguration().getContextConfiguration().getValueAsBoolean(OGlobalConfiguration.STORAGE_CALL_FSYNC),
+        getConfiguration().getContextConfiguration()
+            .getValueAsBoolean(OGlobalConfiguration.STORAGE_PRINT_WAL_PERFORMANCE_STATISTICS),
+        getConfiguration().getContextConfiguration()
+            .getValueAsInteger(OGlobalConfiguration.STORAGE_PRINT_WAL_PERFORMANCE_INTERVAL));
+
+    diskWriteAheadLog.addLowDiskSpaceListener(this);
+    writeAheadLog = diskWriteAheadLog;
+    writeAheadLog.addFullCheckpointListener(this);
+
+    diskWriteAheadLog.addSegmentOverflowListener((segment) -> {
+      if (status != STATUS.OPEN) {
+        return;
       }
 
-      final OCASDiskWriteAheadLog diskWriteAheadLog = new OCASDiskWriteAheadLog(name, storagePath, walPath,
-          getConfiguration().getContextConfiguration().getValueAsInteger(OGlobalConfiguration.WAL_CACHE_SIZE),
-          getConfiguration().getContextConfiguration().getValueAsInteger(OGlobalConfiguration.WAL_BUFFER_SIZE),
-          getConfiguration().getContextConfiguration().getValueAsLong(OGlobalConfiguration.WAL_SEGMENTS_INTERVAL) * 60
-              * 1_000_000_000L, walMaxSegSize, 10, true, getConfiguration().getLocaleInstance(),
-          OGlobalConfiguration.WAL_MAX_SIZE.getValueAsLong() * 1024 * 1024,
-          OGlobalConfiguration.DISK_CACHE_FREE_SPACE_LIMIT.getValueAsLong() * 1024 * 1024,
-          getConfiguration().getContextConfiguration().getValueAsInteger(OGlobalConfiguration.WAL_COMMIT_TIMEOUT),
-          getConfiguration().getContextConfiguration().getValueAsBoolean(OGlobalConfiguration.WAL_ALLOW_DIRECT_IO),
-          getConfiguration().getContextConfiguration().getValueAsBoolean(OGlobalConfiguration.STORAGE_CALL_FSYNC),
-          getConfiguration().getContextConfiguration()
-              .getValueAsBoolean(OGlobalConfiguration.STORAGE_PRINT_WAL_PERFORMANCE_STATISTICS),
-          getConfiguration().getContextConfiguration()
-              .getValueAsInteger(OGlobalConfiguration.STORAGE_PRINT_WAL_PERFORMANCE_INTERVAL));
+      final Future<Void> oldAppender = segmentAppender.get();
+      if (oldAppender == null || oldAppender.isDone()) {
+        final Future<Void> appender = segmentAdderExecutor.submit(new SegmentAdder(segment, diskWriteAheadLog));
 
-      diskWriteAheadLog.addLowDiskSpaceListener(this);
-      writeAheadLog = diskWriteAheadLog;
-      writeAheadLog.addFullCheckpointListener(this);
-
-      diskWriteAheadLog.addSegmentOverflowListener((segment) -> {
-        if (status != STATUS.OPEN) {
+        if (segmentAppender.compareAndSet(oldAppender, appender)) {
           return;
         }
 
-        final Future<Void> oldAppender = segmentAppender.get();
-        if (oldAppender == null || oldAppender.isDone()) {
-          final Future<Void> appender = segmentAdderExecutor.submit(new SegmentAdder(segment, diskWriteAheadLog));
-
-          if (segmentAppender.compareAndSet(oldAppender, appender)) {
-            return;
-          }
-
-          appender.cancel(false);
-        }
-      });
-    } else
-      writeAheadLog = null;
+        appender.cancel(false);
+      }
+    });
 
     int pageSize = contextConfiguration.getValueAsInteger(OGlobalConfiguration.DISK_CACHE_PAGE_SIZE) * ONE_KB;
     long diskCacheSize = contextConfiguration.getValueAsLong(OGlobalConfiguration.DISK_CACHE_SIZE) * 1024 * 1024;

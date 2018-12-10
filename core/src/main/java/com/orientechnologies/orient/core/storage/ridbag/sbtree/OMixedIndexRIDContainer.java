@@ -8,8 +8,12 @@ import com.orientechnologies.orient.core.db.ODatabaseRecordThreadLocal;
 import com.orientechnologies.orient.core.db.record.OIdentifiable;
 import com.orientechnologies.orient.core.id.ORID;
 import com.orientechnologies.orient.core.index.OIndexEngineException;
+import com.orientechnologies.orient.core.storage.cache.OReadCache;
+import com.orientechnologies.orient.core.storage.cache.OWriteCache;
 import com.orientechnologies.orient.core.storage.impl.local.OAbstractPaginatedStorage;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.atomicoperations.OAtomicOperation;
+import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OFileCreatedWALRecord;
+import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OWriteAheadLog;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -52,6 +56,10 @@ public class OMixedIndexRIDContainer implements Set<OIdentifiable> {
   private static long resolveFileIdByName(String fileName) {
     final OAbstractPaginatedStorage storage = (OAbstractPaginatedStorage) ODatabaseRecordThreadLocal.instance().get().getStorage()
         .getUnderlying();
+    final OWriteCache writeCache = storage.getWriteCache();
+    final OReadCache readCache = storage.getReadCache();
+    final OWriteAheadLog writeAheadLog = storage.getWALInstance();
+
     boolean rollback = false;
     final OAtomicOperation atomicOperation;
     try {
@@ -61,12 +69,14 @@ public class OMixedIndexRIDContainer implements Set<OIdentifiable> {
     }
 
     try {
-      long fileId;
+      final long fileId;
 
-      if (atomicOperation.isFileExists(fileName)) {
-        fileId = atomicOperation.loadFile(fileName);
+      if (writeCache.exists(fileName)) {
+        fileId = writeCache.loadFile(fileName);
       } else {
-        fileId = atomicOperation.addFile(fileName);
+        fileId = writeCache.bookFileId(fileName);
+        atomicOperation.addOperation(new OFileCreatedWALRecord(fileName, fileId));
+        readCache.addFile(fileName, fileId, writeCache);
       }
 
       return fileId;

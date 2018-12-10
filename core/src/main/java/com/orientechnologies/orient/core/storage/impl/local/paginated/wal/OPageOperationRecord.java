@@ -2,23 +2,30 @@ package com.orientechnologies.orient.core.storage.impl.local.paginated.wal;
 
 import com.orientechnologies.common.serialization.types.OIntegerSerializer;
 import com.orientechnologies.common.serialization.types.OLongSerializer;
-import com.orientechnologies.orient.core.storage.cache.OCacheEntry;
 
 import java.nio.ByteBuffer;
 
-public abstract class OPageOperationRecord extends OOperationUnitRecord {
+public abstract class OPageOperationRecord extends OOperationUnitBodyRecord {
   private int  pageIndex;
   private long fileId;
 
   public OPageOperationRecord() {
   }
 
-  public void setPageIndex(int pageIndex) {
+  public final void setPageIndex(int pageIndex) {
     this.pageIndex = pageIndex;
   }
 
-  public void setFileId(long fileId) {
+  public final void setFileId(long fileId) {
     this.fileId = fileId;
+  }
+
+  public final int getPageIndex() {
+    return pageIndex;
+  }
+
+  public final long getFileId() {
+    return fileId;
   }
 
   @Override
@@ -59,8 +66,4 @@ public abstract class OPageOperationRecord extends OOperationUnitRecord {
   public int serializedSize() {
     return super.serializedSize() + OIntegerSerializer.INT_SIZE + OLongSerializer.LONG_SIZE;
   }
-
-  public abstract void redo(OCacheEntry cacheEntry);
-
-  public abstract void undo(OCacheEntry cacheEntry);
 }

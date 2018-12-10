@@ -22,7 +22,11 @@ package com.orientechnologies.orient.core.storage.impl.local.paginated.wal;
 
 import com.orientechnologies.common.serialization.types.OLongSerializer;
 import com.orientechnologies.common.serialization.types.OStringSerializer;
+import com.orientechnologies.orient.core.exception.OStorageException;
+import com.orientechnologies.orient.core.storage.cache.OReadCache;
+import com.orientechnologies.orient.core.storage.cache.OWriteCache;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 
 /**
@@ -36,8 +40,7 @@ public class OFileCreatedWALRecord extends OOperationUnitBodyRecord {
   public OFileCreatedWALRecord() {
   }
 
-  public OFileCreatedWALRecord(OOperationUnitId operationUnitId, String fileName, long fileId) {
-    super(operationUnitId);
+  public OFileCreatedWALRecord(String fileName, long fileId) {
     this.fileName = fileName;
     this.fileId = fileId;
   }
@@ -48,6 +51,24 @@ public class OFileCreatedWALRecord extends OOperationUnitBodyRecord {
 
   public long getFileId() {
     return fileId;
+  }
+
+  @Override
+  public void redo(OReadCache readCache, OWriteCache writeCache) throws IOException {
+    try {
+      readCache.addFile(fileName, fileId, writeCache);
+    } catch (IOException e) {
+      throw new OStorageException("Can not add file with name " + fileName + " and id " + fileId);
+    }
+  }
+
+  @Override
+  public void undo(OReadCache readCache, OWriteCache writeCache) throws IOException {
+    try {
+      readCache.deleteFile(fileId, writeCache);
+    } catch (IOException e) {
+      throw new OStorageException("Can not add file with name " + fileName + " and id " + fileId);
+    }
   }
 
   @Override

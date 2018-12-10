@@ -3,10 +3,13 @@ package com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageo
 import com.orientechnologies.common.serialization.types.OByteSerializer;
 import com.orientechnologies.common.serialization.types.OIntegerSerializer;
 import com.orientechnologies.orient.core.storage.cache.OCacheEntry;
+import com.orientechnologies.orient.core.storage.cache.OReadCache;
+import com.orientechnologies.orient.core.storage.cache.OWriteCache;
 import com.orientechnologies.orient.core.storage.cluster.OClusterPositionMapBucket;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OPageOperationRecord;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 
 public class OClusterPositionMapSetOperation extends OPageOperationRecord {
@@ -36,15 +39,25 @@ public class OClusterPositionMapSetOperation extends OPageOperationRecord {
   }
 
   @Override
-  public void redo(OCacheEntry cacheEntry) {
-    final OClusterPositionMapBucket bucket = new OClusterPositionMapBucket(cacheEntry, false);
-    bucket.set(index, new OClusterPositionMapBucket.PositionEntry(recordPageIndex, recordPosition));
+  public void redo(OReadCache readCache, OWriteCache writeCache) throws IOException {
+    final OCacheEntry cacheEntry = readCache.loadForWrite(getFileId(), getPageIndex(), false, writeCache, 1, true, null);
+    try {
+      final OClusterPositionMapBucket bucket = new OClusterPositionMapBucket(cacheEntry, false);
+      bucket.set(index, new OClusterPositionMapBucket.PositionEntry(recordPageIndex, recordPosition));
+    } finally {
+      readCache.releaseFromWrite(cacheEntry, writeCache);
+    }
   }
 
   @Override
-  public void undo(OCacheEntry cacheEntry) {
-    final OClusterPositionMapBucket bucket = new OClusterPositionMapBucket(cacheEntry, false);
-    bucket.undoSet(index, oldFlag, new OClusterPositionMapBucket.PositionEntry(oldRecordPageIndex, oldRecordPosition));
+  public void undo(OReadCache readCache, OWriteCache writeCache) throws IOException {
+    final OCacheEntry cacheEntry = readCache.loadForWrite(getFileId(), getPageIndex(), false, writeCache, 1, true, null);
+    try {
+      final OClusterPositionMapBucket bucket = new OClusterPositionMapBucket(cacheEntry, false);
+      bucket.undoSet(index, oldFlag, new OClusterPositionMapBucket.PositionEntry(oldRecordPageIndex, oldRecordPosition));
+    } finally {
+      readCache.releaseFromWrite(cacheEntry, writeCache);
+    }
   }
 
   @Override

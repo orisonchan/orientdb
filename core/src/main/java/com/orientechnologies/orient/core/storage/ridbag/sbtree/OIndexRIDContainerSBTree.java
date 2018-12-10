@@ -26,8 +26,6 @@ import com.orientechnologies.orient.core.db.record.OIdentifiable;
 import com.orientechnologies.orient.core.exception.ODatabaseException;
 import com.orientechnologies.orient.core.serialization.serializer.binary.impl.OCompactedLinkSerializer;
 import com.orientechnologies.orient.core.storage.impl.local.OAbstractPaginatedStorage;
-import com.orientechnologies.orient.core.storage.impl.local.paginated.atomicoperations.OAtomicOperation;
-import com.orientechnologies.orient.core.storage.impl.local.paginated.atomicoperations.OAtomicOperationsManager;
 import com.orientechnologies.orient.core.storage.index.sbtree.OSBTreeMapEntryIterator;
 import com.orientechnologies.orient.core.storage.index.sbtree.OTreeInternal;
 import com.orientechnologies.orient.core.storage.index.sbtreebonsai.local.OBonsaiBucketPointer;
@@ -61,14 +59,7 @@ public class OIndexRIDContainerSBTree implements Set<OIdentifiable> {
   private final OSBTreeBonsaiLocal<OIdentifiable, Boolean> tree;
 
   OIndexRIDContainerSBTree(long fileId, OAbstractPaginatedStorage storage) {
-    String fileName;
-
-    final OAtomicOperation atomicOperation = OAtomicOperationsManager.getCurrentOperation();
-    if (atomicOperation == null) {
-      fileName = storage.getWriteCache().fileNameById(fileId);
-    } else {
-      fileName = atomicOperation.fileNameById(fileId);
-    }
+    final String fileName = storage.getWriteCache().fileNameById(fileId);
 
     tree = new OSBTreeBonsaiLocal<>(fileName.substring(0, fileName.length() - INDEX_FILE_EXTENSION.length()), INDEX_FILE_EXTENSION,
         storage);
@@ -81,14 +72,7 @@ public class OIndexRIDContainerSBTree implements Set<OIdentifiable> {
   }
 
   public OIndexRIDContainerSBTree(long fileId, OBonsaiBucketPointer rootPointer, OAbstractPaginatedStorage storage) {
-    String fileName;
-
-    OAtomicOperation atomicOperation = OAtomicOperationsManager.getCurrentOperation();
-    if (atomicOperation == null) {
-      fileName = storage.getWriteCache().fileNameById(fileId);
-    } else {
-      fileName = atomicOperation.fileNameById(fileId);
-    }
+    final String fileName = storage.getWriteCache().fileNameById(fileId);
 
     tree = new OSBTreeBonsaiLocal<>(fileName.substring(0, fileName.length() - INDEX_FILE_EXTENSION.length()), INDEX_FILE_EXTENSION,
         storage);

@@ -36,9 +36,11 @@ public abstract class OAbstractPageWALRecord extends OOperationUnitBodyRecord {
   }
 
   protected OAbstractPageWALRecord(long pageIndex, long fileId, OOperationUnitId operationUnitId) {
-    super(operationUnitId);
+    super();
     this.pageIndex = pageIndex;
     this.fileId = fileId;
+
+    setOperationUnitId(operationUnitId);
   }
 
   @Override

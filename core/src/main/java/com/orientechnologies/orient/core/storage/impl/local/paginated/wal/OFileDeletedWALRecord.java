@@ -1,17 +1,35 @@
 package com.orientechnologies.orient.core.storage.impl.local.paginated.wal;
 
+import com.orientechnologies.common.exception.OException;
 import com.orientechnologies.common.serialization.types.OLongSerializer;
+import com.orientechnologies.orient.core.exception.OStorageException;
+import com.orientechnologies.orient.core.storage.cache.OReadCache;
+import com.orientechnologies.orient.core.storage.cache.OWriteCache;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 
-public class OFileDeletedWALRecord extends OOperationUnitBodyRecord {
+public final class OFileDeletedWALRecord extends OOperationUnitBodyRecord {
   private long fileId;
 
-  public OFileDeletedWALRecord() {
+  OFileDeletedWALRecord() {
   }
 
-  public OFileDeletedWALRecord(OOperationUnitId operationUnitId, long fileId) {
-    super(operationUnitId);
+  @Override
+  public void redo(OReadCache readCache, OWriteCache writeCache) throws IOException {
+    try {
+      readCache.deleteFile(fileId, writeCache);
+    } catch (IOException e) {
+      throw OException.wrapException(new OStorageException("Can not delete file with id " + fileId), e);
+    }
+  }
+
+  @Override
+  public void undo(OReadCache readCache, OWriteCache writeCache) throws IOException {
+    throw new OStorageException("File deletion can not be rolled back");
+  }
+
+  public OFileDeletedWALRecord(long fileId) {
     this.fileId = fileId;
   }
 
@@ -34,7 +52,6 @@ public class OFileDeletedWALRecord extends OOperationUnitBodyRecord {
     super.toStream(buffer);
     buffer.putLong(fileId);
   }
-
 
   @Override
   public int fromStream(byte[] content, int offset) {

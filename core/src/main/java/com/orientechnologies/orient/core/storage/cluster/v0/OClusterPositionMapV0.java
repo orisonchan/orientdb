@@ -27,6 +27,7 @@ import com.orientechnologies.orient.core.storage.cache.OCacheEntry;
 import com.orientechnologies.orient.core.storage.cluster.OClusterPositionMap;
 import com.orientechnologies.orient.core.storage.cluster.OClusterPositionMapBucket;
 import com.orientechnologies.orient.core.storage.impl.local.OAbstractPaginatedStorage;
+import com.orientechnologies.orient.core.storage.impl.local.paginated.atomicoperations.OAtomicOperation;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -46,8 +47,8 @@ public class OClusterPositionMapV0 extends OClusterPositionMap {
     fileId = openFile(getFullName());
   }
 
-  public void create() throws IOException {
-    fileId = addFile(getFullName());
+  public void create(OAtomicOperation atomicOperation) throws IOException {
+    fileId = addFile(getFullName(), atomicOperation);
   }
 
   public void flush() {
@@ -62,8 +63,8 @@ public class OClusterPositionMapV0 extends OClusterPositionMap {
     truncateFile(fileId);
   }
 
-  public void delete() throws IOException {
-    deleteFile(fileId);
+  public void delete(OAtomicOperation atomicOperation) throws IOException {
+    deleteFile(fileId, atomicOperation);
   }
 
   void rename(String newName) throws IOException {
@@ -71,7 +72,7 @@ public class OClusterPositionMapV0 extends OClusterPositionMap {
     setName(newName);
   }
 
-  public long add(long pageIndex, int recordPosition) throws IOException {
+  public long add(long pageIndex, int recordPosition, OAtomicOperation atomicOperation) throws IOException {
     long lastPage = getFilledUpTo(fileId) - 1;
     OCacheEntry cacheEntry;
     boolean clear = false;
@@ -87,7 +88,7 @@ public class OClusterPositionMapV0 extends OClusterPositionMap {
     try {
       bucket = new OClusterPositionMapBucket(cacheEntry, clear);
       if (bucket.isFull()) {
-        releasePageFromWrite(bucket);
+        releasePageFromWrite(bucket, atomicOperation);
 
         cacheEntry = addPage(fileId, false);
 
@@ -99,11 +100,11 @@ public class OClusterPositionMapV0 extends OClusterPositionMap {
     } finally {
       assert bucket != null;
 
-      releasePageFromWrite(bucket);
+      releasePageFromWrite(bucket, atomicOperation);
     }
   }
 
-  public long allocate() throws IOException {
+  public long allocate(OAtomicOperation atomicOperation) throws IOException {
     boolean clear = false;
     long lastPage = getFilledUpTo(fileId) - 1;
     OCacheEntry cacheEntry;
@@ -118,7 +119,7 @@ public class OClusterPositionMapV0 extends OClusterPositionMap {
     try {
       bucket = new OClusterPositionMapBucket(cacheEntry, clear);
       if (bucket.isFull()) {
-        releasePageFromWrite(bucket);
+        releasePageFromWrite(bucket, atomicOperation);
 
         cacheEntry = addPage(fileId, false);
 
@@ -129,11 +130,12 @@ public class OClusterPositionMapV0 extends OClusterPositionMap {
       return index + cacheEntry.getPageIndex() * OClusterPositionMapBucket.MAX_ENTRIES;
     } finally {
       assert bucket != null;
-      releasePageFromWrite(bucket);
+      releasePageFromWrite(bucket, atomicOperation);
     }
   }
 
-  public void update(final long clusterPosition, final OClusterPositionMapBucket.PositionEntry entry) throws IOException {
+  public void update(final long clusterPosition, final OClusterPositionMapBucket.PositionEntry entry,
+      OAtomicOperation atomicOperation) throws IOException {
 
     final long pageIndex = clusterPosition / OClusterPositionMapBucket.MAX_ENTRIES;
     final int index = (int) (clusterPosition % OClusterPositionMapBucket.MAX_ENTRIES);
@@ -150,11 +152,12 @@ public class OClusterPositionMapV0 extends OClusterPositionMap {
       bucket.set(index, entry);
     } finally {
       assert bucket != null;
-      releasePageFromWrite(bucket);
+      releasePageFromWrite(bucket, atomicOperation);
     }
   }
 
-  void resurrect(final long clusterPosition, final OClusterPositionMapBucket.PositionEntry entry) throws IOException {
+  void resurrect(final long clusterPosition, final OClusterPositionMapBucket.PositionEntry entry, OAtomicOperation atomicOperation)
+      throws IOException {
     final long pageIndex = clusterPosition / OClusterPositionMapBucket.MAX_ENTRIES;
     final int index = (int) (clusterPosition % OClusterPositionMapBucket.MAX_ENTRIES);
 
@@ -169,7 +172,7 @@ public class OClusterPositionMapV0 extends OClusterPositionMap {
       bucket = new OClusterPositionMapBucket(cacheEntry, false);
       bucket.resurrect(index, entry);
     } finally {
-      releasePageFromWrite(bucket);
+      releasePageFromWrite(bucket, atomicOperation);
     }
   }
 
@@ -190,7 +193,7 @@ public class OClusterPositionMapV0 extends OClusterPositionMap {
     }
   }
 
-  public void remove(final long clusterPosition) throws IOException {
+  public void remove(final long clusterPosition, OAtomicOperation atomicOperation) throws IOException {
     long pageIndex = clusterPosition / OClusterPositionMapBucket.MAX_ENTRIES;
     int index = (int) (clusterPosition % OClusterPositionMapBucket.MAX_ENTRIES);
 
@@ -201,7 +204,7 @@ public class OClusterPositionMapV0 extends OClusterPositionMap {
 
       bucket.remove(index);
     } finally {
-      releasePageFromWrite(bucket);
+      releasePageFromWrite(bucket, atomicOperation);
     }
   }
 

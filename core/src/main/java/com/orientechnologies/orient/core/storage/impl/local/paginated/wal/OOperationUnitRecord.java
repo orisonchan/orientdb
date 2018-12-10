@@ -24,10 +24,10 @@ import java.nio.ByteBuffer;
 public abstract class OOperationUnitRecord extends OAbstractWALRecord {
   private OOperationUnitId operationUnitId;
 
-  protected OOperationUnitRecord() {
+  OOperationUnitRecord() {
   }
 
-  protected OOperationUnitRecord(OOperationUnitId operationUnitId) {
+  OOperationUnitRecord(OOperationUnitId operationUnitId) {
     this.operationUnitId = operationUnitId;
   }
 
@@ -35,7 +35,7 @@ public abstract class OOperationUnitRecord extends OAbstractWALRecord {
     return operationUnitId;
   }
 
-  public void setOperationUnitId(OOperationUnitId operationUnitId) {
+  public final void setOperationUnitId(OOperationUnitId operationUnitId) {
     this.operationUnitId = operationUnitId;
   }
 
@@ -62,15 +62,18 @@ public abstract class OOperationUnitRecord extends OAbstractWALRecord {
 
   @Override
   public boolean equals(final Object o) {
-    if (this == o)
+    if (this == o) {
       return true;
-    if (o == null || getClass() != o.getClass())
+    }
+    if (o == null || getClass() != o.getClass()) {
       return false;
+    }
 
     final OOperationUnitRecord that = (OOperationUnitRecord) o;
 
-    if (!operationUnitId.equals(that.operationUnitId))
+    if (!operationUnitId.equals(that.operationUnitId)) {
       return false;
+    }
 
     return true;
   }

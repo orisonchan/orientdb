@@ -27,8 +27,11 @@ import com.orientechnologies.orient.core.db.ODatabaseDocumentInternal;
 import com.orientechnologies.orient.core.db.ODatabaseRecordThreadLocal;
 import com.orientechnologies.orient.core.db.record.OIdentifiable;
 import com.orientechnologies.orient.core.index.OIndexEngineException;
+import com.orientechnologies.orient.core.storage.cache.OReadCache;
+import com.orientechnologies.orient.core.storage.cache.OWriteCache;
 import com.orientechnologies.orient.core.storage.impl.local.OAbstractPaginatedStorage;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.atomicoperations.OAtomicOperation;
+import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OFileCreatedWALRecord;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -84,6 +87,9 @@ public class OIndexRIDContainer implements Set<OIdentifiable> {
   private static long resolveFileIdByName(String fileName) {
     final OAbstractPaginatedStorage storage = (OAbstractPaginatedStorage) ODatabaseRecordThreadLocal.instance().get().getStorage()
         .getUnderlying();
+    final OReadCache readCache = storage.getReadCache();
+    final OWriteCache writeCache = storage.getWriteCache();
+
     boolean rollback = false;
     final OAtomicOperation atomicOperation;
     try {
@@ -95,10 +101,13 @@ public class OIndexRIDContainer implements Set<OIdentifiable> {
     try {
       long fileId;
 
-      if (atomicOperation.isFileExists(fileName)) {
-        fileId = atomicOperation.loadFile(fileName);
+      if (writeCache.exists(fileName)) {
+        fileId = writeCache.loadFile(fileName);
       } else {
-        fileId = atomicOperation.addFile(fileName);
+        fileId = writeCache.bookFileId(fileName);
+
+        atomicOperation.addOperation(new OFileCreatedWALRecord(fileName, fileId));
+        readCache.addFile(fileName, fileId, writeCache);
       }
       return fileId;
     } catch (IOException e) {

@@ -27,6 +27,8 @@ import com.orientechnologies.orient.core.storage.cache.OWriteCache;
 import com.orientechnologies.orient.core.storage.impl.local.OAbstractPaginatedStorage;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.atomicoperations.OAtomicOperation;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.atomicoperations.OAtomicOperationsManager;
+import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OFileCreatedWALRecord;
+import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OFileDeletedWALRecord;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OLogSequenceNumber;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OPageOperationRecord;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OWriteAheadLog;
@@ -149,7 +151,7 @@ public abstract class ODurableComponent extends OSharedResourceAdaptive {
     readCache.releaseFromWrite(entry, writeCache);
   }
 
-  protected final void releasePageFromWrite(ODurablePage page) throws IOException {
+  protected final void releasePageFromWrite(ODurablePage page, OAtomicOperation atomicOperation) throws IOException {
     if (page == null) {
       return;
     }
@@ -161,10 +163,8 @@ public abstract class ODurableComponent extends OSharedResourceAdaptive {
       OLogSequenceNumber lsn = null;
 
       for (OPageOperationRecord operation : operations) {
-        lsn = writeAheadLog.log(operation);
+        lsn = atomicOperation.addOperation(operation);
       }
-
-      assert lsn != null;
 
       page.setLsn(lsn);
     }
@@ -176,15 +176,21 @@ public abstract class ODurableComponent extends OSharedResourceAdaptive {
     readCache.releaseFromRead(cacheEntry, writeCache);
   }
 
-  protected final long addFile(String fileName) throws IOException {
-    return readCache.addFile(fileName, writeCache);
+  protected final long addFile(String fileName, OAtomicOperation atomicOperation) throws IOException {
+    final long fileId = writeCache.bookFileId(fileName);
+
+    atomicOperation.addOperation(new OFileCreatedWALRecord(fileName, fileId));
+
+    return readCache.addFile(fileName, fileId, writeCache);
   }
 
   protected final long openFile(String fileName) throws IOException {
     return writeCache.loadFile(fileName);
   }
 
-  protected final void deleteFile(long fileId) throws IOException {
+  protected final void deleteFile(long fileId, OAtomicOperation atomicOperation) throws IOException {
+    atomicOperation.addOperation(new OFileDeletedWALRecord(fileId));
+
     readCache.deleteFile(fileId, writeCache);
   }
 
