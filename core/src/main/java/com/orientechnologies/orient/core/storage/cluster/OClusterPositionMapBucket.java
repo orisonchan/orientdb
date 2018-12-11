@@ -28,6 +28,7 @@ import com.orientechnologies.orient.core.storage.cache.OCacheEntry;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.base.ODurablePage;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.cluster.clusterpositionmap.OClusterPositionMapAddOperation;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.cluster.clusterpositionmap.OClusterPositionMapAllocateOperation;
+import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.cluster.clusterpositionmap.OClusterPositionMapNewPageOperation;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.cluster.clusterpositionmap.OClusterPositionMapRemoveOperation;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.cluster.clusterpositionmap.OClusterPositionMapResurrectOperation;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.cluster.clusterpositionmap.OClusterPositionMapSetOperation;
@@ -60,6 +61,8 @@ public final class OClusterPositionMapBucket extends ODurablePage {
     super(cacheEntry);
     if (clear) {
       setIntValue(SIZE_OFFSET, 0);
+
+      addPageOperation(new OClusterPositionMapNewPageOperation());
     }
   }
 
@@ -204,7 +207,7 @@ public final class OClusterPositionMapBucket extends ODurablePage {
     final long pageIndex = getLongValue(position + OByteSerializer.BYTE_SIZE);
     final int recordPosition = getIntValue(position + OByteSerializer.BYTE_SIZE + OLongSerializer.LONG_SIZE);
 
-    setByteValue(position, FILLED);
+    setByteValue(position, REMOVED);
 
     updateEntry(position, entry);
 
