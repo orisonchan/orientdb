@@ -34,4 +34,8 @@ public final class WALRecordTypes {
   public static final byte CLUSTER_PAGE_SET_NEXT_PAGE    = 30;
   public static final byte CLUSTER_SET_RECORD_LONG_VALUE = 31;
   public static final byte CLUSTER_PAGE_SET_PREV_PAGE    = 32;
+
+  public static final byte MAP_ENTRY_POINT_SET_FILE_SIZE = 33;
+  public static final byte MAP_ENTRY_POINT_NEW_PAGE      = 34;
+
 }
