@@ -1,6 +1,5 @@
-package com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.clusterpositionmap;
+package com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.cluster.clusterpositionmap;
 
-import com.orientechnologies.common.serialization.types.OByteSerializer;
 import com.orientechnologies.common.serialization.types.OIntegerSerializer;
 import com.orientechnologies.orient.core.storage.cache.OCacheEntry;
 import com.orientechnologies.orient.core.storage.cache.OReadCache;
@@ -12,30 +11,36 @@ import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRec
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
-public class OClusterPositionMapSetOperation extends OPageOperationRecord {
+public final class OClusterPositionMapUndoResurrectOperation extends OPageOperationRecord {
   private int index;
-  private int recordPosition;
+
   private int recordPageIndex;
+  private int recordPosition;
 
   private int oldRecordPageIndex;
   private int oldRecordPosition;
 
-  private byte oldFlag;
-
-  public OClusterPositionMapSetOperation() {
+  public OClusterPositionMapUndoResurrectOperation() {
   }
 
-  public OClusterPositionMapSetOperation(int index, int recordPosition, int recordPageIndex, int oldRecordPageIndex,
-      int oldRecordPosition, byte oldFlag) {
+  public OClusterPositionMapUndoResurrectOperation(int index, int recordPageIndex, int recordPosition, int oldRecordPageIndex,
+      int oldRecordPosition) {
     super();
     this.index = index;
-    this.recordPosition = recordPosition;
     this.recordPageIndex = recordPageIndex;
-
+    this.recordPosition = recordPosition;
     this.oldRecordPageIndex = oldRecordPageIndex;
     this.oldRecordPosition = oldRecordPosition;
+  }
 
-    this.oldFlag = oldFlag;
+  @Override
+  public byte getId() {
+    return WALRecordTypes.CLUSTER_POSITION_MAP_UNDO_RESURRECT;
+  }
+
+  @Override
+  public boolean isUpdateMasterRecord() {
+    return false;
   }
 
   @Override
@@ -43,7 +48,7 @@ public class OClusterPositionMapSetOperation extends OPageOperationRecord {
     final OCacheEntry cacheEntry = readCache.loadForWrite(getFileId(), getPageIndex(), false, writeCache, 1, true, null);
     try {
       final OClusterPositionMapBucket bucket = new OClusterPositionMapBucket(cacheEntry, false);
-      bucket.set(index, new OClusterPositionMapBucket.PositionEntry(recordPageIndex, recordPosition));
+      bucket.undoResurrect(index, new OClusterPositionMapBucket.PositionEntry(recordPageIndex, recordPosition));
     } finally {
       readCache.releaseFromWrite(cacheEntry, writeCache);
     }
@@ -54,20 +59,10 @@ public class OClusterPositionMapSetOperation extends OPageOperationRecord {
     final OCacheEntry cacheEntry = readCache.loadForWrite(getFileId(), getPageIndex(), false, writeCache, 1, true, null);
     try {
       final OClusterPositionMapBucket bucket = new OClusterPositionMapBucket(cacheEntry, false);
-      bucket.undoSet(index, oldFlag, new OClusterPositionMapBucket.PositionEntry(oldRecordPageIndex, oldRecordPosition));
+      bucket.undoResurrect(index, new OClusterPositionMapBucket.PositionEntry(oldRecordPageIndex, oldRecordPosition));
     } finally {
       readCache.releaseFromWrite(cacheEntry, writeCache);
     }
-  }
-
-  @Override
-  public boolean isUpdateMasterRecord() {
-    return false;
-  }
-
-  @Override
-  public byte getId() {
-    return WALRecordTypes.CLUSTER_POSITION_MAP_SET;
   }
 
   @Override
@@ -77,10 +72,10 @@ public class OClusterPositionMapSetOperation extends OPageOperationRecord {
     OIntegerSerializer.INSTANCE.serializeNative(index, content, offset);
     offset += OIntegerSerializer.INT_SIZE;
 
-    OIntegerSerializer.INSTANCE.serializeNative(recordPosition, content, offset);
+    OIntegerSerializer.INSTANCE.serializeNative(recordPageIndex, content, offset);
     offset += OIntegerSerializer.INT_SIZE;
 
-    OIntegerSerializer.INSTANCE.serializeNative(recordPageIndex, content, offset);
+    OIntegerSerializer.INSTANCE.serializeNative(recordPosition, content, offset);
     offset += OIntegerSerializer.INT_SIZE;
 
     OIntegerSerializer.INSTANCE.serializeNative(oldRecordPageIndex, content, offset);
@@ -88,9 +83,6 @@ public class OClusterPositionMapSetOperation extends OPageOperationRecord {
 
     OIntegerSerializer.INSTANCE.serializeNative(oldRecordPosition, content, offset);
     offset += OIntegerSerializer.INT_SIZE;
-
-    content[offset] = oldFlag;
-    offset++;
 
     return offset;
   }
@@ -100,8 +92,10 @@ public class OClusterPositionMapSetOperation extends OPageOperationRecord {
     super.toStream(buffer);
 
     buffer.putInt(index);
-    buffer.putInt(recordPosition);
+
     buffer.putInt(recordPageIndex);
+    buffer.putInt(recordPosition);
+
     buffer.putInt(oldRecordPageIndex);
     buffer.putInt(oldRecordPosition);
   }
@@ -113,10 +107,10 @@ public class OClusterPositionMapSetOperation extends OPageOperationRecord {
     index = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
     offset += OIntegerSerializer.INT_SIZE;
 
-    recordPosition = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
+    recordPageIndex = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
     offset += OIntegerSerializer.INT_SIZE;
 
-    recordPageIndex = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
+    recordPosition = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
     offset += OIntegerSerializer.INT_SIZE;
 
     oldRecordPageIndex = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
@@ -125,14 +119,11 @@ public class OClusterPositionMapSetOperation extends OPageOperationRecord {
     oldRecordPosition = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
     offset += OIntegerSerializer.INT_SIZE;
 
-    oldFlag = content[offset];
-    offset++;
-
     return offset;
   }
 
   @Override
   public int serializedSize() {
-    return super.serializedSize() + 5 * OIntegerSerializer.INT_SIZE + OByteSerializer.BYTE_SIZE;
+    return super.serializedSize() + 5 * OIntegerSerializer.INT_SIZE;
   }
 }

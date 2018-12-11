@@ -26,4 +26,12 @@ public final class WALRecordTypes {
   public static final byte CLUSTER_POSITION_MAP_UNDO_SET       = 23;
   public static final byte CLUSTER_POSITION_MAP_UNDO_RESURRECT = 24;
   public static final byte CLUSTER_POSITION_MAP_UNDO_REMOVE    = 25;
+
+  public static final byte CLUSTER_PAGE_NEW              = 26;
+  public static final byte CLUSTER_PAGE_APPEND_RECORD    = 27;
+  public static final byte CLUSTER_PAGE_REPLACE_RECORD   = 28;
+  public static final byte CLUSTER_PAGE_DELETE_RECORD    = 29;
+  public static final byte CLUSTER_PAGE_SET_NEXT_PAGE    = 30;
+  public static final byte CLUSTER_SET_RECORD_LONG_VALUE = 31;
+  public static final byte CLUSTER_PAGE_SET_PREV_PAGE    = 32;
 }

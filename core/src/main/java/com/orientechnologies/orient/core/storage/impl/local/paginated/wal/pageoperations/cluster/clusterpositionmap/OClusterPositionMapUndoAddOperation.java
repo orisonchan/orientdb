@@ -1,4 +1,4 @@
-package com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.clusterpositionmap;
+package com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.cluster.clusterpositionmap;
 
 import com.orientechnologies.common.serialization.types.OIntegerSerializer;
 import com.orientechnologies.orient.core.storage.cache.OCacheEntry;
@@ -11,17 +11,49 @@ import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRec
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
-public final class OClusterPositionMapUndoAllocateOperation extends OPageOperationRecord {
+public final class OClusterPositionMapUndoAddOperation extends OPageOperationRecord {
   private int oldPageIndex;
   private int oldRecordPosition;
 
-  public OClusterPositionMapUndoAllocateOperation() {
+  public OClusterPositionMapUndoAddOperation() {
   }
 
-  public OClusterPositionMapUndoAllocateOperation(int oldPageIndex, int oldRecordPosition) {
+  public OClusterPositionMapUndoAddOperation(int oldPageIndex, int oldRecordPosition) {
     super();
     this.oldPageIndex = oldPageIndex;
     this.oldRecordPosition = oldRecordPosition;
+  }
+
+  @Override
+  public void redo(OReadCache readCache, OWriteCache writeCache) throws IOException {
+    final OCacheEntry cacheEntry = readCache.loadForWrite(getFileId(), getPageIndex(), false, writeCache, 1, true, null);
+    try {
+      final OClusterPositionMapBucket bucket = new OClusterPositionMapBucket(cacheEntry, false);
+      bucket.undoAdd();
+    } finally {
+      readCache.releaseFromWrite(cacheEntry, writeCache);
+    }
+  }
+
+  @Override
+  public void undo(OReadCache readCache, OWriteCache writeCache) throws IOException {
+    final OCacheEntry cacheEntry = readCache.loadForWrite(getFileId(), getPageIndex(), false, writeCache, 1, true, null);
+    try {
+      final OClusterPositionMapBucket bucket = new OClusterPositionMapBucket(cacheEntry, false);
+      bucket.add(oldPageIndex, oldRecordPosition);
+    } finally {
+      readCache.releaseFromWrite(cacheEntry, writeCache);
+    }
+  }
+
+  @Override
+  public boolean isUpdateMasterRecord() {
+    return false;
+  }
+
+  @Override
+  public byte getId() {
+    return WALRecordTypes.CLUSTER_POSITION_MAP_UNDO_ADD;
   }
 
   @Override
@@ -61,37 +93,5 @@ public final class OClusterPositionMapUndoAllocateOperation extends OPageOperati
   @Override
   public int serializedSize() {
     return super.serializedSize() + 2 * OIntegerSerializer.INT_SIZE;
-  }
-
-  @Override
-  public void redo(OReadCache readCache, OWriteCache writeCache) throws IOException {
-    final OCacheEntry cacheEntry = readCache.loadForWrite(getFileId(), getPageIndex(), false, writeCache, 1, true, null);
-    try {
-      final OClusterPositionMapBucket bucket = new OClusterPositionMapBucket(cacheEntry, false);
-      bucket.undoAllocation();
-    } finally {
-      readCache.releaseFromWrite(cacheEntry, writeCache);
-    }
-  }
-
-  @Override
-  public void undo(OReadCache readCache, OWriteCache writeCache) throws IOException {
-    final OCacheEntry cacheEntry = readCache.loadForWrite(getFileId(), getPageIndex(), false, writeCache, 1, true, null);
-    try {
-      final OClusterPositionMapBucket bucket = new OClusterPositionMapBucket(cacheEntry, false);
-      bucket.allocate();
-    } finally {
-      readCache.releaseFromWrite(cacheEntry, writeCache);
-    }
-  }
-
-  @Override
-  public boolean isUpdateMasterRecord() {
-    return false;
-  }
-
-  @Override
-  public byte getId() {
-    return WALRecordTypes.CLUSTER_POSITION_MAP_UNDO_ALLOCATE;
   }
 }

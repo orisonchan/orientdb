@@ -1,38 +1,36 @@
-package com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.clusterpositionmap;
+package com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.cluster.clusterpage;
 
 import com.orientechnologies.common.serialization.types.OIntegerSerializer;
 import com.orientechnologies.orient.core.storage.cache.OCacheEntry;
 import com.orientechnologies.orient.core.storage.cache.OReadCache;
 import com.orientechnologies.orient.core.storage.cache.OWriteCache;
-import com.orientechnologies.orient.core.storage.cluster.OClusterPositionMapBucket;
+import com.orientechnologies.orient.core.storage.cluster.OClusterPage;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OPageOperationRecord;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
-public final class OClusterPositionMapUndoRemove extends OPageOperationRecord {
-  private int index;
-  private int recordPageIndex;
-  private int recordPosition;
+public final class OClusterPageAppendRecordOperation extends OPageOperationRecord {
+  private int    recordVersion;
+  private byte[] record;
+  private int    index;
 
-  public OClusterPositionMapUndoRemove() {
+  public OClusterPageAppendRecordOperation() {
   }
 
-  public OClusterPositionMapUndoRemove(int index, int pageIndex, int recordPosition) {
-    super();
+  public OClusterPageAppendRecordOperation(int recordVersion, byte[] record, int index) {
+    this.recordVersion = recordVersion;
+    this.record = record;
     this.index = index;
-
-    this.recordPageIndex = pageIndex;
-    this.recordPosition = recordPosition;
   }
 
   @Override
   public void redo(OReadCache readCache, OWriteCache writeCache) throws IOException {
     final OCacheEntry cacheEntry = readCache.loadForWrite(getFileId(), getPageIndex(), false, writeCache, 1, true, null);
     try {
-      final OClusterPositionMapBucket bucket = new OClusterPositionMapBucket(cacheEntry, false);
-      bucket.undoRemove(index);
+      final OClusterPage clusterPage = new OClusterPage(cacheEntry, false);
+      clusterPage.appendRecord(recordVersion, record);
     } finally {
       readCache.releaseFromWrite(cacheEntry, writeCache);
     }
@@ -42,13 +40,8 @@ public final class OClusterPositionMapUndoRemove extends OPageOperationRecord {
   public void undo(OReadCache readCache, OWriteCache writeCache) throws IOException {
     final OCacheEntry cacheEntry = readCache.loadForWrite(getFileId(), getPageIndex(), false, writeCache, 1, true, null);
     try {
-      final OClusterPositionMapBucket bucket = new OClusterPositionMapBucket(cacheEntry, false);
-      if (bucket.getSize() == index) {
-        bucket.add(recordPageIndex, recordPosition);
-      } else {
-        bucket.undoSet(index, OClusterPositionMapBucket.FILLED,
-            new OClusterPositionMapBucket.PositionEntry(recordPageIndex, recordPosition));
-      }
+      final OClusterPage clusterPage = new OClusterPage(cacheEntry, false);
+      clusterPage.deleteRecord(index);
     } finally {
       readCache.releaseFromWrite(cacheEntry, writeCache);
     }
@@ -61,20 +54,23 @@ public final class OClusterPositionMapUndoRemove extends OPageOperationRecord {
 
   @Override
   public byte getId() {
-    return WALRecordTypes.CLUSTER_POSITION_MAP_UNDO_REMOVE;
+    return WALRecordTypes.CLUSTER_PAGE_APPEND_RECORD;
   }
 
   @Override
   public int toStream(byte[] content, int offset) {
     offset = super.toStream(content, offset);
 
+    OIntegerSerializer.INSTANCE.serializeNative(recordVersion, content, offset);
+    offset += OIntegerSerializer.INT_SIZE;
+
+    OIntegerSerializer.INSTANCE.serializeNative(record.length, content, offset);
+    offset += OIntegerSerializer.INT_SIZE;
+
+    System.arraycopy(record, 0, content, offset, record.length);
+    offset += record.length;
+
     OIntegerSerializer.INSTANCE.serializeNative(index, content, offset);
-    offset += OIntegerSerializer.INT_SIZE;
-
-    OIntegerSerializer.INSTANCE.serializeNative(recordPageIndex, content, offset);
-    offset += OIntegerSerializer.INT_SIZE;
-
-    OIntegerSerializer.INSTANCE.serializeNative(recordPosition, content, offset);
     offset += OIntegerSerializer.INT_SIZE;
 
     return offset;
@@ -84,22 +80,29 @@ public final class OClusterPositionMapUndoRemove extends OPageOperationRecord {
   public void toStream(ByteBuffer buffer) {
     super.toStream(buffer);
 
+    buffer.putInt(recordVersion);
+
+    buffer.putInt(record.length);
+    buffer.put(record);
+
     buffer.putInt(index);
-    buffer.putInt(recordPageIndex);
-    buffer.putInt(recordPosition);
   }
 
   @Override
   public int fromStream(byte[] content, int offset) {
     offset = super.fromStream(content, offset);
 
-    index = OIntegerSerializer.INSTANCE.deserialize(content, offset);
+    recordVersion = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
     offset += OIntegerSerializer.INT_SIZE;
 
-    recordPageIndex = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
+    final int recordSize = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
     offset += OIntegerSerializer.INT_SIZE;
 
-    recordPosition = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
+    record = new byte[recordSize];
+    System.arraycopy(content, offset, record, 0, record.length);
+    offset += record.length;
+
+    index = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
     offset += OIntegerSerializer.INT_SIZE;
 
     return offset;
@@ -107,6 +110,6 @@ public final class OClusterPositionMapUndoRemove extends OPageOperationRecord {
 
   @Override
   public int serializedSize() {
-    return super.serializedSize() + 3 * OIntegerSerializer.INT_SIZE;
+    return super.serializedSize() + 3 * OIntegerSerializer.INT_SIZE + record.length;
   }
 }

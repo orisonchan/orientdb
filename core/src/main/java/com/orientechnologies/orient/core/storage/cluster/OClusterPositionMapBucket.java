@@ -26,16 +26,16 @@ import com.orientechnologies.common.serialization.types.OLongSerializer;
 import com.orientechnologies.orient.core.exception.OStorageException;
 import com.orientechnologies.orient.core.storage.cache.OCacheEntry;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.base.ODurablePage;
-import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.clusterpositionmap.OClusterPositionMapAddOperation;
-import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.clusterpositionmap.OClusterPositionMapAllocateOperation;
-import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.clusterpositionmap.OClusterPositionMapRemoveOperation;
-import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.clusterpositionmap.OClusterPositionMapResurrectOperation;
-import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.clusterpositionmap.OClusterPositionMapSetOperation;
-import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.clusterpositionmap.OClusterPositionMapUndoAddOperation;
-import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.clusterpositionmap.OClusterPositionMapUndoAllocateOperation;
-import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.clusterpositionmap.OClusterPositionMapUndoRemove;
-import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.clusterpositionmap.OClusterPositionMapUndoResurrectOperation;
-import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.clusterpositionmap.OClusterPositionMapUndoSetOperation;
+import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.cluster.clusterpositionmap.OClusterPositionMapAddOperation;
+import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.cluster.clusterpositionmap.OClusterPositionMapAllocateOperation;
+import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.cluster.clusterpositionmap.OClusterPositionMapRemoveOperation;
+import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.cluster.clusterpositionmap.OClusterPositionMapResurrectOperation;
+import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.cluster.clusterpositionmap.OClusterPositionMapSetOperation;
+import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.cluster.clusterpositionmap.OClusterPositionMapUndoAddOperation;
+import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.cluster.clusterpositionmap.OClusterPositionMapUndoAllocateOperation;
+import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.cluster.clusterpositionmap.OClusterPositionMapUndoRemove;
+import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.cluster.clusterpositionmap.OClusterPositionMapUndoResurrectOperation;
+import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.cluster.clusterpositionmap.OClusterPositionMapUndoSetOperation;
 
 /**
  * @author Andrey Lomakin (a.lomakin-at-orientdb.com)
