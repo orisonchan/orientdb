@@ -38,4 +38,9 @@ public final class WALRecordTypes {
   public static final byte MAP_ENTRY_POINT_SET_FILE_SIZE = 33;
   public static final byte MAP_ENTRY_POINT_NEW_PAGE      = 34;
 
+  public static final byte CLUSTER_STATE_V_ONE_NEW_PAGE           = 35;
+  public static final byte CLUSTER_STATE_V_ONE_SET_SIZE           = 36;
+  public static final byte CLUSTER_STATE_V_ONE_SET_FILE_SIZE      = 37;
+  public static final byte CLUSTER_STATE_V_ONE_SET_FREE_LIST_PAGE = 38;
+
 }

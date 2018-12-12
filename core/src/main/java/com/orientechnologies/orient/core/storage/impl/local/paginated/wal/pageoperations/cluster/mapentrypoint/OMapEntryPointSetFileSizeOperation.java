@@ -27,7 +27,7 @@ public class OMapEntryPointSetFileSizeOperation extends OPageOperationRecord {
   public void redo(OReadCache readCache, OWriteCache writeCache) throws IOException {
     final OCacheEntry cacheEntry = readCache.loadForWrite(getFileId(), getPageIndex(), false, writeCache, 1, true, null);
     try {
-      final MapEntryPoint entryPoint = new MapEntryPoint(cacheEntry);
+      final MapEntryPoint entryPoint = new MapEntryPoint(cacheEntry, false);
       entryPoint.setFileSize(fileSize);
     } finally {
       readCache.releaseFromWrite(cacheEntry, writeCache);
@@ -38,7 +38,7 @@ public class OMapEntryPointSetFileSizeOperation extends OPageOperationRecord {
   public void undo(OReadCache readCache, OWriteCache writeCache) throws IOException {
     final OCacheEntry cacheEntry = readCache.loadForWrite(getFileId(), getPageIndex(), false, writeCache, 1, true, null);
     try {
-      final MapEntryPoint entryPoint = new MapEntryPoint(cacheEntry);
+      final MapEntryPoint entryPoint = new MapEntryPoint(cacheEntry, false);
       entryPoint.setFileSize(oldFileSize);
     } finally {
       readCache.releaseFromWrite(cacheEntry, writeCache);

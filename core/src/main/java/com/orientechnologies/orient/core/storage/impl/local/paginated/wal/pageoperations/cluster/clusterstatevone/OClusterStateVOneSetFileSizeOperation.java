@@ -1,34 +1,34 @@
-package com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.cluster.clusterpage;
+package com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.cluster.clusterstatevone;
 
 import com.orientechnologies.common.serialization.types.OIntegerSerializer;
 import com.orientechnologies.orient.core.storage.cache.OCacheEntry;
 import com.orientechnologies.orient.core.storage.cache.OReadCache;
 import com.orientechnologies.orient.core.storage.cache.OWriteCache;
-import com.orientechnologies.orient.core.storage.cluster.OClusterPage;
+import com.orientechnologies.orient.core.storage.cluster.v1.OPaginatedClusterStateV1;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OPageOperationRecord;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
-public final class OClusterPageSetNextPageOperation extends OPageOperationRecord {
-  private int nextPage;
-  private int oldNextPage;
+public class OClusterStateVOneSetFileSizeOperation extends OPageOperationRecord {
+  private int fileSize;
+  private int oldFileSize;
 
-  public OClusterPageSetNextPageOperation() {
+  public OClusterStateVOneSetFileSizeOperation() {
   }
 
-  public OClusterPageSetNextPageOperation(int nextPage, int oldNextPage) {
-    this.nextPage = nextPage;
-    this.oldNextPage = oldNextPage;
+  public OClusterStateVOneSetFileSizeOperation(int fileSize, int oldFileSize) {
+    this.fileSize = fileSize;
+    this.oldFileSize = oldFileSize;
   }
 
   @Override
   public void redo(OReadCache readCache, OWriteCache writeCache) throws IOException {
     final OCacheEntry cacheEntry = readCache.loadForWrite(getFileId(), getPageIndex(), false, writeCache, 1, true, null);
     try {
-      final OClusterPage clusterPage = new OClusterPage(cacheEntry, false);
-      clusterPage.setNextPage(nextPage);
+      final OPaginatedClusterStateV1 clusterState = new OPaginatedClusterStateV1(cacheEntry, false);
+      clusterState.setFileSize(fileSize);
     } finally {
       readCache.releaseFromWrite(cacheEntry, writeCache);
     }
@@ -38,12 +38,11 @@ public final class OClusterPageSetNextPageOperation extends OPageOperationRecord
   public void undo(OReadCache readCache, OWriteCache writeCache) throws IOException {
     final OCacheEntry cacheEntry = readCache.loadForWrite(getFileId(), getPageIndex(), false, writeCache, 1, true, null);
     try {
-      final OClusterPage clusterPage = new OClusterPage(cacheEntry, false);
-      clusterPage.setNextPage(oldNextPage);
+      final OPaginatedClusterStateV1 clusterState = new OPaginatedClusterStateV1(cacheEntry, false);
+      clusterState.setFileSize(oldFileSize);
     } finally {
       readCache.releaseFromWrite(cacheEntry, writeCache);
     }
-
   }
 
   @Override
@@ -53,17 +52,17 @@ public final class OClusterPageSetNextPageOperation extends OPageOperationRecord
 
   @Override
   public byte getId() {
-    return WALRecordTypes.CLUSTER_PAGE_SET_NEXT_PAGE;
+    return WALRecordTypes.CLUSTER_STATE_V_ONE_SET_FILE_SIZE;
   }
 
   @Override
   public int toStream(byte[] content, int offset) {
     offset = super.toStream(content, offset);
 
-    OIntegerSerializer.INSTANCE.serializeNative(nextPage, content, offset);
+    OIntegerSerializer.INSTANCE.serializeNative(fileSize, content, offset);
     offset += OIntegerSerializer.INT_SIZE;
 
-    OIntegerSerializer.INSTANCE.serializeNative(oldNextPage, content, offset);
+    OIntegerSerializer.INSTANCE.serializeNative(oldFileSize, content, offset);
     offset += OIntegerSerializer.INT_SIZE;
 
     return offset;
@@ -73,18 +72,18 @@ public final class OClusterPageSetNextPageOperation extends OPageOperationRecord
   public void toStream(ByteBuffer buffer) {
     super.toStream(buffer);
 
-    buffer.putInt(nextPage);
-    buffer.putInt(oldNextPage);
+    buffer.putInt(fileSize);
+    buffer.putInt(oldFileSize);
   }
 
   @Override
   public int fromStream(byte[] content, int offset) {
     offset = super.fromStream(content, offset);
 
-    nextPage = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
+    fileSize = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
     offset += OIntegerSerializer.INT_SIZE;
 
-    oldNextPage = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
+    oldFileSize = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
     offset += OIntegerSerializer.INT_SIZE;
 
     return offset;

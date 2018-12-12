@@ -11,7 +11,7 @@ import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRec
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
-public class OClusterPageSetPrevPageOperation extends OPageOperationRecord {
+public final class OClusterPageSetPrevPageOperation extends OPageOperationRecord {
   private int prevPage;
   private int oldPrevPage;
 

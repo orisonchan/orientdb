@@ -8,10 +8,12 @@ import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageop
 public final class MapEntryPoint extends ODurablePage {
   private static final int FILE_SIZE_OFFSET = NEXT_FREE_POSITION;
 
-  public MapEntryPoint(OCacheEntry cacheEntry) {
+  public MapEntryPoint(OCacheEntry cacheEntry, boolean newPage) {
     super(cacheEntry);
 
-    addPageOperation(new OMapEntryPointNewPageOperation());
+    if (newPage) {
+      addPageOperation(new OMapEntryPointNewPageOperation());
+    }
   }
 
   int getFileSize() {

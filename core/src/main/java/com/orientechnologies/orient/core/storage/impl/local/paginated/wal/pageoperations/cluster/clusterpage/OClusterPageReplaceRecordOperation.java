@@ -11,7 +11,7 @@ import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRec
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
-public class OClusterPageReplaceRecordOperation extends OPageOperationRecord {
+public final class OClusterPageReplaceRecordOperation extends OPageOperationRecord {
   private int    index;
   private byte[] record;
   private int    recordVersion;

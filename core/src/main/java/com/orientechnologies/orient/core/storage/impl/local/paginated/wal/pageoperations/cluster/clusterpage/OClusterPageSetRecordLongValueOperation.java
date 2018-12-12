@@ -12,7 +12,7 @@ import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRec
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
-public class OClusterPageSetRecordLongValueOperation extends OPageOperationRecord {
+public final class OClusterPageSetRecordLongValueOperation extends OPageOperationRecord {
   private int recordPosition;
   private int recordOffset;
 
