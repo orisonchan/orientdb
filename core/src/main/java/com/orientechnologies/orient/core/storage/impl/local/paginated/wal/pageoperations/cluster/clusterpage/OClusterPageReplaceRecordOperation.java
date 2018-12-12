@@ -19,6 +19,9 @@ public final class OClusterPageReplaceRecordOperation extends OPageOperationReco
   private int    oldRecordVersion;
   private byte[] oldRecord;
 
+  public OClusterPageReplaceRecordOperation() {
+  }
+
   public OClusterPageReplaceRecordOperation(int index, byte[] record, int recordVersion, int oldRecordVersion, byte[] oldRecord) {
     this.index = index;
     this.record = record;
