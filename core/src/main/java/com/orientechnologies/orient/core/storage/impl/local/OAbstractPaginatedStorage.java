@@ -113,6 +113,7 @@ import com.orientechnologies.orient.core.storage.ORecordCallback;
 import com.orientechnologies.orient.core.storage.ORecordMetadata;
 import com.orientechnologies.orient.core.storage.OStorageAbstract;
 import com.orientechnologies.orient.core.storage.OStorageOperationResult;
+import com.orientechnologies.orient.core.storage.OTXApprover;
 import com.orientechnologies.orient.core.storage.cache.OCacheEntry;
 import com.orientechnologies.orient.core.storage.cache.OPageDataVerificationError;
 import com.orientechnologies.orient.core.storage.cache.OReadCache;
@@ -292,6 +293,9 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
   private final AtomicLong txCommit       = new AtomicLong(0);
   private final AtomicLong txRollback     = new AtomicLong(0);
 
+  private OTXApprover txApprover = () -> {
+  };
+
   public OAbstractPaginatedStorage(String name, String filePath, String mode, int id) {
     super(name, filePath, mode);
 
@@ -353,6 +357,8 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
 
         openClusters();
         openIndexes();
+
+        txApprover = (OTXApprover) configuration.getContextConfiguration().getValue(OGlobalConfiguration.TX_APPROVER);
 
         status = STATUS.OPEN;
 
@@ -539,6 +545,8 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
         atomicOperationsManager = new OAtomicOperationsManager(this);
 
         preCreateSteps();
+
+        txApprover = (OTXApprover) configuration.getContextConfiguration().getValue(OGlobalConfiguration.TX_APPROVER);
 
         status = STATUS.OPEN;
 
@@ -2155,6 +2163,8 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
             checkReadOnlyConditions();
 
             commitIndexes(indexOperations, atomicOperation);
+
+            txApprover.approve();
           } catch (IOException | RuntimeException e) {
             rollback = true;
             if (e instanceof RuntimeException) {

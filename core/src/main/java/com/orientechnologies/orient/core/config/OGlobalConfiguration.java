@@ -31,6 +31,7 @@ import com.orientechnologies.orient.core.index.OIndexDefinition;
 import com.orientechnologies.orient.core.metadata.OMetadataDefault;
 import com.orientechnologies.orient.core.serialization.serializer.record.binary.ORecordSerializerBinary;
 import com.orientechnologies.orient.core.storage.OChecksumMode;
+import com.orientechnologies.orient.core.storage.OTXApprover;
 
 import java.io.PrintStream;
 import java.util.Locale;
@@ -45,8 +46,7 @@ import java.util.logging.Level;
  *
  * @author Luca Garulli (l.garulli--(at)--orientdb.com)
  */
-public enum OGlobalConfiguration {
-  // ENVIRONMENT
+public enum OGlobalConfiguration {// ENVIRONMENT
   ENVIRONMENT_DUMP_CFG_AT_STARTUP("environment.dumpCfgAtStartup", "Dumps the configuration during application startup",
       Boolean.class, Boolean.FALSE),
 
@@ -110,6 +110,9 @@ public enum OGlobalConfiguration {
    */
   OPEN_FILES_LIMIT("storage.openFiles.limit",
       "Limit of amount of files which may be open simultaneously, -1 (default) means automatic detection", Integer.class, -1),
+
+  TX_APPROVER("storage.txApprover", "Used to debug TX rollbacks", OTXApprover.class, (OTXApprover) () -> {
+  }),
 
   /**
    * Amount of cached locks is used for component lock in atomic operation to avoid constant creation of new lock instances, default
@@ -970,9 +973,7 @@ public enum OGlobalConfiguration {
       String.class, null),
 
   @OApi(maturity = OApi.MATURITY.NEW) CLIENT_CONNECTION_FETCH_HOST_LIST("client.connection.fetchHostList",
-      "If set true fetch the list of other possible hosts from the distributed environment ",
-      Boolean.class, true),
-
+      "If set true fetch the list of other possible hosts from the distributed environment ", Boolean.class, true),
 
   /**
    * @Since 2.2
@@ -1272,5 +1273,4 @@ public enum OGlobalConfiguration {
 
   public String getDescription() {
     return description;
-  }
-}
+  }}

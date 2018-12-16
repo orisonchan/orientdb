@@ -2,13 +2,10 @@ package com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageo
 
 import com.orientechnologies.common.serialization.types.OIntegerSerializer;
 import com.orientechnologies.orient.core.storage.cache.OCacheEntry;
-import com.orientechnologies.orient.core.storage.cache.OReadCache;
-import com.orientechnologies.orient.core.storage.cache.OWriteCache;
 import com.orientechnologies.orient.core.storage.cluster.v1.MapEntryPoint;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OPageOperationRecord;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes;
 
-import java.io.IOException;
 import java.nio.ByteBuffer;
 
 public class OMapEntryPointSetFileSizeOperation extends OPageOperationRecord {
@@ -23,26 +20,24 @@ public class OMapEntryPointSetFileSizeOperation extends OPageOperationRecord {
     this.oldFileSize = oldFileSize;
   }
 
-  @Override
-  public void redo(OReadCache readCache, OWriteCache writeCache) throws IOException {
-    final OCacheEntry cacheEntry = readCache.loadForWrite(getFileId(), getPageIndex(), false, writeCache, 1, true, null);
-    try {
-      final MapEntryPoint entryPoint = new MapEntryPoint(cacheEntry, false);
-      entryPoint.setFileSize(fileSize);
-    } finally {
-      readCache.releaseFromWrite(cacheEntry, writeCache);
-    }
+  public int getFileSize() {
+    return fileSize;
+  }
+
+  public int getOldFileSize() {
+    return oldFileSize;
   }
 
   @Override
-  public void undo(OReadCache readCache, OWriteCache writeCache) throws IOException {
-    final OCacheEntry cacheEntry = readCache.loadForWrite(getFileId(), getPageIndex(), false, writeCache, 1, true, null);
-    try {
-      final MapEntryPoint entryPoint = new MapEntryPoint(cacheEntry, false);
-      entryPoint.setFileSize(oldFileSize);
-    } finally {
-      readCache.releaseFromWrite(cacheEntry, writeCache);
-    }
+  protected void doRedo(OCacheEntry cacheEntry) {
+    final MapEntryPoint entryPoint = new MapEntryPoint(cacheEntry, false);
+    entryPoint.setFileSize(fileSize);
+  }
+
+  @Override
+  protected void doUndo(OCacheEntry cacheEntry) {
+    final MapEntryPoint entryPoint = new MapEntryPoint(cacheEntry, false);
+    entryPoint.setFileSize(oldFileSize);
   }
 
   @Override

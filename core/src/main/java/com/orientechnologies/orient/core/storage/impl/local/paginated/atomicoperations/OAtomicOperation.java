@@ -80,7 +80,7 @@ public final class OAtomicOperation {
     this.readCache = readCache;
     this.writeCache = writeCache;
 
-    keepOnlyRids = writeAheadLog == null || storage instanceof ODirectMemoryStorage;
+    keepOnlyRids = !(writeAheadLog == null || storage instanceof ODirectMemoryStorage);
   }
 
   OLogSequenceNumber getStartLSN() {
@@ -116,6 +116,10 @@ public final class OAtomicOperation {
 
             if (bodyRecord.getOperationUnitId().equals(operationUnitId)) {
               records.add(bodyRecord);
+            }
+
+            if (walRecord.getLsn().compareTo(lastLSN) > 0) {
+              break;
             }
           }
         }

@@ -2,13 +2,10 @@ package com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageo
 
 import com.orientechnologies.common.serialization.types.OIntegerSerializer;
 import com.orientechnologies.orient.core.storage.cache.OCacheEntry;
-import com.orientechnologies.orient.core.storage.cache.OReadCache;
-import com.orientechnologies.orient.core.storage.cache.OWriteCache;
 import com.orientechnologies.orient.core.storage.cluster.OClusterPage;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OPageOperationRecord;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes;
 
-import java.io.IOException;
 import java.nio.ByteBuffer;
 
 public final class OClusterPageSetPrevPageOperation extends OPageOperationRecord {
@@ -23,26 +20,24 @@ public final class OClusterPageSetPrevPageOperation extends OPageOperationRecord
     this.oldPrevPage = oldPrevPage;
   }
 
-  @Override
-  public void redo(OReadCache readCache, OWriteCache writeCache) throws IOException {
-    final OCacheEntry cacheEntry = readCache.loadForWrite(getFileId(), getPageIndex(), false, writeCache, 1, true, null);
-    try {
-      final OClusterPage clusterPage = new OClusterPage(cacheEntry, false);
-      clusterPage.setPrevPage(prevPage);
-    } finally {
-      readCache.releaseFromWrite(cacheEntry, writeCache);
-    }
+  public int getPrevPage() {
+    return prevPage;
+  }
+
+  public int getOldPrevPage() {
+    return oldPrevPage;
   }
 
   @Override
-  public void undo(OReadCache readCache, OWriteCache writeCache) throws IOException {
-    final OCacheEntry cacheEntry = readCache.loadForWrite(getFileId(), getPageIndex(), false, writeCache, 1, true, null);
-    try {
-      final OClusterPage clusterPage = new OClusterPage(cacheEntry, false);
-      clusterPage.setPrevPage(oldPrevPage);
-    } finally {
-      readCache.releaseFromWrite(cacheEntry, writeCache);
-    }
+  protected void doRedo(OCacheEntry cacheEntry) {
+    final OClusterPage clusterPage = new OClusterPage(cacheEntry, false);
+    clusterPage.setPrevPage(prevPage);
+  }
+
+  @Override
+  protected void doUndo(OCacheEntry cacheEntry) {
+    final OClusterPage clusterPage = new OClusterPage(cacheEntry, false);
+    clusterPage.setPrevPage(oldPrevPage);
   }
 
   @Override

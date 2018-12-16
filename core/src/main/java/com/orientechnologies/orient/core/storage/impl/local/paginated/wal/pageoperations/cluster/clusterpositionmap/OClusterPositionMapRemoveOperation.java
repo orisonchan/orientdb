@@ -2,13 +2,10 @@ package com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageo
 
 import com.orientechnologies.common.serialization.types.OIntegerSerializer;
 import com.orientechnologies.orient.core.storage.cache.OCacheEntry;
-import com.orientechnologies.orient.core.storage.cache.OReadCache;
-import com.orientechnologies.orient.core.storage.cache.OWriteCache;
 import com.orientechnologies.orient.core.storage.cluster.OClusterPositionMapBucket;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OPageOperationRecord;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes;
 
-import java.io.IOException;
 import java.nio.ByteBuffer;
 
 public final class OClusterPositionMapRemoveOperation extends OPageOperationRecord {
@@ -22,26 +19,20 @@ public final class OClusterPositionMapRemoveOperation extends OPageOperationReco
     this.index = index;
   }
 
-  @Override
-  public void redo(OReadCache readCache, OWriteCache writeCache) throws IOException {
-    final OCacheEntry cacheEntry = readCache.loadForWrite(getFileId(), getPageIndex(), false, writeCache, 1, true, null);
-    try {
-      final OClusterPositionMapBucket bucket = new OClusterPositionMapBucket(cacheEntry, false);
-      bucket.remove(index);
-    } finally {
-      readCache.releaseFromWrite(cacheEntry, writeCache);
-    }
+  public int getIndex() {
+    return index;
   }
 
   @Override
-  public void undo(OReadCache readCache, OWriteCache writeCache) throws IOException {
-    final OCacheEntry cacheEntry = readCache.loadForWrite(getFileId(), getPageIndex(), false, writeCache, 1, true, null);
-    try {
-      final OClusterPositionMapBucket bucket = new OClusterPositionMapBucket(cacheEntry, false);
-      bucket.undoRemove(index);
-    } finally {
-      readCache.releaseFromWrite(cacheEntry, writeCache);
-    }
+  protected void doRedo(OCacheEntry cacheEntry) {
+    final OClusterPositionMapBucket bucket = new OClusterPositionMapBucket(cacheEntry, false);
+    bucket.remove(index);
+  }
+
+  @Override
+  protected void doUndo(OCacheEntry cacheEntry) {
+    final OClusterPositionMapBucket bucket = new OClusterPositionMapBucket(cacheEntry, false);
+    bucket.undoRemove(index);
   }
 
   @Override
@@ -73,6 +64,8 @@ public final class OClusterPositionMapRemoveOperation extends OPageOperationReco
 
   @Override
   public int fromStream(byte[] content, int offset) {
+    offset = super.fromStream(content, offset);
+
     index = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
     offset += OIntegerSerializer.INT_SIZE;
 

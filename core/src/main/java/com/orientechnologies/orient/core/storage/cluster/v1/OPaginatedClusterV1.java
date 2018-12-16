@@ -824,8 +824,8 @@ public final class OPaginatedClusterV1 extends OPaginatedCluster {
         byte[] updateEntry = null;
 
         do {
-          final int entrySize;
-          final int updatedEntryPosition;
+          int entrySize;
+          int updatedEntryPosition;
 
           if (updateEntry == null) {
             if (from == 0) {
@@ -874,112 +874,123 @@ public final class OPaginatedClusterV1 extends OPaginatedCluster {
 
           int freePageIndex = -1;
 
-          final boolean isNew;
-          if (nextPageIndex < 0) {
-            FindFreePageResult findFreePageResult = findFreePage(entrySize);
-            nextPageIndex = findFreePageResult.pageIndex;
-            freePageIndex = findFreePageResult.freePageIndex;
-            isNew = findFreePageResult.allocateNewPage;
-          } else {
-            isNew = false;
-          }
+          OCacheEntry cacheEntry;
+          while (true) {
+            final boolean isNew;
+            final boolean checkFreePageIndex;
 
-          final OCacheEntry cacheEntry;
-          if (isNew) {
-            OPaginatedClusterStateV1 clusterState = null;
-            final OCacheEntry stateCacheEntry = loadPageForWrite(fileId, STATE_ENTRY_INDEX, false);
-            try {
-              clusterState = new OPaginatedClusterStateV1(stateCacheEntry, newPage);
-
-              final int fileSize = clusterState.getFileSize();
-              final long filledUpTo = getFilledUpTo(fileId);
-
-              if (fileSize == filledUpTo - 1) {
-                cacheEntry = addPage(fileId, false);
-              } else {
-                assert fileSize < filledUpTo - 1;
-
-                cacheEntry = loadPageForWrite(fileId, fileSize + 1, false);
-              }
-
-              clusterState.setFileSize(fileSize + 1);
-            } finally {
-              releasePageFromWrite(clusterState, atomicOperation);
+            if (nextPageIndex < 0) {
+              FindFreePageResult findFreePageResult = findFreePage(entrySize);
+              nextPageIndex = findFreePageResult.pageIndex;
+              freePageIndex = findFreePageResult.freePageIndex;
+              isNew = findFreePageResult.allocateNewPage;
+              checkFreePageIndex = true;
+            } else {
+              isNew = false;
+              checkFreePageIndex = false;
             }
-          } else {
-            cacheEntry = loadPageForWrite(fileId, nextPageIndex, false);
-          }
 
-          OClusterPage localPage = null;
-          try {
+            if (isNew) {
+              OPaginatedClusterStateV1 clusterState = null;
+              final OCacheEntry stateCacheEntry = loadPageForWrite(fileId, STATE_ENTRY_INDEX, false);
+              try {
+                clusterState = new OPaginatedClusterStateV1(stateCacheEntry, false);
+
+                final int fileSize = clusterState.getFileSize();
+                final long filledUpTo = getFilledUpTo(fileId);
+
+                if (fileSize == filledUpTo - 1) {
+                  cacheEntry = addPage(fileId, false);
+                } else {
+                  assert fileSize < filledUpTo - 1;
+
+                  cacheEntry = loadPageForWrite(fileId, fileSize + 1, false);
+                }
+
+                clusterState.setFileSize(fileSize + 1);
+              } finally {
+                releasePageFromWrite(clusterState, atomicOperation);
+              }
+            } else {
+              cacheEntry = loadPageForWrite(fileId, nextPageIndex, false);
+            }
+
+            OClusterPage localPage = null;
             localPage = new OClusterPage(cacheEntry, isNew);
             final int pageFreeSpace = localPage.getFreeSpace();
 
-            if (freePageIndex < 0) {
-              freePageIndex = calculateFreePageIndex(localPage);
-            } else {
-              assert isNew || freePageIndex == calculateFreePageIndex(localPage);
+            if (checkFreePageIndex && !isNew && calculateFreePageIndex(localPage) != freePageIndex) {
+              releasePageFromWrite(localPage, atomicOperation);
+              updateFreePagesIndex(freePageIndex, cacheEntry.getPageIndex(), atomicOperation);
+              continue;
             }
 
-            if (nextRecordPosition >= 0) {
-              if (localPage.isDeleted(nextRecordPosition)) {
-                throw new OPaginatedClusterException("Record with rid " + new ORecordId(id, clusterPosition) + " was deleted",
-                    this);
+            try {
+              if (freePageIndex < 0) {
+                freePageIndex = calculateFreePageIndex(localPage);
               }
 
-              int currentEntrySize = localPage.getRecordSize(nextRecordPosition);
-              nextEntryPointer = localPage.getRecordLongValue(nextRecordPosition, currentEntrySize - OLongSerializer.LONG_SIZE);
-
-              if (currentEntrySize == entrySize) {
-                localPage.replaceRecord(nextRecordPosition, updateEntry, recordVersion);
-                updatedEntryPosition = nextRecordPosition;
-              } else {
-                localPage.deleteRecord(nextRecordPosition);
-
-                if (localPage.getMaxRecordSize() >= entrySize) {
-                  updatedEntryPosition = localPage.appendRecord(recordVersion, updateEntry);
-
-                  if (updatedEntryPosition < 0) {
-                    localPage.dumpToLog();
-                    throw new IllegalStateException("Page " + cacheEntry.getPageIndex()
-                        + " does not have enough free space to add record content, freePageIndex=" + freePageIndex
-                        + ", updateEntry.length=" + updateEntry.length + ", content.length=" + content.length);
-                  }
-                } else {
-                  updatedEntryPosition = -1;
+              if (nextRecordPosition >= 0) {
+                if (localPage.isDeleted(nextRecordPosition)) {
+                  throw new OPaginatedClusterException("Record with rid " + new ORecordId(id, clusterPosition) + " was deleted",
+                      this);
                 }
-              }
 
-              if (nextEntryPointer >= 0) {
-                nextRecordPosition = getRecordPosition(nextEntryPointer);
-                nextPageIndex = getPageIndex(nextEntryPointer);
+                int currentEntrySize = localPage.getRecordSize(nextRecordPosition);
+                nextEntryPointer = localPage.getRecordLongValue(nextRecordPosition, currentEntrySize - OLongSerializer.LONG_SIZE);
+
+                if (currentEntrySize == entrySize) {
+                  localPage.replaceRecord(nextRecordPosition, updateEntry, recordVersion);
+                  updatedEntryPosition = nextRecordPosition;
+                } else {
+                  localPage.deleteRecord(nextRecordPosition);
+
+                  if (localPage.getMaxRecordSize() >= entrySize) {
+                    updatedEntryPosition = localPage.appendRecord(recordVersion, updateEntry);
+
+                    if (updatedEntryPosition < 0) {
+                      localPage.dumpToLog();
+                      throw new IllegalStateException("Page " + cacheEntry.getPageIndex()
+                          + " does not have enough free space to add record content, freePageIndex=" + freePageIndex
+                          + ", updateEntry.length=" + updateEntry.length + ", content.length=" + content.length);
+                    }
+                  } else {
+                    updatedEntryPosition = -1;
+                  }
+                }
+
+                if (nextEntryPointer >= 0) {
+                  nextRecordPosition = getRecordPosition(nextEntryPointer);
+                  nextPageIndex = getPageIndex(nextEntryPointer);
+                } else {
+                  nextPageIndex = -1;
+                  nextRecordPosition = -1;
+                }
+
               } else {
+                assert localPage.getFreeSpace() >= entrySize;
+                updatedEntryPosition = localPage.appendRecord(recordVersion, updateEntry);
+
+                if (updatedEntryPosition < 0) {
+                  localPage.dumpToLog();
+                  throw new IllegalStateException(
+                      "Page " + cacheEntry.getPageIndex() + " does not have enough free space to add record content, freePageIndex="
+                          + freePageIndex + ", updateEntry.length=" + updateEntry.length + ", content.length=" + content.length);
+                }
+
                 nextPageIndex = -1;
                 nextRecordPosition = -1;
               }
 
-            } else {
-              assert localPage.getFreeSpace() >= entrySize;
-              updatedEntryPosition = localPage.appendRecord(recordVersion, updateEntry);
+              sizeDiff += pageFreeSpace - localPage.getFreeSpace();
 
-              if (updatedEntryPosition < 0) {
-                localPage.dumpToLog();
-                throw new IllegalStateException(
-                    "Page " + cacheEntry.getPageIndex() + " does not have enough free space to add record content, freePageIndex="
-                        + freePageIndex + ", updateEntry.length=" + updateEntry.length + ", content.length=" + content.length);
-              }
-
-              nextPageIndex = -1;
-              nextRecordPosition = -1;
+            } finally {
+              releasePageFromWrite(localPage, atomicOperation);
             }
 
-            sizeDiff += pageFreeSpace - localPage.getFreeSpace();
-
-          } finally {
-            releasePageFromWrite(localPage, atomicOperation);
+            updateFreePagesIndex(freePageIndex, cacheEntry.getPageIndex(), atomicOperation);
+            break;
           }
-
-          updateFreePagesIndex(freePageIndex, cacheEntry.getPageIndex(), atomicOperation);
 
           if (updatedEntryPosition >= 0) {
             if (from == 0) {
@@ -1307,7 +1318,7 @@ public final class OPaginatedClusterV1 extends OPaginatedCluster {
         final OAtomicOperation atomicOperation = OAtomicOperationsManager.getCurrentOperation();
         final OCacheEntry pinnedStateEntry = loadPageForRead(fileId, STATE_ENTRY_INDEX, true);
         try {
-          return new OPaginatedClusterStateV1(pinnedStateEntry, newPage).getSize();
+          return new OPaginatedClusterStateV1(pinnedStateEntry, false).getSize();
         } finally {
           releasePageFromRead(pinnedStateEntry);
         }
@@ -1502,7 +1513,7 @@ public final class OPaginatedClusterV1 extends OPaginatedCluster {
     OPaginatedClusterStateV1 paginatedClusterState = null;
     final OCacheEntry pinnedStateEntry = loadPageForWrite(fileId, STATE_ENTRY_INDEX, false);
     try {
-      paginatedClusterState = new OPaginatedClusterStateV1(pinnedStateEntry, newPage);
+      paginatedClusterState = new OPaginatedClusterStateV1(pinnedStateEntry, false);
       paginatedClusterState.setSize((int) (paginatedClusterState.getSize() + sizeDiff));
     } finally {
       releasePageFromWrite(paginatedClusterState, atomicOperation);
@@ -1661,67 +1672,75 @@ public final class OPaginatedClusterV1 extends OPaginatedCluster {
 
   private AddEntryResult addEntry(final int recordVersion, byte[] entryContent, OAtomicOperation atomicOperation)
       throws IOException {
-    final FindFreePageResult findFreePageResult = findFreePage(entryContent.length);
-
-    final int freePageIndex = findFreePageResult.freePageIndex;
-    final long pageIndex = findFreePageResult.pageIndex;
-
-    final boolean newPage = findFreePageResult.allocateNewPage;
-
-    final OCacheEntry cacheEntry;
-    if (newPage) {
-      OPaginatedClusterStateV1 clusterState = null;
-      final OCacheEntry stateCacheEntry = loadPageForWrite(fileId, STATE_ENTRY_INDEX, false);
-      try {
-        clusterState = new OPaginatedClusterStateV1(stateCacheEntry, newPage);
-        final int fileSize = clusterState.getFileSize();
-        final long filledUpTo = getFilledUpTo(fileId);
-
-        if (fileSize == filledUpTo - 1) {
-          cacheEntry = addPage(fileId, false);
-        } else {
-          assert fileSize < filledUpTo - 1;
-
-          cacheEntry = loadPageForWrite(fileId, fileSize + 1, false);
-        }
-
-        clusterState.setFileSize(fileSize + 1);
-      } finally {
-        releasePageFromWrite(clusterState, atomicOperation);
-      }
-    } else {
-      cacheEntry = loadPageForWrite(fileId, pageIndex, false);
-    }
-
+    long pageIndex;
     int recordSizesDiff;
     int position;
-    final int finalVersion;
+    int finalVersion;
+    while (true) {
+      final FindFreePageResult findFreePageResult = findFreePage(entryContent.length);
 
-    OClusterPage localPage = null;
-    try {
-      localPage = new OClusterPage(cacheEntry, newPage);
-      assert newPage || freePageIndex == calculateFreePageIndex(localPage);
+      final int freePageIndex = findFreePageResult.freePageIndex;
+      pageIndex = findFreePageResult.pageIndex;
 
-      int initialFreeSpace = localPage.getFreeSpace();
+      final boolean newPage = findFreePageResult.allocateNewPage;
 
-      position = localPage.appendRecord(recordVersion, entryContent);
+      final OCacheEntry cacheEntry;
+      if (newPage) {
+        OPaginatedClusterStateV1 clusterState = null;
+        final OCacheEntry stateCacheEntry = loadPageForWrite(fileId, STATE_ENTRY_INDEX, false);
+        try {
+          clusterState = new OPaginatedClusterStateV1(stateCacheEntry, newPage);
+          final int fileSize = clusterState.getFileSize();
+          final long filledUpTo = getFilledUpTo(fileId);
 
-      if (position < 0) {
-        localPage.dumpToLog();
-        throw new IllegalStateException(
-            "Page " + cacheEntry.getPageIndex() + " does not have enough free space to add record content, freePageIndex="
-                + freePageIndex + ", entryContent.length=" + entryContent.length);
+          if (fileSize == filledUpTo - 1) {
+            cacheEntry = addPage(fileId, false);
+          } else {
+            assert fileSize < filledUpTo - 1;
+
+            cacheEntry = loadPageForWrite(fileId, fileSize + 1, false);
+          }
+
+          clusterState.setFileSize(fileSize + 1);
+        } finally {
+          releasePageFromWrite(clusterState, atomicOperation);
+        }
+      } else {
+        cacheEntry = loadPageForWrite(fileId, pageIndex, false);
       }
 
-      finalVersion = localPage.getRecordVersion(position);
+      OClusterPage localPage = null;
+      localPage = new OClusterPage(cacheEntry, newPage);
+      if (!newPage && freePageIndex != calculateFreePageIndex(localPage)) {
+        releasePageFromWrite(localPage, atomicOperation);
 
-      int freeSpace = localPage.getFreeSpace();
-      recordSizesDiff = initialFreeSpace - freeSpace;
-    } finally {
-      releasePageFromWrite(localPage, atomicOperation);
+        updateFreePagesIndex(freePageIndex, pageIndex, atomicOperation);
+        continue;
+      }
+      try {
+        int initialFreeSpace = localPage.getFreeSpace();
+
+        position = localPage.appendRecord(recordVersion, entryContent);
+
+        if (position < 0) {
+          localPage.dumpToLog();
+          throw new IllegalStateException(
+              "Page " + cacheEntry.getPageIndex() + " does not have enough free space to add record content, freePageIndex="
+                  + freePageIndex + ", entryContent.length=" + entryContent.length);
+        }
+
+        finalVersion = localPage.getRecordVersion(position);
+
+        int freeSpace = localPage.getFreeSpace();
+        recordSizesDiff = initialFreeSpace - freeSpace;
+      } finally {
+        releasePageFromWrite(localPage, atomicOperation);
+      }
+
+      updateFreePagesIndex(freePageIndex, pageIndex, atomicOperation);
+
+      break;
     }
-
-    updateFreePagesIndex(freePageIndex, pageIndex, atomicOperation);
 
     return new AddEntryResult(pageIndex, position, finalVersion, recordSizesDiff);
   }
@@ -1737,7 +1756,7 @@ public final class OPaginatedClusterV1 extends OPaginatedCluster {
 
     final OCacheEntry pinnedStateEntry = loadPageForRead(fileId, STATE_ENTRY_INDEX, true);
     try {
-      OPaginatedClusterStateV1 freePageLists = new OPaginatedClusterStateV1(pinnedStateEntry, newPage);
+      OPaginatedClusterStateV1 freePageLists = new OPaginatedClusterStateV1(pinnedStateEntry, false);
       do {
         pageIndex = freePageLists.getFreeListPage(freePageIndex);
         freePageIndex++;
@@ -1754,7 +1773,7 @@ public final class OPaginatedClusterV1 extends OPaginatedCluster {
 
       final OCacheEntry stateCacheEntry = loadPageForRead(fileId, STATE_ENTRY_INDEX, false);
       try {
-        final OPaginatedClusterStateV1 clusterState = new OPaginatedClusterStateV1(stateCacheEntry, newPage);
+        final OPaginatedClusterStateV1 clusterState = new OPaginatedClusterStateV1(stateCacheEntry, false);
         fileSize = clusterState.getFileSize();
       } finally {
         releasePageFromRead(stateCacheEntry);
@@ -1790,7 +1809,6 @@ public final class OPaginatedClusterV1 extends OPaginatedCluster {
         final OCacheEntry prevPageCacheEntry = loadPageForWrite(fileId, prevPageIndex, false);
         try {
           prevPage = new OClusterPage(prevPageCacheEntry, false);
-          assert calculateFreePageIndex(prevPage) == prevFreePageIndex;
           prevPage.setNextPage(nextPageIndex);
         } finally {
           releasePageFromWrite(prevPage, atomicOperation);
@@ -1831,7 +1849,7 @@ public final class OPaginatedClusterV1 extends OPaginatedCluster {
         long oldFreePage;
         OCacheEntry pinnedStateEntry = loadPageForRead(fileId, STATE_ENTRY_INDEX, true);
         try {
-          OPaginatedClusterStateV1 clusterFreeList = new OPaginatedClusterStateV1(pinnedStateEntry, newPage);
+          OPaginatedClusterStateV1 clusterFreeList = new OPaginatedClusterStateV1(pinnedStateEntry, false);
           oldFreePage = clusterFreeList.getFreeListPage(newFreePageIndex);
         } finally {
           releasePageFromRead(pinnedStateEntry);
@@ -1842,8 +1860,6 @@ public final class OPaginatedClusterV1 extends OPaginatedCluster {
           final OCacheEntry oldFreePageCacheEntry = loadPageForWrite(fileId, oldFreePage, false);
           try {
             oldFreeLocalPage = new OClusterPage(oldFreePageCacheEntry, false);
-            assert calculateFreePageIndex(oldFreeLocalPage) == newFreePageIndex;
-
             oldFreeLocalPage.setPrevPage(pageIndex);
           } finally {
             releasePageFromWrite(oldFreeLocalPage, atomicOperation);
@@ -1864,7 +1880,7 @@ public final class OPaginatedClusterV1 extends OPaginatedCluster {
     OPaginatedClusterStateV1 paginatedClusterState = null;
     final OCacheEntry pinnedStateEntry = loadPageForWrite(fileId, STATE_ENTRY_INDEX, true);
     try {
-      paginatedClusterState = new OPaginatedClusterStateV1(pinnedStateEntry, newPage);
+      paginatedClusterState = new OPaginatedClusterStateV1(pinnedStateEntry, false);
       paginatedClusterState.setFreeListPage(freeListIndex, (int) pageIndex);
     } finally {
       releasePageFromWrite(paginatedClusterState, atomicOperation);
@@ -1894,7 +1910,7 @@ public final class OPaginatedClusterV1 extends OPaginatedCluster {
     OPaginatedClusterStateV1 paginatedClusterState = null;
     assert stateEntry.getPageIndex() == 0;
     try {
-      paginatedClusterState = new OPaginatedClusterStateV1(stateEntry, newPage);
+      paginatedClusterState = new OPaginatedClusterStateV1(stateEntry, true);
       paginatedClusterState.setSize(0);
       paginatedClusterState.setFileSize(0);
 

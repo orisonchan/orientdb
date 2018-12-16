@@ -2,13 +2,10 @@ package com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageo
 
 import com.orientechnologies.common.serialization.types.OIntegerSerializer;
 import com.orientechnologies.orient.core.storage.cache.OCacheEntry;
-import com.orientechnologies.orient.core.storage.cache.OReadCache;
-import com.orientechnologies.orient.core.storage.cache.OWriteCache;
 import com.orientechnologies.orient.core.storage.cluster.OClusterPage;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OPageOperationRecord;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes;
 
-import java.io.IOException;
 import java.nio.ByteBuffer;
 
 public final class OClusterPageDeleteRecordOperation extends OPageOperationRecord {
@@ -25,28 +22,29 @@ public final class OClusterPageDeleteRecordOperation extends OPageOperationRecor
     this.record = record;
   }
 
-  @Override
-  public void redo(OReadCache readCache, OWriteCache writeCache) throws IOException {
-    final OCacheEntry cacheEntry = readCache.loadForWrite(getFileId(), getPageIndex(), false, writeCache, 1, true, null);
-    try {
-      final OClusterPage clusterPage = new OClusterPage(cacheEntry, false);
-      clusterPage.deleteRecord(index);
-    } finally {
-      readCache.releaseFromWrite(cacheEntry, writeCache);
-    }
+  public int getIndex() {
+    return index;
+  }
+
+  public int getRecordVersion() {
+    return recordVersion;
+  }
+
+  public byte[] getRecord() {
+    return record;
   }
 
   @Override
-  public void undo(OReadCache readCache, OWriteCache writeCache) throws IOException {
-    final OCacheEntry cacheEntry = readCache.loadForWrite(getFileId(), getPageIndex(), false, writeCache, 1, true, null);
-    try {
-      final OClusterPage clusterPage = new OClusterPage(cacheEntry, false);
+  protected void doRedo(OCacheEntry cacheEntry) {
+    final OClusterPage clusterPage = new OClusterPage(cacheEntry, false);
+    clusterPage.deleteRecord(index);
+  }
 
-      final int pos = clusterPage.appendRecord(recordVersion, record);
-      assert pos == index;
-    } finally {
-      readCache.releaseFromWrite(cacheEntry, writeCache);
-    }
+  @Override
+  protected void doUndo(OCacheEntry cacheEntry) {
+    final OClusterPage clusterPage = new OClusterPage(cacheEntry, false);
+    final int pos = clusterPage.appendRecord(recordVersion, record);
+    assert pos == index;
   }
 
   @Override

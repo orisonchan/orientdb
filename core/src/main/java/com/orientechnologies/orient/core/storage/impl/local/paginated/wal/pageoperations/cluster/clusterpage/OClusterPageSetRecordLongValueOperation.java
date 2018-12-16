@@ -3,13 +3,10 @@ package com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageo
 import com.orientechnologies.common.serialization.types.OIntegerSerializer;
 import com.orientechnologies.common.serialization.types.OLongSerializer;
 import com.orientechnologies.orient.core.storage.cache.OCacheEntry;
-import com.orientechnologies.orient.core.storage.cache.OReadCache;
-import com.orientechnologies.orient.core.storage.cache.OWriteCache;
 import com.orientechnologies.orient.core.storage.cluster.OClusterPage;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OPageOperationRecord;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes;
 
-import java.io.IOException;
 import java.nio.ByteBuffer;
 
 public final class OClusterPageSetRecordLongValueOperation extends OPageOperationRecord {
@@ -29,26 +26,32 @@ public final class OClusterPageSetRecordLongValueOperation extends OPageOperatio
     this.oldValue = oldValue;
   }
 
-  @Override
-  public void redo(OReadCache readCache, OWriteCache writeCache) throws IOException {
-    final OCacheEntry cacheEntry = readCache.loadForWrite(getFileId(), getPageIndex(), false, writeCache, 1, true, null);
-    try {
-      final OClusterPage clusterPage = new OClusterPage(cacheEntry, false);
-      clusterPage.setRecordLongValue(recordPosition, recordOffset, value);
-    } finally {
-      readCache.releaseFromWrite(cacheEntry, writeCache);
-    }
+  public int getRecordPosition() {
+    return recordPosition;
+  }
+
+  public int getRecordOffset() {
+    return recordOffset;
+  }
+
+  public long getValue() {
+    return value;
+  }
+
+  public long getOldValue() {
+    return oldValue;
   }
 
   @Override
-  public void undo(OReadCache readCache, OWriteCache writeCache) throws IOException {
-    final OCacheEntry cacheEntry = readCache.loadForWrite(getFileId(), getPageIndex(), false, writeCache, 1, true, null);
-    try {
-      final OClusterPage clusterPage = new OClusterPage(cacheEntry, false);
-      clusterPage.setRecordLongValue(recordPosition, recordOffset, oldValue);
-    } finally {
-      readCache.releaseFromWrite(cacheEntry, writeCache);
-    }
+  protected void doRedo(OCacheEntry cacheEntry) {
+    final OClusterPage clusterPage = new OClusterPage(cacheEntry, false);
+    clusterPage.setRecordLongValue(recordPosition, recordOffset, value);
+  }
+
+  @Override
+  protected void doUndo(OCacheEntry cacheEntry) {
+    final OClusterPage clusterPage = new OClusterPage(cacheEntry, false);
+    clusterPage.setRecordLongValue(recordPosition, recordOffset, oldValue);
   }
 
   @Override

@@ -2,13 +2,10 @@ package com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageo
 
 import com.orientechnologies.common.serialization.types.OIntegerSerializer;
 import com.orientechnologies.orient.core.storage.cache.OCacheEntry;
-import com.orientechnologies.orient.core.storage.cache.OReadCache;
-import com.orientechnologies.orient.core.storage.cache.OWriteCache;
 import com.orientechnologies.orient.core.storage.cluster.v1.OPaginatedClusterStateV1;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OPageOperationRecord;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes;
 
-import java.io.IOException;
 import java.nio.ByteBuffer;
 
 public final class OClusterStateVOneSetSizeOperation extends OPageOperationRecord {
@@ -23,27 +20,24 @@ public final class OClusterStateVOneSetSizeOperation extends OPageOperationRecor
     this.oldSize = oldSize;
   }
 
-  @Override
-  public void redo(OReadCache readCache, OWriteCache writeCache) throws IOException {
-    final OCacheEntry cacheEntry = readCache.loadForWrite(getFileId(), getPageIndex(), false, writeCache, 1, true, null);
-    try {
-      final OPaginatedClusterStateV1 clusterState = new OPaginatedClusterStateV1(cacheEntry, newPage);
-      clusterState.setSize(size);
-    } finally {
-      readCache.releaseFromWrite(cacheEntry, writeCache);
-    }
+  public int getSize() {
+    return size;
+  }
+
+  public int getOldSize() {
+    return oldSize;
   }
 
   @Override
-  public void undo(OReadCache readCache, OWriteCache writeCache) throws IOException {
-    final OCacheEntry cacheEntry = readCache.loadForWrite(getFileId(), getPageIndex(), false, writeCache, 1, true, null);
-    try {
-      final OPaginatedClusterStateV1 clusterState = new OPaginatedClusterStateV1(cacheEntry, newPage);
-      clusterState.setSize(oldSize);
-    } finally {
-      readCache.releaseFromWrite(cacheEntry, writeCache);
-    }
+  protected void doRedo(OCacheEntry cacheEntry) {
+    final OPaginatedClusterStateV1 clusterState = new OPaginatedClusterStateV1(cacheEntry, false);
+    clusterState.setSize(size);
+  }
 
+  @Override
+  protected void doUndo(OCacheEntry cacheEntry) {
+    final OPaginatedClusterStateV1 clusterState = new OPaginatedClusterStateV1(cacheEntry, false);
+    clusterState.setSize(oldSize);
   }
 
   @Override

@@ -54,7 +54,7 @@ public final class OClusterPositionMapV1 extends OClusterPositionMap {
       final OCacheEntry cacheEntry = addPage(fileId, true);
       MapEntryPoint mapEntryPoint = null;
       try {
-        mapEntryPoint = new MapEntryPoint(cacheEntry, newPage);
+        mapEntryPoint = new MapEntryPoint(cacheEntry, true);
         mapEntryPoint.setFileSize(0);
       } finally {
         releasePageFromWrite(mapEntryPoint, atomicOperation);
@@ -63,7 +63,7 @@ public final class OClusterPositionMapV1 extends OClusterPositionMap {
       final OCacheEntry cacheEntry = loadPageForWrite(fileId, 0, false);
       MapEntryPoint mapEntryPoint = null;
       try {
-        mapEntryPoint = new MapEntryPoint(cacheEntry, newPage);
+        mapEntryPoint = new MapEntryPoint(cacheEntry, true);
         mapEntryPoint.setFileSize(0);
       } finally {
         releasePageFromWrite(mapEntryPoint, atomicOperation);
@@ -83,7 +83,7 @@ public final class OClusterPositionMapV1 extends OClusterPositionMap {
     final OCacheEntry cacheEntry = loadPageForWrite(fileId, 0, false);
     MapEntryPoint mapEntryPoint = null;
     try {
-      mapEntryPoint = new MapEntryPoint(cacheEntry, newPage);
+      mapEntryPoint = new MapEntryPoint(cacheEntry, true);
       mapEntryPoint.setFileSize(0);
     } finally {
       releasePageFromWrite(mapEntryPoint, atomicOperation);
@@ -106,7 +106,7 @@ public final class OClusterPositionMapV1 extends OClusterPositionMap {
     MapEntryPoint mapEntryPoint = null;
     OCacheEntry entryPointEntry = loadPageForWrite(fileId, 0, false);
     try {
-      mapEntryPoint = new MapEntryPoint(entryPointEntry, newPage);
+      mapEntryPoint = new MapEntryPoint(entryPointEntry, false);
       final int lastPage = mapEntryPoint.getFileSize();
       long filledUpTo = getFilledUpTo(fileId);
 
@@ -160,7 +160,7 @@ public final class OClusterPositionMapV1 extends OClusterPositionMap {
     long lastPage;
     final OCacheEntry entryPointEntry = loadPageForRead(fileId, 0, false);
     try {
-      final MapEntryPoint mapEntryPoint = new MapEntryPoint(entryPointEntry, newPage);
+      final MapEntryPoint mapEntryPoint = new MapEntryPoint(entryPointEntry, false);
       lastPage = mapEntryPoint.getFileSize();
     } finally {
       releasePageFromRead(entryPointEntry);
@@ -175,7 +175,7 @@ public final class OClusterPositionMapV1 extends OClusterPositionMap {
     MapEntryPoint mapEntryPoint = null;
     OCacheEntry entryPointEntry = loadPageForWrite(fileId, 0, false);
     try {
-      mapEntryPoint = new MapEntryPoint(entryPointEntry, newPage);
+      mapEntryPoint = new MapEntryPoint(entryPointEntry, false);
       final int lastPage = mapEntryPoint.getFileSize();
 
       long filledUpTo = getFilledUpTo(fileId);

@@ -2,13 +2,10 @@ package com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageo
 
 import com.orientechnologies.common.serialization.types.OIntegerSerializer;
 import com.orientechnologies.orient.core.storage.cache.OCacheEntry;
-import com.orientechnologies.orient.core.storage.cache.OReadCache;
-import com.orientechnologies.orient.core.storage.cache.OWriteCache;
 import com.orientechnologies.orient.core.storage.cluster.OClusterPage;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OPageOperationRecord;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes;
 
-import java.io.IOException;
 import java.nio.ByteBuffer;
 
 public final class OClusterPageReplaceRecordOperation extends OPageOperationRecord {
@@ -30,26 +27,36 @@ public final class OClusterPageReplaceRecordOperation extends OPageOperationReco
     this.oldRecord = oldRecord;
   }
 
-  @Override
-  public void redo(OReadCache readCache, OWriteCache writeCache) throws IOException {
-    final OCacheEntry cacheEntry = readCache.loadForWrite(getFileId(), getPageIndex(), false, writeCache, 1, true, null);
-    try {
-      final OClusterPage clusterPage = new OClusterPage(cacheEntry, false);
-      clusterPage.replaceRecord(index, record, recordVersion);
-    } finally {
-      readCache.releaseFromWrite(cacheEntry, writeCache);
-    }
+  public int getIndex() {
+    return index;
+  }
+
+  public byte[] getRecord() {
+    return record;
+  }
+
+  public int getRecordVersion() {
+    return recordVersion;
+  }
+
+  public int getOldRecordVersion() {
+    return oldRecordVersion;
+  }
+
+  public byte[] getOldRecord() {
+    return oldRecord;
   }
 
   @Override
-  public void undo(OReadCache readCache, OWriteCache writeCache) throws IOException {
-    final OCacheEntry cacheEntry = readCache.loadForWrite(getFileId(), getPageIndex(), false, writeCache, 1, true, null);
-    try {
-      final OClusterPage clusterPage = new OClusterPage(cacheEntry, false);
-      clusterPage.replaceRecord(index, oldRecord, oldRecordVersion);
-    } finally {
-      readCache.releaseFromWrite(cacheEntry, writeCache);
-    }
+  protected void doRedo(OCacheEntry cacheEntry) {
+    final OClusterPage clusterPage = new OClusterPage(cacheEntry, false);
+    clusterPage.replaceRecord(index, record, recordVersion);
+  }
+
+  @Override
+  protected void doUndo(OCacheEntry cacheEntry) {
+    final OClusterPage clusterPage = new OClusterPage(cacheEntry, false);
+    clusterPage.replaceRecord(index, oldRecord, oldRecordVersion);
   }
 
   @Override
@@ -79,6 +86,9 @@ public final class OClusterPageReplaceRecordOperation extends OPageOperationReco
     offset += OIntegerSerializer.INT_SIZE;
 
     OIntegerSerializer.INSTANCE.serializeNative(oldRecordVersion, content, offset);
+    offset += OIntegerSerializer.INT_SIZE;
+
+    OIntegerSerializer.INSTANCE.serializeNative(oldRecord.length, content, offset);
     offset += OIntegerSerializer.INT_SIZE;
 
     System.arraycopy(oldRecord, 0, content, offset, oldRecord.length);
@@ -115,7 +125,7 @@ public final class OClusterPageReplaceRecordOperation extends OPageOperationReco
     offset += OIntegerSerializer.INT_SIZE;
 
     record = new byte[recordLen];
-    System.arraycopy(record, 0, content, offset, record.length);
+    System.arraycopy(content, offset, record, 0, record.length);
     offset += record.length;
 
     recordVersion = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
@@ -136,6 +146,6 @@ public final class OClusterPageReplaceRecordOperation extends OPageOperationReco
 
   @Override
   public int serializedSize() {
-    return super.serializedSize() + record.length + oldRecord.length + 4 * OIntegerSerializer.INT_SIZE;
+    return super.serializedSize() + record.length + oldRecord.length + 5 * OIntegerSerializer.INT_SIZE;
   }
 }

@@ -199,7 +199,7 @@ public final class OClusterPage extends ODurablePage {
   }
 
   public boolean isEmpty() {
-    return getFreeSpace() == PAGE_SIZE - PAGE_INDEXES_OFFSET;
+    return getRecordsCount() == 0;
   }
 
   private boolean checkSpace(int entrySize, int freeListHeader) {
