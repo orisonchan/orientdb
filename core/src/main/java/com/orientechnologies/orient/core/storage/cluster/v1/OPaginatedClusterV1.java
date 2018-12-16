@@ -919,7 +919,7 @@ public final class OPaginatedClusterV1 extends OPaginatedCluster {
             localPage = new OClusterPage(cacheEntry, isNew);
             final int pageFreeSpace = localPage.getFreeSpace();
 
-            if (checkFreePageIndex && !isNew && calculateFreePageIndex(localPage) != freePageIndex) {
+            if (checkFreePageIndex && !isNew && localPage.getFreeSpace() < entrySize) {
               releasePageFromWrite(localPage, atomicOperation);
               updateFreePagesIndex(freePageIndex, cacheEntry.getPageIndex(), atomicOperation);
               continue;
@@ -1711,7 +1711,7 @@ public final class OPaginatedClusterV1 extends OPaginatedCluster {
 
       OClusterPage localPage = null;
       localPage = new OClusterPage(cacheEntry, newPage);
-      if (!newPage && freePageIndex != calculateFreePageIndex(localPage)) {
+      if (!newPage && localPage.getFreeSpace() < entryContent.length) {
         releasePageFromWrite(localPage, atomicOperation);
 
         updateFreePagesIndex(freePageIndex, pageIndex, atomicOperation);
