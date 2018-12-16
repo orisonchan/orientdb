@@ -89,7 +89,7 @@ public final class OClusterPositionMapBucket extends ODurablePage {
       throw new IllegalStateException("Bucket size can not be less or equal zero: size = " + size);
     }
 
-    final int position = entryPosition(size) + 1;
+    final int position = entryPosition(size - 1);
 
     final long oldPageIndex = getLongValue(position);
     final int oldRecordPosition = getIntValue(position + OLongSerializer.LONG_SIZE);
@@ -106,7 +106,7 @@ public final class OClusterPositionMapBucket extends ODurablePage {
       throw new IllegalStateException("Bucket size can not be less or equal zero: size = " + size);
     }
 
-    final int position = entryPosition(size) + 1;
+    final int position = entryPosition(size - 1);
 
     final long oldPageIndex = getLongValue(position);
     final int oldRecordPosition = getIntValue(position + OLongSerializer.LONG_SIZE);

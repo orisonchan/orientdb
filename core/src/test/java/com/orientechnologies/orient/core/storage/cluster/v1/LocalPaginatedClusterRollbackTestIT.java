@@ -23,6 +23,7 @@ import org.junit.Test;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -95,7 +96,7 @@ public class LocalPaginatedClusterRollbackTestIT {
   }
 
   @Test
-  public void testAdditionRollback() {
+  public void testAdditionRollbackOne() {
     for (int k = 0; k < iterationsCount; k++) {
       System.out.printf("Iteration %d out of %d\n", k + 1, iterationsCount);
       long seed = -1;
@@ -106,8 +107,6 @@ public class LocalPaginatedClusterRollbackTestIT {
         final Random random = new Random(seed);
 
         final List<ORID> rids = new ArrayList<>();
-        final List<ORID> nullRids = new ArrayList<>();
-
         final Map<ORID, byte[]> values = new HashMap<>();
 
         System.out.println("Loading initial set of records");
@@ -130,7 +129,7 @@ public class LocalPaginatedClusterRollbackTestIT {
 
         txApprover.approve = false;
         System.out.println("Loading reverted set of records");
-        for (int i = 0; i < testedAmountOfRecords; i++) {
+        for (int i = 0; i < testedAmountOfRecords / 10; i++) {
           try {
             session.begin();
 
@@ -144,7 +143,6 @@ public class LocalPaginatedClusterRollbackTestIT {
               document.field("value", value);
               document.save();
 
-              nullRids.add(document.getIdentity());
               if (i > 0 && (i * 10 + n) % 20_000 == 0) {
                 System.out.printf("%d records are tested out of %d\n", i * 10 + n, testedAmountOfRecords);
               }
@@ -152,7 +150,7 @@ public class LocalPaginatedClusterRollbackTestIT {
             }
 
             session.commit();
-          } catch (Exception e) {
+          } catch (NotApprovedException e) {
             //skip
           }
 
@@ -179,18 +177,8 @@ public class LocalPaginatedClusterRollbackTestIT {
           counter++;
         }
 
-        System.out.println("Testing reverted records");
-        counter = 0;
-        for (ORID rid : nullRids) {
-          final ODocument document = session.load(rid);
-          Assert.assertNull(document);
-
-          if (counter > 0 && counter % 50_000 == 0) {
-            System.out.printf("%d records are tested out of %d\n", counter, testedAmountOfRecords);
-          }
-
-          counter++;
-        }
+        System.out.println("Iterating initially loaded records");
+        iterateOverAllRecords(values);
 
         System.out.println("Loading additional set of records");
         for (int i = 0; i < additionalAmountOfRecords; i++) {
@@ -224,20 +212,168 @@ public class LocalPaginatedClusterRollbackTestIT {
           Assert.assertArrayEquals(values.get(rid), value);
 
           if (counter > 0 && counter % 50_000 == 0) {
-            System.out.printf("%d records are tested out of %d\n", counter, testedAmountOfRecords + initialAmountOfRecords);
+            System.out.printf("%d records are tested out of %d\n", counter, additionalAmountOfRecords + initialAmountOfRecords);
           }
 
           counter++;
         }
+
+        System.out.println("Iterating all loaded records");
+        iterateOverAllRecords(values);
 
         if (k < iterationsCount - 1) {
           dropSchema();
           createSchema();
         }
       } catch (Exception | Error e) {
-        System.out.printf("testAdditionRollback seed: %d\n", seed);
+        System.out.printf("testAdditionRollbackOne seed: %d\n", seed);
         throw e;
       }
+    }
+  }
+
+  @Test
+  public void testAddRollbackTwo() {
+    for (int k = 0; k < iterationsCount; k++) {
+      System.out.printf("Iteration %d out of %d\n", k + 1, iterationsCount);
+      long seed = -1;
+
+      try {
+        seed = System.nanoTime();
+
+        final Random random = new Random(seed);
+
+        final List<ORID> rids = new ArrayList<>();
+        final Map<ORID, byte[]> values = new HashMap<>();
+
+        for (int i = 0; i < 2 * initialAmountOfRecords; i++) {
+          if (i % 2 == 0) {
+            txApprover.approve = true;
+            final ODocument document = new ODocument(CLASS_NAME);
+            final int recordSize = random.nextInt(5_000) + 100;
+            final byte[] value = new byte[recordSize];
+            random.nextBytes(value);
+
+            document.field("value", value);
+            document.save();
+
+            rids.add(document.getIdentity());
+            values.put(document.getIdentity(), value);
+          } else {
+            txApprover.approve = false;
+            try {
+              session.begin();
+              for (int n = 0; n < 10; n++) {
+                final ODocument document = new ODocument(CLASS_NAME);
+                final int recordSize = random.nextInt(5_000) + 100;
+                final byte[] value = new byte[recordSize];
+                random.nextBytes(value);
+
+                document.field("value", value);
+                document.save();
+              }
+
+              session.commit();
+            } catch (NotApprovedException e) {
+              //continue
+            }
+          }
+
+          if (i > 0 && i % 20_000 == 0) {
+            System.out.printf("%d records are loaded out of %d\n", i / 2, initialAmountOfRecords);
+          }
+        }
+
+        session.close();
+        session = orient.open("TestDB", "admin", "admin");
+
+        txApprover.approve = true;
+        System.out.println("Testing initially loaded records");
+        Assert.assertEquals(initialAmountOfRecords, session.countClass(CLASS_NAME));
+
+        int counter = 0;
+        for (ORID rid : rids) {
+          final ODocument document = session.load(rid);
+          Assert.assertNotNull(document);
+          final byte[] value = document.field("value");
+          Assert.assertArrayEquals(values.get(rid), value);
+
+          if (counter > 0 && counter % 50_000 == 0) {
+            System.out.printf("%d records are tested out of %d\n", counter, initialAmountOfRecords);
+          }
+
+          counter++;
+        }
+
+        System.out.println("Iterating over initially loaded records");
+        iterateOverAllRecords(values);
+
+        System.out.println("Loading additional set of records");
+        for (int i = 0; i < additionalAmountOfRecords; i++) {
+          final ODocument document = new ODocument(CLASS_NAME);
+          final int recordSize = random.nextInt(5_000) + 100;
+          final byte[] value = new byte[recordSize];
+          random.nextBytes(value);
+
+          document.field("value", value);
+          document.save();
+
+          rids.add(document.getIdentity());
+          values.put(document.getIdentity(), value);
+
+          if (i > 0 && i % 20_000 == 0) {
+            System.out.printf("%d records are loaded out of %d\n", i, additionalAmountOfRecords);
+          }
+        }
+
+        session.close();
+        session = orient.open("TestDB", "admin", "admin");
+
+        System.out.println("Testing all loaded records");
+        Assert.assertEquals(initialAmountOfRecords + additionalAmountOfRecords, session.countClass(CLASS_NAME));
+
+        counter = 0;
+        for (ORID rid : rids) {
+          final ODocument document = session.load(rid);
+          Assert.assertNotNull(document);
+          final byte[] value = document.field("value");
+          Assert.assertArrayEquals(values.get(rid), value);
+
+          if (counter > 0 && counter % 50_000 == 0) {
+            System.out.printf("%d records are tested out of %d\n", counter, additionalAmountOfRecords + initialAmountOfRecords);
+          }
+
+          counter++;
+        }
+
+        System.out.println("Iterating over all records");
+        iterateOverAllRecords(values);
+
+        if (k < iterationsCount - 1) {
+          dropSchema();
+          createSchema();
+        }
+      } catch (Exception | Error e) {
+        System.out.printf("testAddRollbackTwo seed : %d\n", seed);
+      }
+    }
+  }
+
+  private void iterateOverAllRecords(Map<ORID, byte[]> ridValues) {
+    int counter = 0;
+
+    final Iterator<ODocument> iterator = session.browseClass(CLASS_NAME);
+    while (iterator.hasNext()) {
+      final ODocument document = iterator.next();
+      final byte[] value = document.field("value");
+      final byte[] expectedValue = ridValues.get(document.getIdentity());
+      Assert.assertArrayEquals(expectedValue, value);
+
+      if (counter > 0 && counter % 50_000 == 0) {
+        System.out.printf("%d records are tested out of %d\n", counter, ridValues.size());
+      }
+
+      counter++;
     }
   }
 
