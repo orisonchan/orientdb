@@ -29,13 +29,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
-import java.util.SortedMap;
-import java.util.SortedSet;
 import java.util.TreeMap;
 
 public class LocalPaginatedClusterRollbackTestIT {
-  public static  ODatabaseSession session;
-  public static  OrientDB         orient;
+  private static ODatabaseSession session;
+  private static OrientDB         orient;
   private static TestTXApprover   txApprover;
 
   private static int initialAmountOfRecords;
