@@ -8,7 +8,7 @@ import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRec
 
 import java.nio.ByteBuffer;
 
-public final class OClusterPositionMapRemoveOperation extends OPageOperationRecord {
+public final class OClusterPositionMapRemoveOperation extends OPageOperationRecord<OClusterPositionMapBucket> {
   private int index;
 
   public OClusterPositionMapRemoveOperation() {
@@ -24,14 +24,17 @@ public final class OClusterPositionMapRemoveOperation extends OPageOperationReco
   }
 
   @Override
-  protected void doRedo(OCacheEntry cacheEntry) {
-    final OClusterPositionMapBucket bucket = new OClusterPositionMapBucket(cacheEntry, false);
+  protected OClusterPositionMapBucket createPageInstance(OCacheEntry cacheEntry) {
+    return new OClusterPositionMapBucket(cacheEntry, false);
+  }
+
+  @Override
+  protected void doRedo(OClusterPositionMapBucket bucket) {
     bucket.remove(index);
   }
 
   @Override
-  protected void doUndo(OCacheEntry cacheEntry) {
-    final OClusterPositionMapBucket bucket = new OClusterPositionMapBucket(cacheEntry, false);
+  protected void doUndo(OClusterPositionMapBucket bucket) {
     bucket.undoRemove(index);
   }
 

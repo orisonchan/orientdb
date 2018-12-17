@@ -10,7 +10,9 @@ import com.orientechnologies.orient.core.storage.cache.OWriteCache;
 import com.orientechnologies.orient.core.storage.cluster.OClusterPage;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.atomicoperations.OCacheEntryChanges;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OLogSequenceNumber;
+import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OOperationUnitId;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OPageOperationRecord;
+import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OWriteAheadLog;
 import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -1058,8 +1060,10 @@ public class ClusterPageTest {
     revertedBuffer.put(buffer);
     revertedBuffer.position(0);
 
+    final OOperationUnitId operationUnitId = OOperationUnitId.generateId();
     OWriteCache writeCache = Mockito.mock(OWriteCache.class);
     OReadCache readCache = Mockito.mock(OReadCache.class);
+    OWriteAheadLog writeAheadLog = Mockito.mock(OWriteAheadLog.class);
 
     when(readCache
         .loadForWrite(anyLong(), anyLong(), anyBoolean(), anyObject(), anyInt(), anyBoolean(), (OLogSequenceNumber) isNull()))
@@ -1069,7 +1073,7 @@ public class ClusterPageTest {
     Collections.reverse(operations);
 
     for (OPageOperationRecord operation : operations) {
-      operation.undo(readCache, writeCache);
+      operation.undo(readCache, writeCache, writeAheadLog, operationUnitId);
     }
 
     OClusterPage revertedPage = new OClusterPage(revertedCacheEntry, false);

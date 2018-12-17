@@ -5,17 +5,22 @@ import com.orientechnologies.orient.core.storage.cluster.v1.OPaginatedClusterSta
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OPageOperationRecord;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes;
 
-public class OClusterStateVOneNewPageOperation extends OPageOperationRecord {
+public class OClusterStateVOneNewPageOperation extends OPageOperationRecord<OPaginatedClusterStateV1> {
   public OClusterStateVOneNewPageOperation() {
   }
 
   @Override
-  protected void doRedo(OCacheEntry cacheEntry) {
-    new OPaginatedClusterStateV1(cacheEntry, true);
+  protected OPaginatedClusterStateV1 createPageInstance(OCacheEntry cacheEntry) {
+    return new OPaginatedClusterStateV1(cacheEntry, true);
   }
 
   @Override
-  protected void doUndo(OCacheEntry cacheEntry) {
+  protected void doRedo(OPaginatedClusterStateV1 clusterState) {
+    //do nothing
+  }
+
+  @Override
+  protected void doUndo(OPaginatedClusterStateV1 clusterState) {
     //do nothing
   }
 

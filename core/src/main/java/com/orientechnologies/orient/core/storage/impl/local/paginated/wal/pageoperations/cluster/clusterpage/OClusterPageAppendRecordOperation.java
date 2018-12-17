@@ -8,7 +8,7 @@ import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRec
 
 import java.nio.ByteBuffer;
 
-public final class OClusterPageAppendRecordOperation extends OPageOperationRecord {
+public final class OClusterPageAppendRecordOperation extends OPageOperationRecord<OClusterPage> {
   private int    recordVersion;
   private byte[] record;
   private int    index;
@@ -23,14 +23,17 @@ public final class OClusterPageAppendRecordOperation extends OPageOperationRecor
   }
 
   @Override
-  protected void doRedo(OCacheEntry cacheEntry) {
-    final OClusterPage clusterPage = new OClusterPage(cacheEntry, false);
+  protected OClusterPage createPageInstance(OCacheEntry cacheEntry) {
+    return new OClusterPage(cacheEntry, false);
+  }
+
+  @Override
+  protected void doRedo(OClusterPage clusterPage) {
     clusterPage.appendRecord(recordVersion, record);
   }
 
   @Override
-  protected void doUndo(OCacheEntry cacheEntry) {
-    final OClusterPage clusterPage = new OClusterPage(cacheEntry, false);
+  protected void doUndo(OClusterPage clusterPage) {
     clusterPage.deleteRecord(index);
   }
 

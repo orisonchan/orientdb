@@ -8,7 +8,7 @@ import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRec
 
 import java.nio.ByteBuffer;
 
-public class OClusterStateVOneSetFileSizeOperation extends OPageOperationRecord {
+public class OClusterStateVOneSetFileSizeOperation extends OPageOperationRecord<OPaginatedClusterStateV1> {
   private int fileSize;
   private int oldFileSize;
 
@@ -24,19 +24,22 @@ public class OClusterStateVOneSetFileSizeOperation extends OPageOperationRecord 
     return fileSize;
   }
 
-  public int getOldFileSize() {
+  int getOldFileSize() {
     return oldFileSize;
   }
 
   @Override
-  protected void doRedo(OCacheEntry cacheEntry) {
-    final OPaginatedClusterStateV1 clusterState = new OPaginatedClusterStateV1(cacheEntry, false);
+  protected OPaginatedClusterStateV1 createPageInstance(OCacheEntry cacheEntry) {
+    return new OPaginatedClusterStateV1(cacheEntry, false);
+  }
+
+  @Override
+  protected void doRedo(OPaginatedClusterStateV1 clusterState) {
     clusterState.setFileSize(fileSize);
   }
 
   @Override
-  protected void doUndo(OCacheEntry cacheEntry) {
-    final OPaginatedClusterStateV1 clusterState = new OPaginatedClusterStateV1(cacheEntry, false);
+  protected void doUndo(OPaginatedClusterStateV1 clusterState) {
     clusterState.setFileSize(oldFileSize);
   }
 

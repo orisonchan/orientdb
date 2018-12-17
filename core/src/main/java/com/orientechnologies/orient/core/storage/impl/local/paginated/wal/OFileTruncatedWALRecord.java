@@ -19,8 +19,9 @@ public class OFileTruncatedWALRecord extends OOperationUnitBodyRecord {
   }
 
   @Override
-  public void undo(OReadCache readCache, OWriteCache writeCache) throws IOException {
-
+  public void undo(OReadCache readCache, OWriteCache writeCache, OWriteAheadLog writeAheadLog, OOperationUnitId operationUnitId)
+      throws IOException {
+    throw new UnsupportedOperationException("File truncation can not be rolled back");
   }
 
   public OFileTruncatedWALRecord(OOperationUnitId operationUnitId, long fileId) {

@@ -8,7 +8,7 @@ import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRec
 
 import java.nio.ByteBuffer;
 
-public class OMapEntryPointSetFileSizeOperation extends OPageOperationRecord {
+public class OMapEntryPointSetFileSizeOperation extends OPageOperationRecord<MapEntryPoint> {
   private int fileSize;
   private int oldFileSize;
 
@@ -24,19 +24,22 @@ public class OMapEntryPointSetFileSizeOperation extends OPageOperationRecord {
     return fileSize;
   }
 
-  public int getOldFileSize() {
+  int getOldFileSize() {
     return oldFileSize;
   }
 
   @Override
-  protected void doRedo(OCacheEntry cacheEntry) {
-    final MapEntryPoint entryPoint = new MapEntryPoint(cacheEntry, false);
+  protected MapEntryPoint createPageInstance(OCacheEntry cacheEntry) {
+    return new MapEntryPoint(cacheEntry, false);
+  }
+
+  @Override
+  protected void doRedo(MapEntryPoint entryPoint) {
     entryPoint.setFileSize(fileSize);
   }
 
   @Override
-  protected void doUndo(OCacheEntry cacheEntry) {
-    final MapEntryPoint entryPoint = new MapEntryPoint(cacheEntry, false);
+  protected void doUndo(MapEntryPoint entryPoint) {
     entryPoint.setFileSize(oldFileSize);
   }
 

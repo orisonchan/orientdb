@@ -139,7 +139,7 @@ public final class OAtomicOperation {
     final Iterator<OOperationUnitBodyRecord> iterator = records.descendingIterator();
     while (iterator.hasNext()) {
       final OOperationUnitBodyRecord record = iterator.next();
-      record.undo(readCache, writeCache);
+      record.undo(readCache, writeCache, writeAheadLog, operationUnitId);
     }
   }
 

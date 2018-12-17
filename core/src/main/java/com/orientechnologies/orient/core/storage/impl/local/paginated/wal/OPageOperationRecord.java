@@ -5,11 +5,13 @@ import com.orientechnologies.common.serialization.types.OLongSerializer;
 import com.orientechnologies.orient.core.storage.cache.OCacheEntry;
 import com.orientechnologies.orient.core.storage.cache.OReadCache;
 import com.orientechnologies.orient.core.storage.cache.OWriteCache;
+import com.orientechnologies.orient.core.storage.impl.local.paginated.base.ODurablePage;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.List;
 
-public abstract class OPageOperationRecord extends OOperationUnitBodyRecord {
+public abstract class OPageOperationRecord<T extends ODurablePage> extends OOperationUnitBodyRecord {
   private int  pageIndex;
   private long fileId;
 
@@ -36,25 +38,42 @@ public abstract class OPageOperationRecord extends OOperationUnitBodyRecord {
   public final void redo(OReadCache readCache, OWriteCache writeCache) throws IOException {
     final OCacheEntry cacheEntry = readCache.loadForWrite(fileId, pageIndex, false, writeCache, 1, true, null);
     try {
-      doRedo(cacheEntry);
+      final T page = createPageInstance(cacheEntry);
+      doRedo(page);
     } finally {
       readCache.releaseFromWrite(cacheEntry, writeCache);
     }
   }
 
   @Override
-  public final void undo(OReadCache readCache, OWriteCache writeCache) throws IOException {
+  public final void undo(OReadCache readCache, OWriteCache writeCache, OWriteAheadLog writeAheadLog,
+      OOperationUnitId operationUnitId) throws IOException {
     final OCacheEntry cacheEntry = readCache.loadForWrite(fileId, pageIndex, false, writeCache, 1, true, null);
     try {
-      doUndo(cacheEntry);
+      final T page = createPageInstance(cacheEntry);
+      doUndo(page);
+
+      final List<OPageOperationRecord> operations = page.getOperations();
+
+      if (!operations.isEmpty()) {
+        OLogSequenceNumber lsn = null;
+        for (OPageOperationRecord pageOperationRecord : operations) {
+          pageOperationRecord.setOperationUnitId(operationUnitId);
+          lsn = writeAheadLog.log(pageOperationRecord);
+        }
+
+        page.setLsn(lsn);
+      }
     } finally {
       readCache.releaseFromWrite(cacheEntry, writeCache);
     }
   }
 
-  protected abstract void doRedo(OCacheEntry cacheEntry);
+  protected abstract T createPageInstance(OCacheEntry cacheEntry);
 
-  protected abstract void doUndo(OCacheEntry cacheEntry);
+  protected abstract void doRedo(T page);
+
+  protected abstract void doUndo(T page);
 
   @Override
   public int toStream(byte[] content, int offset) {

@@ -38,6 +38,7 @@ public class OClusterPageSetRecordLongValueOperationSerializationTest {
     Assert.assertEquals(pageIndex, restoredOperation.getPageIndex());
     Assert.assertEquals(operationUnitId, restoredOperation.getOperationUnitId());
     Assert.assertEquals(recordPosition, restoredOperation.getRecordPosition());
+    Assert.assertEquals(recordOffset, restoredOperation.getRecordOffset());
     Assert.assertEquals(value, restoredOperation.getValue());
     Assert.assertEquals(oldValue, restoredOperation.getOldValue());
   }
@@ -73,6 +74,7 @@ public class OClusterPageSetRecordLongValueOperationSerializationTest {
     Assert.assertEquals(pageIndex, restoredOperation.getPageIndex());
     Assert.assertEquals(operationUnitId, restoredOperation.getOperationUnitId());
     Assert.assertEquals(recordPosition, restoredOperation.getRecordPosition());
+    Assert.assertEquals(recordOffset, restoredOperation.getRecordOffset());
     Assert.assertEquals(value, restoredOperation.getValue());
     Assert.assertEquals(oldValue, restoredOperation.getOldValue());
   }

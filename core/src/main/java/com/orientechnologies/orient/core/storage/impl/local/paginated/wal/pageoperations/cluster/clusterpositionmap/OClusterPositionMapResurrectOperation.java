@@ -8,7 +8,7 @@ import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRec
 
 import java.nio.ByteBuffer;
 
-public final class OClusterPositionMapResurrectOperation extends OPageOperationRecord {
+public final class OClusterPositionMapResurrectOperation extends OPageOperationRecord<OClusterPositionMapBucket> {
   private int index;
   private int recordPosition;
   private int recordPageIndex;
@@ -41,7 +41,7 @@ public final class OClusterPositionMapResurrectOperation extends OPageOperationR
     return recordPageIndex;
   }
 
-  public int getOldRecordPageIndex() {
+  int getOldRecordPageIndex() {
     return oldRecordPageIndex;
   }
 
@@ -50,14 +50,17 @@ public final class OClusterPositionMapResurrectOperation extends OPageOperationR
   }
 
   @Override
-  protected void doRedo(OCacheEntry cacheEntry) {
-    final OClusterPositionMapBucket bucket = new OClusterPositionMapBucket(cacheEntry, false);
+  protected OClusterPositionMapBucket createPageInstance(OCacheEntry cacheEntry) {
+    return new OClusterPositionMapBucket(cacheEntry, false);
+  }
+
+  @Override
+  protected void doRedo(OClusterPositionMapBucket bucket) {
     bucket.set(index, new OClusterPositionMapBucket.PositionEntry(recordPageIndex, recordPosition));
   }
 
   @Override
-  protected void doUndo(OCacheEntry cacheEntry) {
-    final OClusterPositionMapBucket bucket = new OClusterPositionMapBucket(cacheEntry, false);
+  protected void doUndo(OClusterPositionMapBucket bucket) {
     bucket.undoResurrect(index, new OClusterPositionMapBucket.PositionEntry(oldRecordPageIndex, oldRecordPosition));
   }
 

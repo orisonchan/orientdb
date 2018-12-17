@@ -9,7 +9,7 @@ import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRec
 
 import java.nio.ByteBuffer;
 
-public final class OClusterPageSetRecordLongValueOperation extends OPageOperationRecord {
+public final class OClusterPageSetRecordLongValueOperation extends OPageOperationRecord<OClusterPage> {
   private int recordPosition;
   private int recordOffset;
 
@@ -30,7 +30,7 @@ public final class OClusterPageSetRecordLongValueOperation extends OPageOperatio
     return recordPosition;
   }
 
-  public int getRecordOffset() {
+  int getRecordOffset() {
     return recordOffset;
   }
 
@@ -43,14 +43,17 @@ public final class OClusterPageSetRecordLongValueOperation extends OPageOperatio
   }
 
   @Override
-  protected void doRedo(OCacheEntry cacheEntry) {
-    final OClusterPage clusterPage = new OClusterPage(cacheEntry, false);
+  protected OClusterPage createPageInstance(OCacheEntry cacheEntry) {
+    return new OClusterPage(cacheEntry, false);
+  }
+
+  @Override
+  protected void doRedo(OClusterPage clusterPage) {
     clusterPage.setRecordLongValue(recordPosition, recordOffset, value);
   }
 
   @Override
-  protected void doUndo(OCacheEntry cacheEntry) {
-    final OClusterPage clusterPage = new OClusterPage(cacheEntry, false);
+  protected void doUndo(OClusterPage clusterPage) {
     clusterPage.setRecordLongValue(recordPosition, recordOffset, oldValue);
   }
 

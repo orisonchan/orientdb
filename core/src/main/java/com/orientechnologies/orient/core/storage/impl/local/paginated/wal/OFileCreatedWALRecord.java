@@ -63,12 +63,13 @@ public class OFileCreatedWALRecord extends OOperationUnitBodyRecord {
   }
 
   @Override
-  public void undo(OReadCache readCache, OWriteCache writeCache) throws IOException {
-    try {
-      readCache.deleteFile(fileId, writeCache);
-    } catch (IOException e) {
-      throw new OStorageException("Can not add file with name " + fileName + " and id " + fileId);
-    }
+  public void undo(OReadCache readCache, OWriteCache writeCache, OWriteAheadLog writeAheadLog, OOperationUnitId operationUnitId)
+      throws IOException {
+    final OFileDeletedWALRecord walRecord = new OFileDeletedWALRecord(fileId);
+    walRecord.setOperationUnitId(operationUnitId);
+    writeAheadLog.log(walRecord);
+
+    readCache.deleteFile(fileId, writeCache);
   }
 
   @Override

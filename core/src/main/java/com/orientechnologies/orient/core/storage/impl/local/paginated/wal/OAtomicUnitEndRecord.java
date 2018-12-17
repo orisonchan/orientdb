@@ -55,7 +55,7 @@ public class OAtomicUnitEndRecord extends OOperationUnitBodyRecord {
   }
 
   @Override
-  public void undo(OReadCache readCache, OWriteCache writeCache) throws IOException {
+  public void undo(OReadCache readCache, OWriteCache writeCache, OWriteAheadLog writeAheadLog, OOperationUnitId operationUnitId) throws IOException {
     //do nothing
   }
 

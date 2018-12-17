@@ -5,7 +5,7 @@ import com.orientechnologies.orient.core.storage.cluster.OClusterPositionMapBuck
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OPageOperationRecord;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes;
 
-public final class OClusterPositionMapNewPageOperation extends OPageOperationRecord {
+public final class OClusterPositionMapNewPageOperation extends OPageOperationRecord<OClusterPositionMapBucket> {
   public OClusterPositionMapNewPageOperation() {
   }
 
@@ -19,13 +19,20 @@ public final class OClusterPositionMapNewPageOperation extends OPageOperationRec
     return WALRecordTypes.CLUSTER_POSITION_MAP_NEW_PAGE;
   }
 
+
+
   @Override
-  protected void doRedo(OCacheEntry cacheEntry) {
-    new OClusterPositionMapBucket(cacheEntry, true);
+  protected OClusterPositionMapBucket createPageInstance(OCacheEntry cacheEntry) {
+    return new OClusterPositionMapBucket(cacheEntry, true);
   }
 
   @Override
-  protected void doUndo(OCacheEntry cacheEntry) {
+  protected void doRedo(OClusterPositionMapBucket bucket) {
+    //do nothing
+  }
+
+  @Override
+  protected void doUndo(OClusterPositionMapBucket bucket) {
     //do nothing
   }
 }

@@ -5,16 +5,20 @@ import com.orientechnologies.orient.core.storage.cluster.OClusterPositionMapBuck
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OPageOperationRecord;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes;
 
-public final class OClusterPositionMapAllocateOperation extends OPageOperationRecord {
+public final class OClusterPositionMapAllocateOperation extends OPageOperationRecord<OClusterPositionMapBucket> {
+
   @Override
-  protected void doRedo(OCacheEntry cacheEntry) {
-    final OClusterPositionMapBucket bucket = new OClusterPositionMapBucket(cacheEntry, false);
+  protected OClusterPositionMapBucket createPageInstance(OCacheEntry cacheEntry) {
+    return new OClusterPositionMapBucket(cacheEntry, false);
+  }
+
+  @Override
+  protected void doRedo(OClusterPositionMapBucket bucket) {
     bucket.allocate();
   }
 
   @Override
-  protected void doUndo(OCacheEntry cacheEntry) {
-    final OClusterPositionMapBucket bucket = new OClusterPositionMapBucket(cacheEntry, false);
+  protected void doUndo(OClusterPositionMapBucket bucket) {
     bucket.undoAllocation();
   }
 

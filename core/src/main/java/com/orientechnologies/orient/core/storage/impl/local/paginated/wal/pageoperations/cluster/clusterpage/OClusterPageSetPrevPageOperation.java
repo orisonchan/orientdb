@@ -8,7 +8,7 @@ import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRec
 
 import java.nio.ByteBuffer;
 
-public final class OClusterPageSetPrevPageOperation extends OPageOperationRecord {
+public final class OClusterPageSetPrevPageOperation extends OPageOperationRecord<OClusterPage> {
   private int prevPage;
   private int oldPrevPage;
 
@@ -20,23 +20,26 @@ public final class OClusterPageSetPrevPageOperation extends OPageOperationRecord
     this.oldPrevPage = oldPrevPage;
   }
 
-  public int getPrevPage() {
+  int getPrevPage() {
     return prevPage;
   }
 
-  public int getOldPrevPage() {
+  int getOldPrevPage() {
     return oldPrevPage;
   }
 
   @Override
-  protected void doRedo(OCacheEntry cacheEntry) {
-    final OClusterPage clusterPage = new OClusterPage(cacheEntry, false);
+  protected OClusterPage createPageInstance(OCacheEntry cacheEntry) {
+    return new OClusterPage(cacheEntry, false);
+  }
+
+  @Override
+  protected void doRedo(OClusterPage clusterPage) {
     clusterPage.setPrevPage(prevPage);
   }
 
   @Override
-  protected void doUndo(OCacheEntry cacheEntry) {
-    final OClusterPage clusterPage = new OClusterPage(cacheEntry, false);
+  protected void doUndo(OClusterPage clusterPage) {
     clusterPage.setPrevPage(oldPrevPage);
   }
 

@@ -5,17 +5,22 @@ import com.orientechnologies.orient.core.storage.cluster.v1.MapEntryPoint;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OPageOperationRecord;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes;
 
-public class OMapEntryPointNewPageOperation extends OPageOperationRecord {
+public class OMapEntryPointNewPageOperation extends OPageOperationRecord<MapEntryPoint> {
   public OMapEntryPointNewPageOperation() {
   }
 
   @Override
-  protected void doRedo(OCacheEntry cacheEntry) {
-    new MapEntryPoint(cacheEntry, true);
+  protected MapEntryPoint createPageInstance(OCacheEntry cacheEntry) {
+    return new MapEntryPoint(cacheEntry, true);
   }
 
   @Override
-  protected void doUndo(OCacheEntry cacheEntry) {
+  protected void doRedo(MapEntryPoint entryPoint) {
+    //do nothing
+  }
+
+  @Override
+  protected void doUndo(MapEntryPoint entryPoint) {
     //do nothing
   }
 

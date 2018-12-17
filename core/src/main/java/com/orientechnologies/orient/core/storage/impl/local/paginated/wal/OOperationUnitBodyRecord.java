@@ -15,5 +15,6 @@ public abstract class OOperationUnitBodyRecord extends OOperationUnitRecord {
 
   public abstract void redo(OReadCache readCache, OWriteCache writeCache) throws IOException;
 
-  public abstract void undo(OReadCache readCache, OWriteCache writeCache) throws IOException;
+  public abstract void undo(OReadCache readCache, OWriteCache writeCache, OWriteAheadLog writeAheadLog,
+      OOperationUnitId operationUnitId) throws IOException;
 }

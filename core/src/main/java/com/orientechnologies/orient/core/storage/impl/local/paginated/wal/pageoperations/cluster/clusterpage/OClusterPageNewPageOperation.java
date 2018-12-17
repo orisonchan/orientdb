@@ -5,14 +5,19 @@ import com.orientechnologies.orient.core.storage.cluster.OClusterPage;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OPageOperationRecord;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes;
 
-public final class OClusterPageNewPageOperation extends OPageOperationRecord {
+public final class OClusterPageNewPageOperation extends OPageOperationRecord<OClusterPage> {
   @Override
-  protected void doRedo(OCacheEntry cacheEntry) {
-    new OClusterPage(cacheEntry, true);
+  protected OClusterPage createPageInstance(OCacheEntry cacheEntry) {
+    return new OClusterPage(cacheEntry, true);
   }
 
   @Override
-  protected void doUndo(OCacheEntry cacheEntry) {
+  protected void doRedo(OClusterPage clusterPage) {
+    //do nothing
+  }
+
+  @Override
+  protected void doUndo(OClusterPage clusterPage) {
     //do nothing
   }
 
