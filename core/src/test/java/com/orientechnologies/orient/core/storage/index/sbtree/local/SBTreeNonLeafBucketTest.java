@@ -148,7 +148,7 @@ public class SBTreeNonLeafBucketTest {
 
     int originalSize = treeBucket.size();
 
-    treeBucket.shrink(treeBucket.size() / 2, null);
+    treeBucket.shrink(treeBucket.size() / 2, false);
     Assert.assertEquals(treeBucket.size(), index / 2);
 
     index = 0;

@@ -314,7 +314,7 @@ public class OSBTree<K, V> extends ODurableComponent {
 
               assert oldRawValue != null;
               if (oldRawValue.length == serializeValue.length) {
-                keyBucket.updateValue(bucketSearchResult.itemIndex, serializeValue, encryption);
+                keyBucket.updateValue(bucketSearchResult.itemIndex, serializeValue, encryption != null);
                 releasePageFromWrite(keyBucket, atomicOperation);
 
                 return true;
@@ -1206,7 +1206,7 @@ public class OSBTree<K, V> extends ODurableComponent {
       final int startRightIndex = splitLeaf ? indexToSplit : indexToSplit + 1;
 
       for (int i = startRightIndex; i < bucketSize; i++) {
-        rightEntries.add(bucketToSplit.getRawEntry(i, encryption));
+        rightEntries.add(bucketToSplit.getRawEntry(i, encryption != null));
       }
 
       if (pageIndex != ROOT_INDEX) {
@@ -1231,7 +1231,7 @@ public class OSBTree<K, V> extends ODurableComponent {
       newRightBucket = new OSBTreeBucket<>(rightBucketEntry, splitLeaf, keySerializer, valueSerializer);
       newRightBucket.addAll(rightEntries);
 
-      bucketToSplit.shrink(indexToSplit, encryption);
+      bucketToSplit.shrink(indexToSplit, encryption != null);
 
       if (splitLeaf) {
         long rightSiblingPageIndex = bucketToSplit.getRightSibling();
@@ -1312,7 +1312,7 @@ public class OSBTree<K, V> extends ODurableComponent {
     final List<byte[]> leftEntries = new ArrayList<>(indexToSplit);
 
     for (int i = 0; i < indexToSplit; i++) {
-      leftEntries.add(bucketToSplit.getRawEntry(i, encryption));
+      leftEntries.add(bucketToSplit.getRawEntry(i, encryption != null));
     }
 
     OSBTreeBucket<K, V> newLeftBucket = null;

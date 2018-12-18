@@ -137,7 +137,7 @@ public class SBTreeLeafBucketTest {
       final byte[] rawValue = new byte[OLinkSerializer.RID_SIZE];
 
       OLinkSerializer.INSTANCE.serializeNativeObject(new ORecordId(i + 5, i + 5), rawValue, 0);
-      treeBucket.updateValue(i, rawValue, null);
+      treeBucket.updateValue(i, rawValue, false);
     }
 
     for (Map.Entry<Long, Integer> keyIndexEntry : keyIndexMap.entrySet()) {
@@ -188,7 +188,7 @@ public class SBTreeLeafBucketTest {
 
     int originalSize = treeBucket.size();
 
-    treeBucket.shrink(treeBucket.size() / 2, null);
+    treeBucket.shrink(treeBucket.size() / 2, false);
     Assert.assertEquals(treeBucket.size(), index / 2);
 
     index = 0;
