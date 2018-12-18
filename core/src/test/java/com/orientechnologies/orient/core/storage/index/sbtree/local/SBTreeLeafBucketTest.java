@@ -77,7 +77,7 @@ public class SBTreeLeafBucketTest {
     Map<Long, Integer> keyIndexMap = new HashMap<>();
     for (Long key : keys) {
       if (!treeBucket
-          .addEntry(index, new OSBTreeBucket.SBTreeEntry<>(-1, -1, key, new OSBTreeValue<>(false, -1, new ORecordId(index, index))),
+          .insertEntry(index, new OSBTreeBucket.SBTreeEntry<>(-1, -1, key, new OSBTreeValue<>(false, -1, new ORecordId(index, index))),
               true, null, null))
         break;
       keyIndexMap.put(key, index);
@@ -123,7 +123,7 @@ public class SBTreeLeafBucketTest {
     int index = 0;
     for (Long key : keys) {
       if (!treeBucket
-          .addEntry(index, new OSBTreeBucket.SBTreeEntry<>(-1, -1, key, new OSBTreeValue<>(false, -1, new ORecordId(index, index))),
+          .insertEntry(index, new OSBTreeBucket.SBTreeEntry<>(-1, -1, key, new OSBTreeValue<>(false, -1, new ORecordId(index, index))),
               true, null, null))
         break;
 
@@ -179,7 +179,7 @@ public class SBTreeLeafBucketTest {
     int index = 0;
     for (Long key : keys) {
       if (!treeBucket
-          .addEntry(index, new OSBTreeBucket.SBTreeEntry<>(-1, -1, key, new OSBTreeValue<>(false, -1, new ORecordId(index, index))),
+          .insertEntry(index, new OSBTreeBucket.SBTreeEntry<>(-1, -1, key, new OSBTreeValue<>(false, -1, new ORecordId(index, index))),
               true, null, null))
         break;
 
@@ -212,7 +212,7 @@ public class SBTreeLeafBucketTest {
       Long key = keysIterator.next();
 
       if (!treeBucket
-          .addEntry(index, new OSBTreeBucket.SBTreeEntry<>(-1, -1, key, new OSBTreeValue<>(false, -1, new ORecordId(index, index))),
+          .insertEntry(index, new OSBTreeBucket.SBTreeEntry<>(-1, -1, key, new OSBTreeValue<>(false, -1, new ORecordId(index, index))),
               true, null, null))
         break;
 
@@ -262,7 +262,7 @@ public class SBTreeLeafBucketTest {
     int index = 0;
     for (Long key : keys) {
       if (!treeBucket
-          .addEntry(index, new OSBTreeBucket.SBTreeEntry<>(-1, -1, key, new OSBTreeValue<>(false, -1, new ORecordId(index, index))),
+          .insertEntry(index, new OSBTreeBucket.SBTreeEntry<>(-1, -1, key, new OSBTreeValue<>(false, -1, new ORecordId(index, index))),
               true, null, null))
         break;
 
@@ -276,7 +276,7 @@ public class SBTreeLeafBucketTest {
       final byte[] rawKey = treeBucket.getRawKey(i, null);
       final byte[] rawValue = treeBucket.getRawValue(i, null);
 
-      treeBucket.remove(treeBucket.size() - 1, rawKey, rawValue, null);
+      treeBucket.remove(treeBucket.size() - 1, rawKey, rawValue);
     }
 
     Assert.assertEquals(treeBucket.size(), originalSize - itemsToDelete);
@@ -302,7 +302,7 @@ public class SBTreeLeafBucketTest {
       Long key = keysIterator.next();
 
       if (!treeBucket
-          .addEntry(index, new OSBTreeBucket.SBTreeEntry<>(-1, -1, key, new OSBTreeValue<>(false, -1, new ORecordId(index, index))),
+          .insertEntry(index, new OSBTreeBucket.SBTreeEntry<>(-1, -1, key, new OSBTreeValue<>(false, -1, new ORecordId(index, index))),
               true, null, null))
         break;
 

@@ -119,7 +119,7 @@ public final class OSBTreeBucket<K, V> extends ODurablePage {
 
   public OSBTreeBucket(OCacheEntry cacheEntry) {
     super(cacheEntry);
-    this.isLeaf = false;
+    this.isLeaf = getByteValue(IS_LEAF_OFFSET) > 0;
     this.keySerializer = null;
     this.valueSerializer = null;
   }
@@ -140,7 +140,7 @@ public final class OSBTreeBucket<K, V> extends ODurablePage {
     return getLongValue(FREE_VALUES_LIST_OFFSET);
   }
 
-  void setValuesFreeListFirstIndex(long pageIndex) {
+  public void setValuesFreeListFirstIndex(long pageIndex) {
     setLongValue(FREE_VALUES_LIST_OFFSET, pageIndex);
   }
 
@@ -163,20 +163,12 @@ public final class OSBTreeBucket<K, V> extends ODurablePage {
     return -(low + 1); // key not found.
   }
 
-  public void remove(final int entryIndex, byte[] oldRawKey, byte[] oldRawValue, OEncryption encryption) {
+  public void remove(final int entryIndex, byte[] oldRawKey, byte[] oldRawValue) {
     final int entryPosition = getIntValue(POSITIONS_ARRAY_OFFSET + entryIndex * OIntegerSerializer.INT_SIZE);
     final int keySize;
 
-    if (oldRawKey == null) {
-      if (encryption == null) {
-        keySize = getObjectSizeInDirectMemory(keySerializer, entryPosition);
-      } else {
-        final int encryptionSize = getIntValue(entryPosition);
-        keySize = OIntegerSerializer.INT_SIZE + encryptionSize;
-      }
-    } else {
-      keySize = oldRawKey.length;
-    }
+    assert oldRawKey != null;
+    keySize = oldRawKey.length;
 
     final int entrySize;
     if (isLeaf) {
@@ -278,13 +270,13 @@ public final class OSBTreeBucket<K, V> extends ODurablePage {
     }
   }
 
-  byte[] getRawEntry(final int entryIndex, OEncryption encryption) {
+  byte[] getRawEntry(final int entryIndex, boolean isEncrypted) {
     int entryPosition = getIntValue(entryIndex * OIntegerSerializer.INT_SIZE + POSITIONS_ARRAY_OFFSET);
     final int startEntryPosition = entryPosition;
 
     if (isLeaf) {
       final int keySize;
-      if (encryption == null) {
+      if (!isEncrypted) {
         keySize = getObjectSizeInDirectMemory(keySerializer, entryPosition);
       } else {
         final int encryptedSize = getIntValue(entryPosition);
@@ -302,7 +294,7 @@ public final class OSBTreeBucket<K, V> extends ODurablePage {
       entryPosition += 2 * OLongSerializer.LONG_SIZE;
 
       final int keySize;
-      if (encryption == null) {
+      if (!isEncrypted) {
         keySize = getObjectSizeInDirectMemory(keySerializer, entryPosition);
       } else {
         final int encryptedSize = getIntValue(entryPosition);
@@ -413,11 +405,11 @@ public final class OSBTreeBucket<K, V> extends ODurablePage {
     setIntValue(SIZE_OFFSET, rawEntries.size());
   }
 
-  public void shrink(final int newSize, OEncryption encryption) {
+  public void shrink(final int newSize, boolean isEncrypted) {
     final List<byte[]> rawEntries = new ArrayList<>(newSize);
 
     for (int i = 0; i < newSize; i++) {
-      rawEntries.add(getRawEntry(i, encryption));
+      rawEntries.add(getRawEntry(i, isEncrypted));
     }
 
     setIntValue(FREE_POINTER_OFFSET, MAX_PAGE_SIZE_BYTES);
@@ -431,7 +423,7 @@ public final class OSBTreeBucket<K, V> extends ODurablePage {
     setIntValue(SIZE_OFFSET, newSize);
   }
 
-  boolean addLeafEntry(final int index, final byte[] serializedKey, final byte[] serializedValue) {
+  public boolean insertfKeyValue(final int index, final byte[] serializedKey, final byte[] serializedValue) {
     final int entrySize = serializedKey.length + serializedValue.length + OByteSerializer.BYTE_SIZE;
 
     assert isLeaf;
@@ -460,50 +452,16 @@ public final class OSBTreeBucket<K, V> extends ODurablePage {
     return true;
   }
 
-  private void appendRawEntry(final int index, final byte[] rawEntry) {
+  public boolean insertLeafEntry(final int index, final byte[] entry) {
+    final int entrySize = entry.length;
+
+    assert isLeaf;
+    final int size = getIntValue(SIZE_OFFSET);
+
     int freePointer = getIntValue(FREE_POINTER_OFFSET);
-    freePointer -= rawEntry.length;
-
-    setIntValue(FREE_POINTER_OFFSET, freePointer);
-    setIntValue(POSITIONS_ARRAY_OFFSET + index * OIntegerSerializer.INT_SIZE, freePointer);
-
-    setBinaryValue(freePointer, rawEntry);
-  }
-
-  public boolean addEntry(int index, SBTreeEntry<K, V> treeEntry, boolean updateNeighbors, OEncryption encryption,
-      OType[] keyTypes) {
-    final byte[] serializedKey = keySerializer.serializeNativeAsWhole(treeEntry.key, (Object[]) keyTypes);
-    final int keySize;
-    byte[] encryptedKey = null;
-
-    if (encryption == null) {
-      keySize = keySerializer.getObjectSize(treeEntry.key, (Object[]) keyTypes);
-    } else {
-      encryptedKey = encryption.encrypt(serializedKey);
-      keySize = encryptedKey.length + OIntegerSerializer.INT_SIZE;
-    }
-
-    int valueSize = 0;
-    int entrySize = keySize;
-
-    if (isLeaf) {
-      if (valueSerializer.isFixedLength())
-        valueSize = valueSerializer.getFixedLength();
-      else {
-        if (treeEntry.value.isLink())
-          valueSize = OLongSerializer.LONG_SIZE;
-        else
-          valueSize = valueSerializer.getObjectSize(treeEntry.value.getValue());
-      }
-
-      entrySize += valueSize + OByteSerializer.BYTE_SIZE;
-    } else
-      entrySize += 2 * OLongSerializer.LONG_SIZE;
-
-    int size = size();
-    int freePointer = getIntValue(FREE_POINTER_OFFSET);
-    if (freePointer - entrySize < (size + 1) * OIntegerSerializer.INT_SIZE + POSITIONS_ARRAY_OFFSET)
+    if (freePointer - entrySize < (size + 1) * OIntegerSerializer.INT_SIZE + POSITIONS_ARRAY_OFFSET) {
       return false;
+    }
 
     if (index <= size - 1) {
       moveData(POSITIONS_ARRAY_OFFSET + index * OIntegerSerializer.INT_SIZE,
@@ -516,60 +474,132 @@ public final class OSBTreeBucket<K, V> extends ODurablePage {
     setIntValue(POSITIONS_ARRAY_OFFSET + index * OIntegerSerializer.INT_SIZE, freePointer);
     setIntValue(SIZE_OFFSET, size + 1);
 
-    if (isLeaf) {
-      if (encryption == null) {
-        freePointer += setBinaryValue(freePointer, serializedKey);
-      } else {
-        setIntValue(freePointer, encryptedKey.length);
-        freePointer += OIntegerSerializer.INT_SIZE;
+    setBinaryValue(freePointer, entry);
 
-        freePointer += setBinaryValue(freePointer, encryptedKey);
+    return true;
+  }
+
+  public boolean insertNonLeafKeyNeighbours(final int index, final byte[] serializedKey, final int leftChild, final int rightChild,
+      final boolean updateNeighbors) {
+    final int entrySize = serializedKey.length + 2 * OIntegerSerializer.INT_SIZE;
+
+    int size = size();
+    int freePointer = getIntValue(FREE_POINTER_OFFSET);
+    if (freePointer - entrySize < (size + 1) * OIntegerSerializer.INT_SIZE + POSITIONS_ARRAY_OFFSET) {
+      return false;
+    }
+
+    if (index <= size - 1) {
+      moveData(POSITIONS_ARRAY_OFFSET + index * OIntegerSerializer.INT_SIZE,
+          POSITIONS_ARRAY_OFFSET + (index + 1) * OIntegerSerializer.INT_SIZE, (size - index) * OIntegerSerializer.INT_SIZE);
+    }
+
+    freePointer -= entrySize;
+
+    setIntValue(FREE_POINTER_OFFSET, freePointer);
+    setIntValue(POSITIONS_ARRAY_OFFSET + index * OIntegerSerializer.INT_SIZE, freePointer);
+    setIntValue(SIZE_OFFSET, size + 1);
+
+    freePointer += setLongValue(freePointer, leftChild);
+    freePointer += setLongValue(freePointer, rightChild);
+
+    setBinaryValue(freePointer, serializedKey);
+    size++;
+
+    if (updateNeighbors && size > 1) {
+      if (index < size - 1) {
+        final int nextEntryPosition = getIntValue(POSITIONS_ARRAY_OFFSET + (index + 1) * OIntegerSerializer.INT_SIZE);
+        setLongValue(nextEntryPosition, rightChild);
       }
 
-      freePointer += setByteValue(freePointer, treeEntry.value.isLink() ? (byte) 1 : (byte) 0);
-
-      byte[] serializedValue = new byte[valueSize];
-      if (treeEntry.value.isLink())
-        OLongSerializer.INSTANCE.serializeNative(treeEntry.value.getLink(), serializedValue, 0);
-      else
-        valueSerializer.serializeNativeObject(treeEntry.value.getValue(), serializedValue, 0);
-
-      setBinaryValue(freePointer, serializedValue);
-    } else {
-      freePointer += setLongValue(freePointer, treeEntry.leftChild);
-      freePointer += setLongValue(freePointer, treeEntry.rightChild);
-
-      if (encryption == null) {
-        setBinaryValue(freePointer, serializedKey);
-      } else {
-        setIntValue(freePointer, encryptedKey.length);
-        freePointer += OIntegerSerializer.INT_SIZE;
-
-        setBinaryValue(freePointer, encryptedKey);
-      }
-
-      size++;
-
-      if (updateNeighbors && size > 1) {
-        if (index < size - 1) {
-          final int nextEntryPosition = getIntValue(POSITIONS_ARRAY_OFFSET + (index + 1) * OIntegerSerializer.INT_SIZE);
-          setLongValue(nextEntryPosition, treeEntry.rightChild);
-        }
-
-        if (index > 0) {
-          final int prevEntryPosition = getIntValue(POSITIONS_ARRAY_OFFSET + (index - 1) * OIntegerSerializer.INT_SIZE);
-          setLongValue(prevEntryPosition + OLongSerializer.LONG_SIZE, treeEntry.leftChild);
-        }
+      if (index > 0) {
+        final int prevEntryPosition = getIntValue(POSITIONS_ARRAY_OFFSET + (index - 1) * OIntegerSerializer.INT_SIZE);
+        setLongValue(prevEntryPosition + OLongSerializer.LONG_SIZE, leftChild);
       }
     }
 
     return true;
   }
 
-  void updateValue(final int index, final byte[] value, OEncryption encryption) {
-    int entryPosition = getIntValue(index * OIntegerSerializer.INT_SIZE + POSITIONS_ARRAY_OFFSET);
+  public boolean insertNonLeafEntry(final int index, final byte[] entry, final boolean updateNeighbors) {
+    final int entrySize = entry.length;
+
+    int size = size();
+    int freePointer = getIntValue(FREE_POINTER_OFFSET);
+    if (freePointer - entrySize < (size + 1) * OIntegerSerializer.INT_SIZE + POSITIONS_ARRAY_OFFSET) {
+      return false;
+    }
+
+    if (index <= size - 1) {
+      moveData(POSITIONS_ARRAY_OFFSET + index * OIntegerSerializer.INT_SIZE,
+          POSITIONS_ARRAY_OFFSET + (index + 1) * OIntegerSerializer.INT_SIZE, (size - index) * OIntegerSerializer.INT_SIZE);
+    }
+
+    freePointer -= entrySize;
+
+    setIntValue(FREE_POINTER_OFFSET, freePointer);
+    setIntValue(POSITIONS_ARRAY_OFFSET + index * OIntegerSerializer.INT_SIZE, freePointer);
+    setIntValue(SIZE_OFFSET, size + 1);
+
+    setBinaryValue(freePointer, entry);
+    size++;
+
+    if (updateNeighbors && size > 1) {
+      final long leftChild = OLongSerializer.INSTANCE.deserializeNative(entry, 0);
+      final long rightChild = OLongSerializer.INSTANCE.deserializeNative(entry, OLongSerializer.LONG_SIZE);
+
+      if (index < size - 1) {
+        final int nextEntryPosition = getIntValue(POSITIONS_ARRAY_OFFSET + (index + 1) * OIntegerSerializer.INT_SIZE);
+        setLongValue(nextEntryPosition, rightChild);
+      }
+
+      if (index > 0) {
+        final int prevEntryPosition = getIntValue(POSITIONS_ARRAY_OFFSET + (index - 1) * OIntegerSerializer.INT_SIZE);
+        setLongValue(prevEntryPosition + OLongSerializer.LONG_SIZE, leftChild);
+      }
+    }
+
+    return true;
+  }
+
+  private void appendRawEntry(final int index, final byte[] rawEntry) {
+    int freePointer = getIntValue(FREE_POINTER_OFFSET);
+    freePointer -= rawEntry.length;
+
+    setIntValue(FREE_POINTER_OFFSET, freePointer);
+    setIntValue(POSITIONS_ARRAY_OFFSET + index * OIntegerSerializer.INT_SIZE, freePointer);
+
+    setBinaryValue(freePointer, rawEntry);
+  }
+
+  public boolean insertEntry(int index, SBTreeEntry<K, V> treeEntry, boolean updateNeighbors, OEncryption encryption,
+      OType[] keyTypes) {
+    final byte[] serializedKey = keySerializer.serializeNativeAsWhole(treeEntry.key, (Object[]) keyTypes);
+    final byte[] rawKey;
 
     if (encryption == null) {
+      rawKey = serializedKey;
+    } else {
+      final byte[] encryptedKey = encryption.encrypt(serializedKey);
+      rawKey = new byte[OIntegerSerializer.INT_SIZE + encryptedKey.length];
+      OIntegerSerializer.INSTANCE.serializeNative(encryptedKey.length, rawKey, 0);
+      System.arraycopy(encryptedKey, 0, rawKey, OIntegerSerializer.INT_SIZE, encryptedKey.length);
+    }
+
+    assert !treeEntry.value.isLink();
+    final byte[] serializedValue = valueSerializer.serializeNativeAsWhole(treeEntry.value.getValue());
+
+    if (isLeaf) {
+      return insertfKeyValue(index, serializedKey, serializedValue);
+    }
+
+    return insertNonLeafKeyNeighbours(index, serializedKey, (int) treeEntry.leftChild, (int) treeEntry.rightChild, updateNeighbors);
+  }
+
+  void updateValue(final int index, final byte[] value, boolean isEncrypted) {
+    int entryPosition = getIntValue(index * OIntegerSerializer.INT_SIZE + POSITIONS_ARRAY_OFFSET);
+
+    if (!isEncrypted) {
       entryPosition += getObjectSizeInDirectMemory(keySerializer, entryPosition);
     } else {
       final int encryptedValue = getIntValue(entryPosition);

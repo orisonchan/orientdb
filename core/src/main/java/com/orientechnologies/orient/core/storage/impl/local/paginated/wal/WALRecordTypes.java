@@ -43,7 +43,11 @@ public final class WALRecordTypes {
   public static final byte CLUSTER_STATE_V_ONE_SET_FILE_SIZE      = 37;
   public static final byte CLUSTER_STATE_V_ONE_SET_FREE_LIST_PAGE = 38;
 
-  public static final byte SBTREE_BUCKET_NEW_PAGE      = 39;
-  public static final byte SBTREE_BUCKET_SET_TREE_SIZE = 40;
+  public static final byte SBTREE_BUCKET_NEW_PAGE                  = 39;
+  public static final byte SBTREE_BUCKET_SET_TREE_SIZE             = 40;
+  public static final byte SBTREE_BUCKET_SET_FREE_LIST_FIRST_INDEX = 41;
+  public static final byte SBTREE_BUCKET_REMOVE_ENTRY              = 42;
+  public static final byte SBTREE_BUCKET_ADD_ALL                   = 43;
+  public static final byte SBTREE_BUCKET_SHRINK                    = 44;
 
 }
