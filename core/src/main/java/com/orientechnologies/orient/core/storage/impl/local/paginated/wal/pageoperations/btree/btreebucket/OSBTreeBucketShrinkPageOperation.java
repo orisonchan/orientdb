@@ -51,12 +51,15 @@ public final class OSBTreeBucketShrinkPageOperation extends OPageOperationRecord
     if (isLeaf) {
       for (int i = 0; i < removedEntries.size(); i++) {
         final byte[] entry = removedEntries.get(i);
-        page.insertLeafEntry(i + offset, entry);
+
+        final boolean inserted = page.insertLeafEntry(i + offset, entry, isEncrypted);
+        assert inserted;
       }
     } else {
       for (int i = 0; i < removedEntries.size(); i++) {
         final byte[] entry = removedEntries.get(i);
-        page.insertNonLeafEntry(i + offset, entry, false);
+        final boolean inserted = page.insertNonLeafEntry(i + offset, entry, false);
+        assert inserted;
       }
     }
   }

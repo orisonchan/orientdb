@@ -43,11 +43,17 @@ public final class WALRecordTypes {
   public static final byte CLUSTER_STATE_V_ONE_SET_FILE_SIZE      = 37;
   public static final byte CLUSTER_STATE_V_ONE_SET_FREE_LIST_PAGE = 38;
 
-  public static final byte SBTREE_BUCKET_NEW_PAGE                  = 39;
-  public static final byte SBTREE_BUCKET_SET_TREE_SIZE             = 40;
-  public static final byte SBTREE_BUCKET_SET_FREE_LIST_FIRST_INDEX = 41;
-  public static final byte SBTREE_BUCKET_REMOVE_ENTRY              = 42;
-  public static final byte SBTREE_BUCKET_ADD_ALL                   = 43;
-  public static final byte SBTREE_BUCKET_SHRINK                    = 44;
+  public static final byte SBTREE_BUCKET_NEW_PAGE                       = 39;
+  public static final byte SBTREE_BUCKET_SET_TREE_SIZE                  = 40;
+  public static final byte SBTREE_BUCKET_SET_FREE_LIST_FIRST_INDEX      = 41;
+  public static final byte SBTREE_BUCKET_REMOVE_LEAF_ENTRY              = 42;
+  public static final byte SBTREE_BUCKET_ADD_ALL                        = 43;
+  public static final byte SBTREE_BUCKET_SHRINK                         = 44;
+  public static final byte SBTREE_BUCKET_INSERT_LEAF_KEY_VALUE          = 45;
+  public static final byte SBTREE_BUCKET_INSERT_NON_LEAF_KEY_NEIGHBOURS = 46;
+  public static final byte SBTREE_BUCKET_REMOVE_NON_LEAF_ENTRY          = 47;
+  public static final byte SBTREE_BUCKET_UPDATE_VALUE                   = 48;
+  public static final byte SBTREE_BUCKET_SET_LEFT_SIBLING               = 49;
+  public static final byte SBTREE_BUCKET_SET_RIGHT_SIBLING              = 50;
 
 }

@@ -8,15 +8,15 @@ import com.orientechnologies.orient.core.storage.index.sbtree.local.OSBTreeBucke
 
 import java.nio.ByteBuffer;
 
-public final class OSBTreeBucketRemoveEntryPageOperation extends OPageOperationRecord<OSBTreeBucket> {
+public final class OSBTreeBucketRemoveLeafEntryPageOperation extends OPageOperationRecord<OSBTreeBucket> {
   private int    entryIndex;
   private byte[] rawKey;
   private byte[] rawValue;
 
-  public OSBTreeBucketRemoveEntryPageOperation() {
+  public OSBTreeBucketRemoveLeafEntryPageOperation() {
   }
 
-  public OSBTreeBucketRemoveEntryPageOperation(int entryIndex, byte[] rawKey, byte[] rawValue) {
+  public OSBTreeBucketRemoveLeafEntryPageOperation(int entryIndex, byte[] rawKey, byte[] rawValue) {
     this.entryIndex = entryIndex;
     this.rawKey = rawKey;
     this.rawValue = rawValue;
@@ -41,12 +41,12 @@ public final class OSBTreeBucketRemoveEntryPageOperation extends OPageOperationR
 
   @Override
   protected void doRedo(OSBTreeBucket page) {
-    page.remove(entryIndex, rawKey, rawValue);
+    page.removeLeafEntry(entryIndex, rawKey, rawValue);
   }
 
   @Override
   protected void doUndo(OSBTreeBucket page) {
-    page.insertfKeyValue(entryIndex, rawKey, rawValue);
+    page.insertLeafKeyValue(entryIndex, rawKey, rawValue);
   }
 
   @Override
@@ -56,7 +56,7 @@ public final class OSBTreeBucketRemoveEntryPageOperation extends OPageOperationR
 
   @Override
   public byte getId() {
-    return WALRecordTypes.SBTREE_BUCKET_REMOVE_ENTRY;
+    return WALRecordTypes.SBTREE_BUCKET_REMOVE_LEAF_ENTRY;
   }
 
   @Override

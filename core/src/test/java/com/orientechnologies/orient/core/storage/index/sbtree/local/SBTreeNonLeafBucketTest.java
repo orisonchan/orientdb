@@ -23,7 +23,7 @@ import java.util.TreeSet;
  */
 public class SBTreeNonLeafBucketTest {
   @Test
-  public void testInitialization() throws Exception {
+  public void testInitialization() {
     final OByteBufferPool bufferPool = OByteBufferPool.instance(null);
     final OPointer pointer = bufferPool.acquireDirect(true);
 
@@ -75,7 +75,7 @@ public class SBTreeNonLeafBucketTest {
     for (Long key : keys) {
       if (!treeBucket.insertEntry(index,
           new OSBTreeBucket.SBTreeEntry<Long, OIdentifiable>(random.nextInt(Integer.MAX_VALUE), random.nextInt(Integer.MAX_VALUE),
-              key, null), true, null, null))
+              key, null), null, null))
         break;
 
       keyIndexMap.put(key, index);
@@ -140,7 +140,7 @@ public class SBTreeNonLeafBucketTest {
     int index = 0;
     for (Long key : keys) {
       if (!treeBucket
-          .insertEntry(index, new OSBTreeBucket.SBTreeEntry<Long, OIdentifiable>(index, index + 1, key, null), true, null, null))
+          .insertEntry(index, new OSBTreeBucket.SBTreeEntry<Long, OIdentifiable>(index, index + 1, key, null), null, null))
         break;
 
       index++;
@@ -179,7 +179,7 @@ public class SBTreeNonLeafBucketTest {
     while (keysIterator.hasNext() && index < originalSize) {
       Long key = keysIterator.next();
 
-      if (!treeBucket.insertEntry(index, new OSBTreeBucket.SBTreeEntry<>(index, index + 1, key, null), true, null, null))
+      if (!treeBucket.insertEntry(index, new OSBTreeBucket.SBTreeEntry<>(index, index + 1, key, null), null, null))
         break;
 
       keyIndexMap.put(key, index);

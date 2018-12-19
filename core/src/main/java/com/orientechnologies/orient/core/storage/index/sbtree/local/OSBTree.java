@@ -314,12 +314,12 @@ public class OSBTree<K, V> extends ODurableComponent {
 
               assert oldRawValue != null;
               if (oldRawValue.length == serializeValue.length) {
-                keyBucket.updateValue(bucketSearchResult.itemIndex, serializeValue, encryption != null);
+                keyBucket.updateValue(bucketSearchResult.itemIndex, serializeValue, oldRawValue, encryption != null);
                 releasePageFromWrite(keyBucket, atomicOperation);
 
                 return true;
               } else {
-                keyBucket.remove(bucketSearchResult.itemIndex, rawKey, oldRawValue);
+                keyBucket.removeLeafEntry(bucketSearchResult.itemIndex, rawKey, oldRawValue);
                 insertionIndex = bucketSearchResult.itemIndex;
                 sizeDiff = 0;
               }
@@ -328,7 +328,7 @@ public class OSBTree<K, V> extends ODurableComponent {
               sizeDiff = 1;
             }
 
-            while (!keyBucket.insertfKeyValue(insertionIndex, rawKey, serializeValue)) {
+            while (!keyBucket.insertLeafKeyValue(insertionIndex, rawKey, serializeValue)) {
               releasePageFromWrite(keyBucket, atomicOperation);
 
               bucketSearchResult = splitBucket(bucketSearchResult.path, insertionIndex, key, atomicOperation);
@@ -648,7 +648,7 @@ public class OSBTree<K, V> extends ODurableComponent {
       }
 
       removedValue = keyBucket.getRawValue(bucketSearchResult.itemIndex, encryption);
-      keyBucket.remove(bucketSearchResult.itemIndex, rawKey, removedValue);
+      keyBucket.removeLeafEntry(bucketSearchResult.itemIndex, rawKey, removedValue);
       updateSize(-1, atomicOperation);
     } finally {
       releasePageFromWrite(keyBucket, atomicOperation);
@@ -1265,7 +1265,7 @@ public class OSBTree<K, V> extends ODurableComponent {
         assert insertionIndex < 0;
 
         insertionIndex = -insertionIndex - 1;
-        while (!parentBucket.insertEntry(insertionIndex, parentEntry, true, encryption, keyTypes)) {
+        while (!parentBucket.insertEntry(insertionIndex, parentEntry, encryption, keyTypes)) {
           releasePageFromWrite(parentBucket, atomicOperation);
 
           BucketSearchResult bucketSearchResult = splitBucket(path.subList(0, path.size() - 1), insertionIndex, separationKey,
@@ -1349,7 +1349,7 @@ public class OSBTree<K, V> extends ODurableComponent {
     bucketToSplit.setValuesFreeListFirstIndex(freeListPage);
 
     bucketToSplit.insertEntry(0,
-        new OSBTreeBucket.SBTreeEntry<>(leftBucketEntry.getPageIndex(), rightBucketEntry.getPageIndex(), separationKey, null), true,
+        new OSBTreeBucket.SBTreeEntry<>(leftBucketEntry.getPageIndex(), rightBucketEntry.getPageIndex(), separationKey, null),
         encryption, keyTypes);
 
     ArrayList<Long> resultPath = new ArrayList<>(path.subList(0, path.size() - 1));

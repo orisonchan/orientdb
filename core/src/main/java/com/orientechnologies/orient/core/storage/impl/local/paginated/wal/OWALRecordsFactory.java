@@ -24,6 +24,18 @@ import com.orientechnologies.common.serialization.types.OIntegerSerializer;
 import com.orientechnologies.common.util.OPair;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.cas.OEmptyWALRecord;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.cas.OWriteableWALRecord;
+import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.btree.btreebucket.OSBTreeBucketAddAllPageOperation;
+import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.btree.btreebucket.OSBTreeBucketInsertLeafKeyValuePageOperation;
+import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.btree.btreebucket.OSBTreeBucketInsertNonLeafKeyNeighboursPageOperation;
+import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.btree.btreebucket.OSBTreeBucketNewPageOperation;
+import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.btree.btreebucket.OSBTreeBucketRemoveLeafEntryPageOperation;
+import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.btree.btreebucket.OSBTreeBucketRemoveNonLeafEntryPageOperation;
+import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.btree.btreebucket.OSBTreeBucketSetLeftSiblingPageOperation;
+import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.btree.btreebucket.OSBTreeBucketSetRightSiblingPageOperation;
+import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.btree.btreebucket.OSBTreeBucketSetTreeSizePageOperation;
+import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.btree.btreebucket.OSBTreeBucketShrinkPageOperation;
+import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.btree.btreebucket.OSBTreeBucketUpdateValuePageOperation;
+import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.btree.btreebucket.OSBtreeBucketSetFreeListFirstIndexPageOperation;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.cluster.clusterpage.OClusterPageAppendRecordOperation;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.cluster.clusterpage.OClusterPageDeleteRecordOperation;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.cluster.clusterpage.OClusterPageNewPageOperation;
@@ -94,6 +106,18 @@ import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal
 import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.MAP_ENTRY_POINT_NEW_PAGE;
 import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.MAP_ENTRY_POINT_SET_FILE_SIZE;
 import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.NON_TX_OPERATION_PERFORMED_WAL_RECORD;
+import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.SBTREE_BUCKET_ADD_ALL;
+import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.SBTREE_BUCKET_INSERT_LEAF_KEY_VALUE;
+import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.SBTREE_BUCKET_INSERT_NON_LEAF_KEY_NEIGHBOURS;
+import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.SBTREE_BUCKET_NEW_PAGE;
+import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.SBTREE_BUCKET_REMOVE_LEAF_ENTRY;
+import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.SBTREE_BUCKET_REMOVE_NON_LEAF_ENTRY;
+import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.SBTREE_BUCKET_SET_FREE_LIST_FIRST_INDEX;
+import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.SBTREE_BUCKET_SET_LEFT_SIBLING;
+import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.SBTREE_BUCKET_SET_RIGHT_SIBLING;
+import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.SBTREE_BUCKET_SET_TREE_SIZE;
+import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.SBTREE_BUCKET_SHRINK;
+import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.SBTREE_BUCKET_UPDATE_VALUE;
 import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.UPDATE_PAGE_RECORD;
 
 /**
@@ -272,6 +296,42 @@ public final class OWALRecordsFactory {
       break;
     case CLUSTER_STATE_V_ONE_SET_FREE_LIST_PAGE:
       walRecord = new OClusterStateVOneSetFreeListPageOperation();
+      break;
+    case SBTREE_BUCKET_NEW_PAGE:
+      walRecord = new OSBTreeBucketNewPageOperation();
+      break;
+    case SBTREE_BUCKET_SET_TREE_SIZE:
+      walRecord = new OSBTreeBucketSetTreeSizePageOperation();
+      break;
+    case SBTREE_BUCKET_SET_FREE_LIST_FIRST_INDEX:
+      walRecord = new OSBtreeBucketSetFreeListFirstIndexPageOperation();
+      break;
+    case SBTREE_BUCKET_REMOVE_LEAF_ENTRY:
+      walRecord = new OSBTreeBucketRemoveLeafEntryPageOperation();
+      break;
+    case SBTREE_BUCKET_ADD_ALL:
+      walRecord = new OSBTreeBucketAddAllPageOperation();
+      break;
+    case SBTREE_BUCKET_SHRINK:
+      walRecord = new OSBTreeBucketShrinkPageOperation();
+      break;
+    case SBTREE_BUCKET_INSERT_LEAF_KEY_VALUE:
+      walRecord = new OSBTreeBucketInsertLeafKeyValuePageOperation();
+      break;
+    case SBTREE_BUCKET_INSERT_NON_LEAF_KEY_NEIGHBOURS:
+      walRecord = new OSBTreeBucketInsertNonLeafKeyNeighboursPageOperation();
+      break;
+    case SBTREE_BUCKET_REMOVE_NON_LEAF_ENTRY:
+      walRecord = new OSBTreeBucketRemoveNonLeafEntryPageOperation();
+      break;
+    case SBTREE_BUCKET_UPDATE_VALUE:
+      walRecord = new OSBTreeBucketUpdateValuePageOperation();
+      break;
+    case SBTREE_BUCKET_SET_LEFT_SIBLING:
+      walRecord = new OSBTreeBucketSetLeftSiblingPageOperation();
+      break;
+    case SBTREE_BUCKET_SET_RIGHT_SIBLING:
+      walRecord = new OSBTreeBucketSetRightSiblingPageOperation();
       break;
     default:
       if (idToTypeMap.containsKey(content[0])) {
