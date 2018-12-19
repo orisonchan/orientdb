@@ -22,11 +22,12 @@ package com.orientechnologies.orient.core.storage.index.sbtree.local;
 import com.orientechnologies.common.serialization.types.OBinarySerializer;
 import com.orientechnologies.orient.core.storage.cache.OCacheEntry;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.base.ODurablePage;
+import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.btree.btreenullbucket.OSBTreeNullBucketRemoveValuePageOperation;
+import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.btree.btreenullbucket.OSBTreeNullBucketSetValuePageOperation;
 
 import java.io.IOException;
 
 /**
- * 
  * Bucket which is intended to save values stored in sbtree under <code>null</code> key. Bucket has following layout:
  * <ol>
  * <li>First byte is flag which indicates presence of value in bucket</li>
@@ -34,7 +35,7 @@ import java.io.IOException;
  * passed be user.</li>
  * <li>The rest is serialized value whether link or passed in value.</li>
  * </ol>
- * 
+ *
  * @author Andrey Lomakin (a.lomakin-at-orientdb.com)
  * @since 4/15/14
  */
@@ -45,25 +46,34 @@ public class ONullBucket<V> extends ODurablePage {
     super(cacheEntry);
     this.valueSerializer = valueSerializer;
 
-    if (isNew)
+    if (isNew) {
       setByteValue(NEXT_FREE_POSITION, (byte) 0);
+    }
+
   }
 
-  public void setValue(OSBTreeValue<V> value) throws IOException {
-    setByteValue(NEXT_FREE_POSITION, (byte) 1);
+  public void setValue(OSBTreeValue<V> value) {
+    final int valueSize = valueSerializer.getObjectSize(value.getValue());
 
-    if (value.isLink()) {
-      setByteValue(NEXT_FREE_POSITION + 1, (byte) 0);
-      setLongValue(NEXT_FREE_POSITION + 2, value.getLink());
+    final byte[] serializedValue = new byte[valueSize];
+    valueSerializer.serializeNativeObject(value.getValue(), serializedValue, 0);
+
+    setValue(serializedValue);
+  }
+
+  public void setValue(final byte[] value) {
+    final byte[] prevValue;
+    if (getByteValue(NEXT_FREE_POSITION) == 0) {
+      prevValue = null;
     } else {
-      final int valueSize = valueSerializer.getObjectSize(value.getValue());
-
-      final byte[] serializedValue = new byte[valueSize];
-      valueSerializer.serializeNativeObject(value.getValue(), serializedValue, 0);
-
-      setByteValue(NEXT_FREE_POSITION + 1, (byte) 1);
-      setBinaryValue(NEXT_FREE_POSITION + 2, serializedValue);
+      prevValue = getBinaryValue(NEXT_FREE_POSITION + 2, getObjectSizeInDirectMemory(valueSerializer, NEXT_FREE_POSITION + 2));
     }
+
+    setByteValue(NEXT_FREE_POSITION, (byte) 1);
+    setByteValue(NEXT_FREE_POSITION + 1, (byte) 1);
+    setBinaryValue(NEXT_FREE_POSITION + 2, value);
+
+    addPageOperation(new OSBTreeNullBucketSetValuePageOperation(value, prevValue));
   }
 
   public OSBTreeValue<V> getValue() {
@@ -78,6 +88,12 @@ public class ONullBucket<V> extends ODurablePage {
   }
 
   public void removeValue() {
-    setByteValue(NEXT_FREE_POSITION, (byte) 0);
+    if (getByteValue(NEXT_FREE_POSITION) > 0) {
+      final byte[] prevValue = getBinaryValue(NEXT_FREE_POSITION + 2,
+          getObjectSizeInDirectMemory(valueSerializer, NEXT_FREE_POSITION + 2));
+      setByteValue(NEXT_FREE_POSITION, (byte) 0);
+
+      addPageOperation(new OSBTreeNullBucketRemoveValuePageOperation(prevValue));
+    }
   }
 }

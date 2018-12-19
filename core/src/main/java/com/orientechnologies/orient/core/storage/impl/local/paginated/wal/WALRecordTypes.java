@@ -56,4 +56,7 @@ public final class WALRecordTypes {
   public static final byte SBTREE_BUCKET_SET_LEFT_SIBLING               = 49;
   public static final byte SBTREE_BUCKET_SET_RIGHT_SIBLING              = 50;
 
+  public static final byte SBTREE_NULL_BUCKET_SET_VALUE    = 51;
+  public static final byte SBTREE_NULL_BUCKET_REMOVE_VALUE = 52;
+
 }

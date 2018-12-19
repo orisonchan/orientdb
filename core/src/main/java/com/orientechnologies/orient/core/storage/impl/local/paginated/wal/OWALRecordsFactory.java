@@ -36,6 +36,8 @@ import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageop
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.btree.btreebucket.OSBTreeBucketShrinkPageOperation;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.btree.btreebucket.OSBTreeBucketUpdateValuePageOperation;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.btree.btreebucket.OSBtreeBucketSetFreeListFirstIndexPageOperation;
+import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.btree.btreenullbucket.OSBTreeNullBucketRemoveValuePageOperation;
+import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.btree.btreenullbucket.OSBTreeNullBucketSetValuePageOperation;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.cluster.clusterpage.OClusterPageAppendRecordOperation;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.cluster.clusterpage.OClusterPageDeleteRecordOperation;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.cluster.clusterpage.OClusterPageNewPageOperation;
@@ -118,6 +120,8 @@ import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal
 import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.SBTREE_BUCKET_SET_TREE_SIZE;
 import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.SBTREE_BUCKET_SHRINK;
 import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.SBTREE_BUCKET_UPDATE_VALUE;
+import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.SBTREE_NULL_BUCKET_REMOVE_VALUE;
+import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.SBTREE_NULL_BUCKET_SET_VALUE;
 import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.UPDATE_PAGE_RECORD;
 
 /**
@@ -332,6 +336,12 @@ public final class OWALRecordsFactory {
       break;
     case SBTREE_BUCKET_SET_RIGHT_SIBLING:
       walRecord = new OSBTreeBucketSetRightSiblingPageOperation();
+      break;
+    case SBTREE_NULL_BUCKET_SET_VALUE:
+      walRecord = new OSBTreeNullBucketSetValuePageOperation();
+      break;
+    case SBTREE_NULL_BUCKET_REMOVE_VALUE:
+      walRecord = new OSBTreeNullBucketRemoveValuePageOperation();
       break;
     default:
       if (idToTypeMap.containsKey(content[0])) {
