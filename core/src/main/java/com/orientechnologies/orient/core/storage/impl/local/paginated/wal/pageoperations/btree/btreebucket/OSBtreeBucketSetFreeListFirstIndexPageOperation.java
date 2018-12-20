@@ -20,6 +20,14 @@ public final class OSBtreeBucketSetFreeListFirstIndexPageOperation extends OPage
     this.oldPageIndex = oldPageIndex;
   }
 
+  public int getFreeListPageIndex() {
+    return pageIndex;
+  }
+
+  public int getPrevPageIndex() {
+    return oldPageIndex;
+  }
+
   @Override
   protected OSBTreeBucket createPageInstance(OCacheEntry cacheEntry) {
     return new OSBTreeBucket(cacheEntry);

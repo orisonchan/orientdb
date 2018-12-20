@@ -10,14 +10,22 @@ import java.nio.ByteBuffer;
 
 public final class OSBTreeBucketSetTreeSizePageOperation extends OPageOperationRecord<OSBTreeBucket> {
   private int treeSize;
-  private int oldTreeSize;
+  private int prevTreeSize;
 
   public OSBTreeBucketSetTreeSizePageOperation() {
   }
 
-  public OSBTreeBucketSetTreeSizePageOperation(int treeSize, int oldTreeSize) {
+  public OSBTreeBucketSetTreeSizePageOperation(int treeSize, int prevTreeSize) {
     this.treeSize = treeSize;
-    this.oldTreeSize = oldTreeSize;
+    this.prevTreeSize = prevTreeSize;
+  }
+
+  public int getTreeSize() {
+    return treeSize;
+  }
+
+  public int getPrevTreeSize() {
+    return prevTreeSize;
   }
 
   @Override
@@ -32,7 +40,7 @@ public final class OSBTreeBucketSetTreeSizePageOperation extends OPageOperationR
 
   @Override
   protected void doUndo(OSBTreeBucket page) {
-    page.setTreeSize(oldTreeSize);
+    page.setTreeSize(prevTreeSize);
   }
 
   @Override
@@ -52,7 +60,7 @@ public final class OSBTreeBucketSetTreeSizePageOperation extends OPageOperationR
     OIntegerSerializer.INSTANCE.serializeNative(treeSize, content, offset);
     offset += OIntegerSerializer.INT_SIZE;
 
-    OIntegerSerializer.INSTANCE.serializeNative(oldTreeSize, content, offset);
+    OIntegerSerializer.INSTANCE.serializeNative(prevTreeSize, content, offset);
     offset += OIntegerSerializer.INT_SIZE;
 
     return offset;
@@ -63,7 +71,7 @@ public final class OSBTreeBucketSetTreeSizePageOperation extends OPageOperationR
     super.toStream(buffer);
 
     buffer.putInt(treeSize);
-    buffer.putInt(oldTreeSize);
+    buffer.putInt(prevTreeSize);
   }
 
   @Override
@@ -73,7 +81,7 @@ public final class OSBTreeBucketSetTreeSizePageOperation extends OPageOperationR
     treeSize = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
     offset += OIntegerSerializer.INT_SIZE;
 
-    oldTreeSize = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
+    prevTreeSize = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
     offset += OIntegerSerializer.INT_SIZE;
 
     return offset;

@@ -1,5 +1,6 @@
 package com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.btree.btreenullbucket;
 
+import com.orientechnologies.common.serialization.types.OByteSerializer;
 import com.orientechnologies.common.serialization.types.OIntegerSerializer;
 import com.orientechnologies.orient.core.storage.cache.OCacheEntry;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OPageOperationRecord;
@@ -8,7 +9,7 @@ import com.orientechnologies.orient.core.storage.index.sbtree.local.ONullBucket;
 
 import java.nio.ByteBuffer;
 
-public class OSBTreeNullBucketSetValuePageOperation extends OPageOperationRecord<ONullBucket> {
+public final class OSBTreeNullBucketSetValuePageOperation extends OPageOperationRecord<ONullBucket> {
   private byte[] value;
   private byte[] prevValue;
 
@@ -18,6 +19,14 @@ public class OSBTreeNullBucketSetValuePageOperation extends OPageOperationRecord
   public OSBTreeNullBucketSetValuePageOperation(byte[] value, byte[] prevValue) {
     this.value = value;
     this.prevValue = prevValue;
+  }
+
+  public byte[] getValue() {
+    return value;
+  }
+
+  public byte[] getPrevValue() {
+    return prevValue;
   }
 
   @Override
@@ -98,6 +107,8 @@ public class OSBTreeNullBucketSetValuePageOperation extends OPageOperationRecord
     offset = super.fromStream(content, offset);
 
     int valLen = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
+    offset += OIntegerSerializer.INT_SIZE;
+
     value = new byte[valLen];
 
     System.arraycopy(content, offset, value, 0, valLen);
@@ -121,6 +132,8 @@ public class OSBTreeNullBucketSetValuePageOperation extends OPageOperationRecord
 
   @Override
   public int serializedSize() {
-    return super.serializedSize() + 2 * OIntegerSerializer.INT_SIZE + value.length + prevValue.length;
+    return super.serializedSize() + OIntegerSerializer.INT_SIZE + value.length + (prevValue == null ?
+        OByteSerializer.BYTE_SIZE :
+        (prevValue.length + OByteSerializer.BYTE_SIZE + OIntegerSerializer.INT_SIZE));
   }
 }

@@ -8,7 +8,7 @@ import com.orientechnologies.orient.core.storage.index.sbtree.local.OSBTreeBucke
 
 import java.nio.ByteBuffer;
 
-public class OSBTreeBucketInsertLeafKeyValuePageOperation extends OPageOperationRecord<OSBTreeBucket> {
+public final class OSBTreeBucketInsertLeafKeyValuePageOperation extends OPageOperationRecord<OSBTreeBucket> {
   private int    index;
   private byte[] serializedKey;
   private byte[] serializedValue;
@@ -20,6 +20,18 @@ public class OSBTreeBucketInsertLeafKeyValuePageOperation extends OPageOperation
     this.index = index;
     this.serializedKey = serializedKey;
     this.serializedValue = serializedValue;
+  }
+
+  public int getIndex() {
+    return index;
+  }
+
+  public byte[] getSerializedKey() {
+    return serializedKey;
+  }
+
+  public byte[] getSerializedValue() {
+    return serializedValue;
   }
 
   @Override

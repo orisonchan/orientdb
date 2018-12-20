@@ -8,7 +8,7 @@ import com.orientechnologies.orient.core.storage.index.sbtree.local.OSBTreeBucke
 
 import java.nio.ByteBuffer;
 
-public class OSBTreeBucketSetLeftSiblingPageOperation extends OPageOperationRecord<OSBTreeBucket> {
+public final class OSBTreeBucketSetLeftSiblingPageOperation extends OPageOperationRecord<OSBTreeBucket> {
   private int leftSibling;
   private int prevLeftSibling;
 
@@ -18,6 +18,14 @@ public class OSBTreeBucketSetLeftSiblingPageOperation extends OPageOperationReco
   public OSBTreeBucketSetLeftSiblingPageOperation(int leftSibling, int prevLeftSibling) {
     this.leftSibling = leftSibling;
     this.prevLeftSibling = prevLeftSibling;
+  }
+
+  public int getLeftSibling() {
+    return leftSibling;
+  }
+
+  public int getPrevLeftSibling() {
+    return prevLeftSibling;
   }
 
   @Override

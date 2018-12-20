@@ -1,5 +1,6 @@
 package com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.btree.btreebucket;
 
+import com.orientechnologies.common.serialization.types.OByteSerializer;
 import com.orientechnologies.common.serialization.types.OIntegerSerializer;
 import com.orientechnologies.orient.core.storage.cache.OCacheEntry;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OPageOperationRecord;
@@ -22,6 +23,18 @@ public final class OSBTreeBucketShrinkPageOperation extends OPageOperationRecord
     this.removedEntries = removedEntries;
     this.newSize = newSize;
     this.isEncrypted = isEncrypted;
+  }
+
+  public List<byte[]> getRemovedEntries() {
+    return removedEntries;
+  }
+
+  public int getNewSize() {
+    return newSize;
+  }
+
+  public boolean isEncrypted() {
+    return isEncrypted;
   }
 
   @Override
@@ -68,6 +81,12 @@ public final class OSBTreeBucketShrinkPageOperation extends OPageOperationRecord
   public int toStream(byte[] content, int offset) {
     offset = super.toStream(content, offset);
 
+    OIntegerSerializer.INSTANCE.serializeNative(newSize, content, offset);
+    offset += OIntegerSerializer.INT_SIZE;
+
+    content[offset] = isEncrypted ? (byte) 1 : 0;
+    offset++;
+
     OIntegerSerializer.INSTANCE.serializeNative(removedEntries.size(), content, offset);
     offset += OIntegerSerializer.INT_SIZE;
 
@@ -85,6 +104,9 @@ public final class OSBTreeBucketShrinkPageOperation extends OPageOperationRecord
   @Override
   public void toStream(ByteBuffer buffer) {
     super.toStream(buffer);
+    buffer.putInt(newSize);
+    buffer.put(isEncrypted ? (byte) 1 : 0);
+
     buffer.putInt(removedEntries.size());
 
     for (byte[] entry : removedEntries) {
@@ -96,6 +118,12 @@ public final class OSBTreeBucketShrinkPageOperation extends OPageOperationRecord
   @Override
   public int fromStream(byte[] content, int offset) {
     offset = super.fromStream(content, offset);
+
+    newSize = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
+    offset += OIntegerSerializer.INT_SIZE;
+
+    isEncrypted = content[offset] == 1;
+    offset++;
 
     int entriesSize = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
     offset += OIntegerSerializer.INT_SIZE;
@@ -123,6 +151,6 @@ public final class OSBTreeBucketShrinkPageOperation extends OPageOperationRecord
       totalSize += entry.length;
     }
 
-    return super.serializedSize() + totalSize;
+    return super.serializedSize() + totalSize + OIntegerSerializer.INT_SIZE + OByteSerializer.BYTE_SIZE;
   }
 }

@@ -8,7 +8,7 @@ import com.orientechnologies.orient.core.storage.index.sbtree.local.ONullBucket;
 
 import java.nio.ByteBuffer;
 
-public class OSBTreeNullBucketRemoveValuePageOperation extends OPageOperationRecord<ONullBucket> {
+public final class OSBTreeNullBucketRemoveValuePageOperation extends OPageOperationRecord<ONullBucket> {
   private byte[] previousValue;
 
   public OSBTreeNullBucketRemoveValuePageOperation() {
@@ -16,6 +16,10 @@ public class OSBTreeNullBucketRemoveValuePageOperation extends OPageOperationRec
 
   public OSBTreeNullBucketRemoveValuePageOperation(byte[] previousValue) {
     this.previousValue = previousValue;
+  }
+
+  public byte[] getPreviousValue() {
+    return previousValue;
   }
 
   @Override

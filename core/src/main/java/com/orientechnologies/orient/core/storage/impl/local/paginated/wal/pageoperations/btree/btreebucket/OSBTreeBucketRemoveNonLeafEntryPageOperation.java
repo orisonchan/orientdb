@@ -30,6 +30,26 @@ public final class OSBTreeBucketRemoveNonLeafEntryPageOperation extends OPageOpe
     this.rightNeighbour = rightNeighbour;
   }
 
+  public int getIndex() {
+    return index;
+  }
+
+  public byte[] getKey() {
+    return key;
+  }
+
+  public int getPrevChildPointer() {
+    return prevChildPointer;
+  }
+
+  public int getLeftNeighbour() {
+    return leftNeighbour;
+  }
+
+  public int getRightNeighbour() {
+    return rightNeighbour;
+  }
+
   @Override
   public boolean isUpdateMasterRecord() {
     return false;

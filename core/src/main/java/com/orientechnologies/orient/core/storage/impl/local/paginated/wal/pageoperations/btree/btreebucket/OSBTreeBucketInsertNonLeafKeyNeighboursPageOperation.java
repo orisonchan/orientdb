@@ -8,7 +8,7 @@ import com.orientechnologies.orient.core.storage.index.sbtree.local.OSBTreeBucke
 
 import java.nio.ByteBuffer;
 
-public class OSBTreeBucketInsertNonLeafKeyNeighboursPageOperation extends OPageOperationRecord<OSBTreeBucket> {
+public final class OSBTreeBucketInsertNonLeafKeyNeighboursPageOperation extends OPageOperationRecord<OSBTreeBucket> {
   private int    index;
   private byte[] serializedKey;
   private int    leftChild;
@@ -27,6 +27,26 @@ public class OSBTreeBucketInsertNonLeafKeyNeighboursPageOperation extends OPageO
     this.rightChild = rightChild;
 
     this.prevChildPointer = prevChildPointer;
+  }
+
+  public int getIndex() {
+    return index;
+  }
+
+  public byte[] getSerializedKey() {
+    return serializedKey;
+  }
+
+  public int getLeftChild() {
+    return leftChild;
+  }
+
+  public int getRightChild() {
+    return rightChild;
+  }
+
+  public int getPrevChildPointer() {
+    return prevChildPointer;
   }
 
   @Override

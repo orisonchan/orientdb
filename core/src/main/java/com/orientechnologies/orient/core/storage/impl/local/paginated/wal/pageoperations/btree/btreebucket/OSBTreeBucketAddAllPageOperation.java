@@ -1,7 +1,6 @@
 package com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.btree.btreebucket;
 
 import com.orientechnologies.common.serialization.types.OIntegerSerializer;
-import com.orientechnologies.orient.core.sql.parser.OInteger;
 import com.orientechnologies.orient.core.storage.cache.OCacheEntry;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OPageOperationRecord;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes;
@@ -19,6 +18,10 @@ public final class OSBTreeBucketAddAllPageOperation extends OPageOperationRecord
 
   public OSBTreeBucketAddAllPageOperation(List<byte[]> entries) {
     this.entries = entries;
+  }
+
+  public List<byte[]> getEntries() {
+    return entries;
   }
 
   @Override
@@ -89,7 +92,7 @@ public final class OSBTreeBucketAddAllPageOperation extends OPageOperationRecord
       offset += OIntegerSerializer.INT_SIZE;
 
       final byte[] entry = new byte[entrySize];
-      System.arraycopy(content, offset, entry, 0, entriesSize);
+      System.arraycopy(content, offset, entry, 0, entrySize);
       offset += entrySize;
 
       entries.add(entry);

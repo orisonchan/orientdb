@@ -8,7 +8,7 @@ import com.orientechnologies.orient.core.storage.index.sbtree.local.OSBTreeBucke
 
 import java.nio.ByteBuffer;
 
-public class OSBTreeBucketSetRightSiblingPageOperation extends OPageOperationRecord<OSBTreeBucket> {
+public final class OSBTreeBucketSetRightSiblingPageOperation extends OPageOperationRecord<OSBTreeBucket> {
   private int rightSibling;
   private int prevRightSibling;
 
@@ -18,6 +18,14 @@ public class OSBTreeBucketSetRightSiblingPageOperation extends OPageOperationRec
   public OSBTreeBucketSetRightSiblingPageOperation(int rightSibling, int prevRightSibling) {
     this.rightSibling = rightSibling;
     this.prevRightSibling = prevRightSibling;
+  }
+
+  public int getRightSibling() {
+    return rightSibling;
+  }
+
+  public int getPrevRightSibling() {
+    return prevRightSibling;
   }
 
   @Override
@@ -49,10 +57,10 @@ public class OSBTreeBucketSetRightSiblingPageOperation extends OPageOperationRec
   public int toStream(byte[] content, int offset) {
     offset = super.toStream(content, offset);
 
-    rightSibling = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
+    OIntegerSerializer.INSTANCE.serializeNative(rightSibling, content, offset);
     offset += OIntegerSerializer.INT_SIZE;
 
-    prevRightSibling = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
+    OIntegerSerializer.INSTANCE.serializeNative(prevRightSibling, content, offset);
     offset += OIntegerSerializer.INT_SIZE;
 
     return offset;

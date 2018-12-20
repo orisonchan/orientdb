@@ -1,5 +1,6 @@
 package com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.btree.btreebucket;
 
+import com.orientechnologies.common.serialization.types.OByteSerializer;
 import com.orientechnologies.common.serialization.types.OIntegerSerializer;
 import com.orientechnologies.orient.core.storage.cache.OCacheEntry;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OPageOperationRecord;
@@ -8,7 +9,7 @@ import com.orientechnologies.orient.core.storage.index.sbtree.local.OSBTreeBucke
 
 import java.nio.ByteBuffer;
 
-public class OSBTreeBucketUpdateValuePageOperation extends OPageOperationRecord<OSBTreeBucket> {
+public final class OSBTreeBucketUpdateValuePageOperation extends OPageOperationRecord<OSBTreeBucket> {
   private int     index;
   private byte[]  value;
   private byte[]  prevValue;
@@ -22,6 +23,22 @@ public class OSBTreeBucketUpdateValuePageOperation extends OPageOperationRecord<
     this.value = value;
     this.prevValue = prevValue;
     this.isEncrypted = isEncrypted;
+  }
+
+  public int getIndex() {
+    return index;
+  }
+
+  public byte[] getValue() {
+    return value;
+  }
+
+  public byte[] getPrevValue() {
+    return prevValue;
+  }
+
+  public boolean isEncrypted() {
+    return isEncrypted;
   }
 
   @Override
@@ -68,6 +85,9 @@ public class OSBTreeBucketUpdateValuePageOperation extends OPageOperationRecord<
     System.arraycopy(prevValue, 0, content, offset, prevValue.length);
     offset += prevValue.length;
 
+    content[offset] = isEncrypted ? (byte) 1 : 0;
+    offset++;
+
     return offset;
   }
 
@@ -82,6 +102,8 @@ public class OSBTreeBucketUpdateValuePageOperation extends OPageOperationRecord<
 
     buffer.putInt(prevValue.length);
     buffer.put(prevValue);
+
+    buffer.put(isEncrypted ? (byte) 1 : 0);
   }
 
   @Override
@@ -105,11 +127,14 @@ public class OSBTreeBucketUpdateValuePageOperation extends OPageOperationRecord<
     System.arraycopy(content, offset, prevValue, 0, prevValLen);
     offset += prevValLen;
 
+    isEncrypted = content[offset] == 1;
+    offset++;
+
     return offset;
   }
 
   @Override
   public int serializedSize() {
-    return super.serializedSize() + 2 * OIntegerSerializer.INT_SIZE + value.length + prevValue.length;
+    return super.serializedSize() + 3 * OIntegerSerializer.INT_SIZE + value.length + prevValue.length + OByteSerializer.BYTE_SIZE;
   }
 }
