@@ -55,8 +55,10 @@ public final class WALRecordTypes {
   public static final byte SBTREE_BUCKET_UPDATE_VALUE                   = 48;
   public static final byte SBTREE_BUCKET_SET_LEFT_SIBLING               = 49;
   public static final byte SBTREE_BUCKET_SET_RIGHT_SIBLING              = 50;
+  public static final byte SBTREE_BUCKET_CONVERT_TO_LEAF_PAGE           = 51;
+  public static final byte SBTREE_BUCKET_CONVERT_TO_NON_LEAF_PAGE       = 52;
 
-  public static final byte SBTREE_NULL_BUCKET_SET_VALUE    = 51;
-  public static final byte SBTREE_NULL_BUCKET_REMOVE_VALUE = 52;
+  public static final byte SBTREE_NULL_BUCKET_SET_VALUE    = 53;
+  public static final byte SBTREE_NULL_BUCKET_REMOVE_VALUE = 54;
 
 }

@@ -25,6 +25,8 @@ import com.orientechnologies.common.util.OPair;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.cas.OEmptyWALRecord;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.cas.OWriteableWALRecord;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.btree.btreebucket.OSBTreeBucketAddAllPageOperation;
+import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.btree.btreebucket.OSBTreeBucketConvertToLeafPageOperation;
+import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.btree.btreebucket.OSBTreeBucketConvertToNonLeafPageOperation;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.btree.btreebucket.OSBTreeBucketInsertLeafKeyValuePageOperation;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.btree.btreebucket.OSBTreeBucketInsertNonLeafKeyNeighboursPageOperation;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.btree.btreebucket.OSBTreeBucketNewPageOperation;
@@ -109,6 +111,8 @@ import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal
 import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.MAP_ENTRY_POINT_SET_FILE_SIZE;
 import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.NON_TX_OPERATION_PERFORMED_WAL_RECORD;
 import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.SBTREE_BUCKET_ADD_ALL;
+import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.SBTREE_BUCKET_CONVERT_TO_LEAF_PAGE;
+import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.SBTREE_BUCKET_CONVERT_TO_NON_LEAF_PAGE;
 import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.SBTREE_BUCKET_INSERT_LEAF_KEY_VALUE;
 import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.SBTREE_BUCKET_INSERT_NON_LEAF_KEY_NEIGHBOURS;
 import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.SBTREE_BUCKET_NEW_PAGE;
@@ -342,6 +346,12 @@ public final class OWALRecordsFactory {
       break;
     case SBTREE_NULL_BUCKET_REMOVE_VALUE:
       walRecord = new OSBTreeNullBucketRemoveValuePageOperation();
+      break;
+    case SBTREE_BUCKET_CONVERT_TO_LEAF_PAGE:
+      walRecord = new OSBTreeBucketConvertToLeafPageOperation();
+      break;
+    case SBTREE_BUCKET_CONVERT_TO_NON_LEAF_PAGE:
+      walRecord = new OSBTreeBucketConvertToNonLeafPageOperation();
       break;
     default:
       if (idToTypeMap.containsKey(content[0])) {

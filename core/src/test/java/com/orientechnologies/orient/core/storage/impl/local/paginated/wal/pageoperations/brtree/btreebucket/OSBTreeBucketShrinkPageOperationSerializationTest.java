@@ -31,7 +31,11 @@ public class OSBTreeBucketShrinkPageOperationSerializationTest {
       removed.add(entry);
     }
 
-    OSBTreeBucketShrinkPageOperation operation = new OSBTreeBucketShrinkPageOperation(removed, newSize, isEncrypted);
+    final byte keySerializerId = 3;
+    final byte valueSerializerId = 5;
+
+    OSBTreeBucketShrinkPageOperation operation = new OSBTreeBucketShrinkPageOperation(removed, newSize, keySerializerId,
+        valueSerializerId, isEncrypted);
     operation.setFileId(fileId);
     operation.setPageIndex(pageIndex);
     operation.setOperationUnitId(operationUnitId);
@@ -40,9 +44,9 @@ public class OSBTreeBucketShrinkPageOperationSerializationTest {
     final byte[] stream = new byte[serializedSize + 1];
     int offset = operation.toStream(stream, 1);
 
-    Assert.assertEquals(serializedSize  +1, offset);
+    Assert.assertEquals(serializedSize + 1, offset);
 
-    OSBTreeBucketShrinkPageOperation  restoredOperation = new OSBTreeBucketShrinkPageOperation();
+    OSBTreeBucketShrinkPageOperation restoredOperation = new OSBTreeBucketShrinkPageOperation();
     offset = restoredOperation.fromStream(stream, 1);
 
     Assert.assertEquals(serializedSize + 1, offset);
@@ -51,6 +55,8 @@ public class OSBTreeBucketShrinkPageOperationSerializationTest {
     Assert.assertEquals(operationUnitId, restoredOperation.getOperationUnitId());
     Assert.assertEquals(newSize, restoredOperation.getNewSize());
     Assert.assertEquals(isEncrypted, restoredOperation.isEncrypted());
+    Assert.assertEquals(keySerializerId, restoredOperation.getKeySerializerId());
+    Assert.assertEquals(valueSerializerId, restoredOperation.getValueSerializerId());
 
     final List<byte[]> restoredEntries = restoredOperation.getRemovedEntries();
     Assert.assertEquals(removed.size(), restoredEntries.size());
@@ -81,7 +87,11 @@ public class OSBTreeBucketShrinkPageOperationSerializationTest {
       removed.add(entry);
     }
 
-    OSBTreeBucketShrinkPageOperation operation = new OSBTreeBucketShrinkPageOperation(removed, newSize, isEncrypted);
+    final byte keySerializerId = 3;
+    final byte valueSerializerId = 5;
+
+    OSBTreeBucketShrinkPageOperation operation = new OSBTreeBucketShrinkPageOperation(removed, newSize, keySerializerId,
+        valueSerializerId, isEncrypted);
     operation.setFileId(fileId);
     operation.setPageIndex(pageIndex);
     operation.setOperationUnitId(operationUnitId);
@@ -92,9 +102,9 @@ public class OSBTreeBucketShrinkPageOperationSerializationTest {
 
     operation.toStream(buffer);
 
-    Assert.assertEquals(serializedSize  +1, buffer.position());
+    Assert.assertEquals(serializedSize + 1, buffer.position());
 
-    OSBTreeBucketShrinkPageOperation  restoredOperation = new OSBTreeBucketShrinkPageOperation();
+    OSBTreeBucketShrinkPageOperation restoredOperation = new OSBTreeBucketShrinkPageOperation();
     int offset = restoredOperation.fromStream(buffer.array(), 1);
 
     Assert.assertEquals(serializedSize + 1, offset);
@@ -103,6 +113,8 @@ public class OSBTreeBucketShrinkPageOperationSerializationTest {
     Assert.assertEquals(operationUnitId, restoredOperation.getOperationUnitId());
     Assert.assertEquals(newSize, restoredOperation.getNewSize());
     Assert.assertEquals(isEncrypted, restoredOperation.isEncrypted());
+    Assert.assertEquals(keySerializerId, restoredOperation.getKeySerializerId());
+    Assert.assertEquals(valueSerializerId, restoredOperation.getValueSerializerId());
 
     final List<byte[]> restoredEntries = restoredOperation.getRemovedEntries();
     Assert.assertEquals(removed.size(), restoredEntries.size());

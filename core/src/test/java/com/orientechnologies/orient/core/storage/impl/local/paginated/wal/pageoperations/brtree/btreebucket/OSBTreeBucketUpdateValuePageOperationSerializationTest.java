@@ -27,8 +27,10 @@ public class OSBTreeBucketUpdateValuePageOperationSerializationTest {
 
     final boolean isEncrypted = true;
 
-    OSBTreeBucketUpdateValuePageOperation operation = new OSBTreeBucketUpdateValuePageOperation(index, value,
-        prevValue, isEncrypted);
+    final byte keySerializerId = 3;
+
+    OSBTreeBucketUpdateValuePageOperation operation = new OSBTreeBucketUpdateValuePageOperation(index, value, prevValue,
+        keySerializerId, isEncrypted);
     operation.setFileId(fileId);
     operation.setPageIndex(pageIndex);
     operation.setOperationUnitId(operationUnitId);
@@ -50,6 +52,7 @@ public class OSBTreeBucketUpdateValuePageOperationSerializationTest {
     Assert.assertArrayEquals(value, restoredOperation.getValue());
     Assert.assertArrayEquals(prevValue, restoredOperation.getPrevValue());
     Assert.assertEquals(isEncrypted, restoredOperation.isEncrypted());
+    Assert.assertEquals(keySerializerId, restoredOperation.getKeySerializerId());
   }
 
   @Test
@@ -68,9 +71,10 @@ public class OSBTreeBucketUpdateValuePageOperationSerializationTest {
     random.nextBytes(prevValue);
 
     final boolean isEncrypted = true;
+    final byte keySerializerId = 3;
 
-    OSBTreeBucketUpdateValuePageOperation operation = new OSBTreeBucketUpdateValuePageOperation(index, value,
-        prevValue, isEncrypted);
+    OSBTreeBucketUpdateValuePageOperation operation = new OSBTreeBucketUpdateValuePageOperation(index, value, prevValue,
+        keySerializerId, isEncrypted);
     operation.setFileId(fileId);
     operation.setPageIndex(pageIndex);
     operation.setOperationUnitId(operationUnitId);
@@ -93,5 +97,6 @@ public class OSBTreeBucketUpdateValuePageOperationSerializationTest {
     Assert.assertArrayEquals(value, restoredOperation.getValue());
     Assert.assertArrayEquals(prevValue, restoredOperation.getPrevValue());
     Assert.assertEquals(isEncrypted, restoredOperation.isEncrypted());
+    Assert.assertEquals(keySerializerId, restoredOperation.getKeySerializerId());
   }
 }

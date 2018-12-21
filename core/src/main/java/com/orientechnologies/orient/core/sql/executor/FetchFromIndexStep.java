@@ -11,11 +11,40 @@ import com.orientechnologies.orient.core.db.OExecutionThreadLocal;
 import com.orientechnologies.orient.core.db.record.OIdentifiable;
 import com.orientechnologies.orient.core.exception.OCommandExecutionException;
 import com.orientechnologies.orient.core.exception.OCommandInterruptedException;
-import com.orientechnologies.orient.core.index.*;
+import com.orientechnologies.orient.core.index.OCompositeKey;
+import com.orientechnologies.orient.core.index.OIndex;
+import com.orientechnologies.orient.core.index.OIndexCursor;
+import com.orientechnologies.orient.core.index.OIndexDefinition;
+import com.orientechnologies.orient.core.index.OIndexDefinitionMultiValue;
 import com.orientechnologies.orient.core.metadata.schema.OType;
-import com.orientechnologies.orient.core.sql.parser.*;
+import com.orientechnologies.orient.core.sql.parser.OAndBlock;
+import com.orientechnologies.orient.core.sql.parser.OBaseExpression;
+import com.orientechnologies.orient.core.sql.parser.OBetweenCondition;
+import com.orientechnologies.orient.core.sql.parser.OBinaryCompareOperator;
+import com.orientechnologies.orient.core.sql.parser.OBinaryCondition;
+import com.orientechnologies.orient.core.sql.parser.OBooleanExpression;
+import com.orientechnologies.orient.core.sql.parser.OCollection;
+import com.orientechnologies.orient.core.sql.parser.OContainsAnyCondition;
+import com.orientechnologies.orient.core.sql.parser.OContainsKeyOperator;
+import com.orientechnologies.orient.core.sql.parser.OContainsValueOperator;
+import com.orientechnologies.orient.core.sql.parser.OEqualsCompareOperator;
+import com.orientechnologies.orient.core.sql.parser.OExpression;
+import com.orientechnologies.orient.core.sql.parser.OGeOperator;
+import com.orientechnologies.orient.core.sql.parser.OGtOperator;
+import com.orientechnologies.orient.core.sql.parser.OInCondition;
+import com.orientechnologies.orient.core.sql.parser.OLeOperator;
+import com.orientechnologies.orient.core.sql.parser.OLtOperator;
+import com.orientechnologies.orient.core.sql.parser.OValueExpression;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -33,12 +62,12 @@ public class FetchFromIndexStep extends AbstractExecutionStep {
   private long cost  = 0;
   private long count = 0;
 
-  private boolean inited = false;
-  private OIndexCursor cursor;
+  private boolean            inited      = false;
+  private OIndexCursor       cursor;
   private List<OIndexCursor> nextCursors = new ArrayList<>();
 
   OMultiCollectionIterator<Map.Entry<Object, OIdentifiable>> customIterator;
-  private Iterator nullKeyIterator;
+  private Iterator                         nullKeyIterator;
   private Map.Entry<Object, OIdentifiable> nextEntry = null;
 
   public FetchFromIndexStep(OIndex<?> index, OBooleanExpression condition, OBinaryCondition additionalRangeCondition,
@@ -118,7 +147,7 @@ public class FetchFromIndexStep extends AbstractExecutionStep {
 
       @Override
       public Optional<OExecutionPlan> getExecutionPlan() {
-        return null;
+        return Optional.empty();
       }
 
       @Override
@@ -377,10 +406,6 @@ public class FetchFromIndexStep extends AbstractExecutionStep {
   /**
    * this is for subqueries, when a OResult is found <ul> <li>if it's a projection with a single column, the value is returned</li>
    * <li>if it's a document, the RID is returned</li> </ul>
-   *
-   * @param value
-   *
-   * @return
    */
   private Object unboxOResult(Object value) {
     if (value instanceof List) {
@@ -442,6 +467,11 @@ public class FetchFromIndexStep extends AbstractExecutionStep {
     if (val == null) {
       return null;
     }
+    if (types.length == 1 && types[0] == OType.BINARY && val.getClass().isArray() && val.getClass().getComponentType()
+        .equals(Byte.TYPE)) {
+      return val;
+    }
+
     if (OMultiValue.isMultiValue(val)) {
       List<Object> result = new ArrayList<>();
       int i = 0;
@@ -670,22 +700,11 @@ public class FetchFromIndexStep extends AbstractExecutionStep {
     if (exp instanceof OBinaryCondition) {
       OBinaryCompareOperator operator = ((OBinaryCondition) exp).getOperator();
       if (isGreaterOperator(operator)) {
-        if (isIncludeOperator(operator)) {
-          return true;
-        } else {
-          return false;
-        }
-      } else if (additionalOperator == null || (isIncludeOperator(additionalOperator) && isGreaterOperator(additionalOperator))) {
-        return true;
-      } else {
-        return false;
-      }
+        return isIncludeOperator(operator);
+      } else
+        return additionalOperator == null || (isIncludeOperator(additionalOperator) && isGreaterOperator(additionalOperator));
     } else if (exp instanceof OInCondition || exp instanceof OContainsAnyCondition) {
-      if (additional == null || (isIncludeOperator(additionalOperator) && isGreaterOperator(additionalOperator))) {
-        return true;
-      } else {
-        return false;
-      }
+      return additional == null || (isIncludeOperator(additionalOperator) && isGreaterOperator(additionalOperator));
     } else {
       throw new UnsupportedOperationException("Cannot execute index query with " + exp);
     }
@@ -714,26 +733,15 @@ public class FetchFromIndexStep extends AbstractExecutionStep {
 
   private boolean indexKeyToIncluded(OAndBlock keyCondition, OBinaryCondition additional) {
     OBooleanExpression exp = keyCondition.getSubBlocks().get(keyCondition.getSubBlocks().size() - 1);
-    OBinaryCompareOperator additionalOperator = additional == null ? null : ((OBinaryCondition) additional).getOperator();
+    OBinaryCompareOperator additionalOperator = additional == null ? null : additional.getOperator();
     if (exp instanceof OBinaryCondition) {
       OBinaryCompareOperator operator = ((OBinaryCondition) exp).getOperator();
       if (isLessOperator(operator)) {
-        if (isIncludeOperator(operator)) {
-          return true;
-        } else {
-          return false;
-        }
-      } else if (additionalOperator == null || (isIncludeOperator(additionalOperator) && isLessOperator(additionalOperator))) {
-        return true;
-      } else {
-        return false;
-      }
+        return isIncludeOperator(operator);
+      } else
+        return additionalOperator == null || (isIncludeOperator(additionalOperator) && isLessOperator(additionalOperator));
     } else if (exp instanceof OInCondition || exp instanceof OContainsAnyCondition) {
-      if (additionalOperator == null || (isIncludeOperator(additionalOperator) && isLessOperator(additionalOperator))) {
-        return true;
-      } else {
-        return false;
-      }
+      return additionalOperator == null || (isIncludeOperator(additionalOperator) && isLessOperator(additionalOperator));
     } else {
       throw new UnsupportedOperationException("Cannot execute index query with " + exp);
     }

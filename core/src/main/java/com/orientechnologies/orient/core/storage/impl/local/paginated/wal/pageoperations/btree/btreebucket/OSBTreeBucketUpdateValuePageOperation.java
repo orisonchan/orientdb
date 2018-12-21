@@ -2,6 +2,7 @@ package com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageo
 
 import com.orientechnologies.common.serialization.types.OByteSerializer;
 import com.orientechnologies.common.serialization.types.OIntegerSerializer;
+import com.orientechnologies.orient.core.serialization.serializer.binary.OBinarySerializerFactory;
 import com.orientechnologies.orient.core.storage.cache.OCacheEntry;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OPageOperationRecord;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes;
@@ -14,15 +15,22 @@ public final class OSBTreeBucketUpdateValuePageOperation extends OPageOperationR
   private byte[]  value;
   private byte[]  prevValue;
   private boolean isEncrypted;
+  private byte    keySerializerId;
 
   public OSBTreeBucketUpdateValuePageOperation() {
   }
 
-  public OSBTreeBucketUpdateValuePageOperation(int index, byte[] value, byte[] prevValue, boolean isEncrypted) {
+  public OSBTreeBucketUpdateValuePageOperation(final int index, final byte[] value, final byte[] prevValue,
+      final byte keySerializerId, final boolean isEncrypted) {
     this.index = index;
     this.value = value;
     this.prevValue = prevValue;
+    this.keySerializerId = keySerializerId;
     this.isEncrypted = isEncrypted;
+  }
+
+  public byte getKeySerializerId() {
+    return keySerializerId;
   }
 
   public int getIndex() {
@@ -52,22 +60,26 @@ public final class OSBTreeBucketUpdateValuePageOperation extends OPageOperationR
   }
 
   @Override
-  protected OSBTreeBucket createPageInstance(OCacheEntry cacheEntry) {
+  protected OSBTreeBucket createPageInstance(final OCacheEntry cacheEntry) {
     return new OSBTreeBucket(cacheEntry);
   }
 
   @Override
-  protected void doRedo(OSBTreeBucket page) {
-    page.updateValue(index, value, prevValue, isEncrypted);
+  protected void doRedo(final OSBTreeBucket page) {
+    final OBinarySerializerFactory factory = OBinarySerializerFactory.getInstance();
+    //noinspection unchecked
+    page.updateValue(index, value, prevValue, factory.getObjectSerializer(keySerializerId), isEncrypted);
   }
 
   @Override
-  protected void doUndo(OSBTreeBucket page) {
-    page.updateValue(index, prevValue, value, isEncrypted);
+  protected void doUndo(final OSBTreeBucket page) {
+    final OBinarySerializerFactory factory = OBinarySerializerFactory.getInstance();
+    //noinspection unchecked
+    page.updateValue(index, prevValue, value, factory.getObjectSerializer(keySerializerId), isEncrypted);
   }
 
   @Override
-  public int toStream(byte[] content, int offset) {
+  public int toStream(final byte[] content, int offset) {
     offset = super.toStream(content, offset);
 
     OIntegerSerializer.INSTANCE.serializeNative(index, content, offset);
@@ -85,6 +97,9 @@ public final class OSBTreeBucketUpdateValuePageOperation extends OPageOperationR
     System.arraycopy(prevValue, 0, content, offset, prevValue.length);
     offset += prevValue.length;
 
+    content[offset] = keySerializerId;
+    offset++;
+
     content[offset] = isEncrypted ? (byte) 1 : 0;
     offset++;
 
@@ -92,7 +107,7 @@ public final class OSBTreeBucketUpdateValuePageOperation extends OPageOperationR
   }
 
   @Override
-  public void toStream(ByteBuffer buffer) {
+  public void toStream(final ByteBuffer buffer) {
     super.toStream(buffer);
 
     buffer.putInt(index);
@@ -103,29 +118,34 @@ public final class OSBTreeBucketUpdateValuePageOperation extends OPageOperationR
     buffer.putInt(prevValue.length);
     buffer.put(prevValue);
 
+    buffer.put(keySerializerId);
+
     buffer.put(isEncrypted ? (byte) 1 : 0);
   }
 
   @Override
-  public int fromStream(byte[] content, int offset) {
+  public int fromStream(final byte[] content, int offset) {
     offset = super.fromStream(content, offset);
 
     index = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
     offset += OIntegerSerializer.INT_SIZE;
 
-    int valLen = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
+    final int valLen = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
     offset += OIntegerSerializer.INT_SIZE;
 
     value = new byte[valLen];
     System.arraycopy(content, offset, value, 0, valLen);
     offset += valLen;
 
-    int prevValLen = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
+    final int prevValLen = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
     offset += OIntegerSerializer.INT_SIZE;
 
     prevValue = new byte[prevValLen];
     System.arraycopy(content, offset, prevValue, 0, prevValLen);
     offset += prevValLen;
+
+    keySerializerId = content[offset];
+    offset++;
 
     isEncrypted = content[offset] == 1;
     offset++;
@@ -135,6 +155,7 @@ public final class OSBTreeBucketUpdateValuePageOperation extends OPageOperationR
 
   @Override
   public int serializedSize() {
-    return super.serializedSize() + 3 * OIntegerSerializer.INT_SIZE + value.length + prevValue.length + OByteSerializer.BYTE_SIZE;
+    return super.serializedSize() + 3 * OIntegerSerializer.INT_SIZE + value.length + prevValue.length
+        + 2 * OByteSerializer.BYTE_SIZE;
   }
 }

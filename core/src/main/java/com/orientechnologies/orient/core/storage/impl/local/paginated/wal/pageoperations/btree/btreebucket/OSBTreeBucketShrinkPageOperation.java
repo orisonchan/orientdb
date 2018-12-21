@@ -2,6 +2,7 @@ package com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageo
 
 import com.orientechnologies.common.serialization.types.OByteSerializer;
 import com.orientechnologies.common.serialization.types.OIntegerSerializer;
+import com.orientechnologies.orient.core.serialization.serializer.binary.OBinarySerializerFactory;
 import com.orientechnologies.orient.core.storage.cache.OCacheEntry;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OPageOperationRecord;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes;
@@ -14,15 +15,28 @@ import java.util.List;
 public final class OSBTreeBucketShrinkPageOperation extends OPageOperationRecord<OSBTreeBucket> {
   private List<byte[]> removedEntries;
   private int          newSize;
+  private byte         keySerializerId;
+  private byte         valueSerializerId;
   private boolean      isEncrypted;
 
   public OSBTreeBucketShrinkPageOperation() {
   }
 
-  public OSBTreeBucketShrinkPageOperation(List<byte[]> removedEntries, int newSize, boolean isEncrypted) {
+  public OSBTreeBucketShrinkPageOperation(final List<byte[]> removedEntries, final int newSize, final byte keySerializerId,
+      final byte valueSerializerId, final boolean isEncrypted) {
     this.removedEntries = removedEntries;
     this.newSize = newSize;
     this.isEncrypted = isEncrypted;
+    this.keySerializerId = keySerializerId;
+    this.valueSerializerId = valueSerializerId;
+  }
+
+  public byte getKeySerializerId() {
+    return keySerializerId;
+  }
+
+  public byte getValueSerializerId() {
+    return valueSerializerId;
   }
 
   public List<byte[]> getRemovedEntries() {
@@ -48,41 +62,34 @@ public final class OSBTreeBucketShrinkPageOperation extends OPageOperationRecord
   }
 
   @Override
-  protected OSBTreeBucket createPageInstance(OCacheEntry cacheEntry) {
+  protected OSBTreeBucket createPageInstance(final OCacheEntry cacheEntry) {
     return new OSBTreeBucket(cacheEntry);
   }
 
   @Override
-  protected void doRedo(OSBTreeBucket page) {
-    page.shrink(newSize, isEncrypted);
+  protected void doRedo(final OSBTreeBucket page) {
+    final OBinarySerializerFactory factory = OBinarySerializerFactory.getInstance();
+    //noinspection unchecked
+    page.shrink(newSize, factory.getObjectSerializer(keySerializerId), factory.getObjectSerializer(valueSerializerId), isEncrypted);
   }
 
   @Override
-  protected void doUndo(OSBTreeBucket page) {
-    final int offset = page.size();
-    final boolean isLeaf = page.isLeaf();
-    if (isLeaf) {
-      for (int i = 0; i < removedEntries.size(); i++) {
-        final byte[] entry = removedEntries.get(i);
-
-        final boolean inserted = page.insertLeafEntry(i + offset, entry, isEncrypted);
-        assert inserted;
-      }
-    } else {
-      for (int i = 0; i < removedEntries.size(); i++) {
-        final byte[] entry = removedEntries.get(i);
-        final boolean inserted = page.insertNonLeafEntry(i + offset, entry, false);
-        assert inserted;
-      }
-    }
+  protected void doUndo(final OSBTreeBucket page) {
+    page.addAll(removedEntries, keySerializerId, valueSerializerId, isEncrypted);
   }
 
   @Override
-  public int toStream(byte[] content, int offset) {
+  public int toStream(final byte[] content, int offset) {
     offset = super.toStream(content, offset);
 
     OIntegerSerializer.INSTANCE.serializeNative(newSize, content, offset);
     offset += OIntegerSerializer.INT_SIZE;
+
+    content[offset] = keySerializerId;
+    offset++;
+
+    content[offset] = valueSerializerId;
+    offset++;
 
     content[offset] = isEncrypted ? (byte) 1 : 0;
     offset++;
@@ -90,7 +97,7 @@ public final class OSBTreeBucketShrinkPageOperation extends OPageOperationRecord
     OIntegerSerializer.INSTANCE.serializeNative(removedEntries.size(), content, offset);
     offset += OIntegerSerializer.INT_SIZE;
 
-    for (byte[] entry : removedEntries) {
+    for (final byte[] entry : removedEntries) {
       OIntegerSerializer.INSTANCE.serializeNative(entry.length, content, offset);
       offset += OIntegerSerializer.INT_SIZE;
 
@@ -102,39 +109,49 @@ public final class OSBTreeBucketShrinkPageOperation extends OPageOperationRecord
   }
 
   @Override
-  public void toStream(ByteBuffer buffer) {
+  public void toStream(final ByteBuffer buffer) {
     super.toStream(buffer);
     buffer.putInt(newSize);
+
+    buffer.put(keySerializerId);
+    buffer.put(valueSerializerId);
+
     buffer.put(isEncrypted ? (byte) 1 : 0);
 
     buffer.putInt(removedEntries.size());
 
-    for (byte[] entry : removedEntries) {
+    for (final byte[] entry : removedEntries) {
       buffer.putInt(entry.length);
       buffer.put(entry);
     }
   }
 
   @Override
-  public int fromStream(byte[] content, int offset) {
+  public int fromStream(final byte[] content, int offset) {
     offset = super.fromStream(content, offset);
 
     newSize = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
     offset += OIntegerSerializer.INT_SIZE;
 
+    keySerializerId = content[offset];
+    offset++;
+
+    valueSerializerId = content[offset];
+    offset++;
+
     isEncrypted = content[offset] == 1;
     offset++;
 
-    int entriesSize = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
+    final int entriesSize = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
     offset += OIntegerSerializer.INT_SIZE;
 
     removedEntries = new ArrayList<>(entriesSize);
 
     for (int i = 0; i < entriesSize; i++) {
-      int entryLen = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
+      final int entryLen = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
       offset += OIntegerSerializer.INT_SIZE;
 
-      byte[] entry = new byte[entryLen];
+      final byte[] entry = new byte[entryLen];
       System.arraycopy(content, offset, entry, 0, entryLen);
       removedEntries.add(entry);
 
@@ -147,10 +164,10 @@ public final class OSBTreeBucketShrinkPageOperation extends OPageOperationRecord
   @Override
   public int serializedSize() {
     int totalSize = (removedEntries.size() + 1) * OIntegerSerializer.INT_SIZE;
-    for (byte[] entry : removedEntries) {
+    for (final byte[] entry : removedEntries) {
       totalSize += entry.length;
     }
 
-    return super.serializedSize() + totalSize + OIntegerSerializer.INT_SIZE + OByteSerializer.BYTE_SIZE;
+    return super.serializedSize() + totalSize + OIntegerSerializer.INT_SIZE + 3 * OByteSerializer.BYTE_SIZE;
   }
 }

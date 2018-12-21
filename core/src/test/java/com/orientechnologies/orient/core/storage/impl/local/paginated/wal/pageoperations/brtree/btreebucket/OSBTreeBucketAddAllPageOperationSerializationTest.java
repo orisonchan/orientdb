@@ -2,12 +2,10 @@ package com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageo
 
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OOperationUnitId;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.btree.btreebucket.OSBTreeBucketAddAllPageOperation;
-
-import java.nio.ByteBuffer;
-
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.List;
@@ -36,7 +34,12 @@ public class OSBTreeBucketAddAllPageOperationSerializationTest {
       entries.add(entry);
     }
 
-    OSBTreeBucketAddAllPageOperation operation = new OSBTreeBucketAddAllPageOperation(entries);
+    final byte keySerializerId = 2;
+    final byte valueSerializerId = 5;
+    final boolean isEncrypted = true;
+
+    OSBTreeBucketAddAllPageOperation operation = new OSBTreeBucketAddAllPageOperation(entries, keySerializerId, valueSerializerId,
+        isEncrypted);
     operation.setFileId(fileId);
     operation.setPageIndex(pageIndex);
     operation.setOperationUnitId(operationUnitId);
@@ -54,6 +57,9 @@ public class OSBTreeBucketAddAllPageOperationSerializationTest {
     Assert.assertEquals(fileId, restoredOperation.getFileId());
     Assert.assertEquals(pageIndex, restoredOperation.getPageIndex());
     Assert.assertEquals(operationUnitId, restoredOperation.getOperationUnitId());
+    Assert.assertEquals(keySerializerId, restoredOperation.getKeySerializerId());
+    Assert.assertEquals(valueSerializerId, restoredOperation.getValueSerializerId());
+    Assert.assertEquals(isEncrypted, restoredOperation.isEncrypted());
 
     final List<byte[]> restoredEntries = restoredOperation.getEntries();
     Assert.assertEquals(entries.size(), restoredEntries.size());
@@ -88,7 +94,12 @@ public class OSBTreeBucketAddAllPageOperationSerializationTest {
       entries.add(entry);
     }
 
-    OSBTreeBucketAddAllPageOperation operation = new OSBTreeBucketAddAllPageOperation(entries);
+    final byte keySerializerId = 2;
+    final byte valueSerializerId = 5;
+    final boolean isEncrypted = true;
+
+    OSBTreeBucketAddAllPageOperation operation = new OSBTreeBucketAddAllPageOperation(entries, keySerializerId, valueSerializerId,
+        isEncrypted);
     operation.setFileId(fileId);
     operation.setPageIndex(pageIndex);
     operation.setOperationUnitId(operationUnitId);
@@ -107,6 +118,9 @@ public class OSBTreeBucketAddAllPageOperationSerializationTest {
     Assert.assertEquals(fileId, restoredOperation.getFileId());
     Assert.assertEquals(pageIndex, restoredOperation.getPageIndex());
     Assert.assertEquals(operationUnitId, restoredOperation.getOperationUnitId());
+    Assert.assertEquals(keySerializerId, restoredOperation.getKeySerializerId());
+    Assert.assertEquals(valueSerializerId, restoredOperation.getValueSerializerId());
+    Assert.assertEquals(isEncrypted, restoredOperation.isEncrypted());
 
     final List<byte[]> restoredEntries = restoredOperation.getEntries();
     Assert.assertEquals(entries.size(), restoredEntries.size());
