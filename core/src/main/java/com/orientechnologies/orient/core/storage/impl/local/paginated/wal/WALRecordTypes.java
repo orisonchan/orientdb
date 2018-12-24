@@ -61,4 +61,24 @@ public final class WALRecordTypes {
   public static final byte SBTREE_NULL_BUCKET_SET_VALUE    = 53;
   public static final byte SBTREE_NULL_BUCKET_REMOVE_VALUE = 54;
 
+  public static final byte SBTREE_BONSAI_BUCKET_INIT                  = 55;
+  public static final byte SBTREE_BONSAI_BUCKET_SET_TREE_SIZE         = 56;
+  public static final byte SBTREE_BONSAI_BUCKET_REMOVE_LEAF_ENTRY     = 57;
+  public static final byte SBTREE_BONSAI_BUCKET_CONVERT_TO_LEAF       = 58;
+  public static final byte SBTREE_BONSAI_BUCKET_CONVERT_TO_NON_LEAF   = 59;
+  public static final byte SBTREE_BONSAI_BUCKET_ADD_ALL               = 60;
+  public static final byte SBTREE_BONSAI_BUCKET_SHRINK                = 61;
+  public static final byte SBTREE_BONSAI_BUCKET_INSERT_LEAF_ENTRY     = 62;
+  public static final byte SBTREE_BONSAI_BUCKET_INSERT_NON_LEAF_ENTRY = 63;
+  public static final byte SBTREE_BONSAI_BUCKET_REMOVE_NON_LEAF_ENTRY = 64;
+  public static final byte SBTREE_BONSAI_BUCKET_UPDATE_VALUE          = 65;
+  public static final byte SBTREE_BONSAI_BUCKET_SET_FREE_LIST_POINTER = 66;
+  public static final byte SBTREE_BONSAI_BUCKET_SET_DELETED           = 67;
+  public static final byte SBTREE_BONSAI_BUCKET_SET_LEFT_SIBLING      = 68;
+  public static final byte SBTREE_BONSAI_BUCKET_SET_RIGHT_SIBLING     = 69;
+
+  public static final byte SBTREE_BONSAI_SYS_BUCKET_INIT                   = 70;
+  public static final byte SBTREE_BONSAI_SYS_BUCKET_SET_FREE_LIST_LENGTH   = 71;
+  public static final byte SBTREE_BONSAI_SYS_BUCKET_SET_FREE_SPACE_POINTER = 72;
+  public static final byte SBTREE_BONSAI_SYS_BUCKET_SET_FREE_LIST_HEAD     = 73;
 }

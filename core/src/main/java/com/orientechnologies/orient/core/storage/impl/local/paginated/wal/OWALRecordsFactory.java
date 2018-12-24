@@ -24,6 +24,25 @@ import com.orientechnologies.common.serialization.types.OIntegerSerializer;
 import com.orientechnologies.common.util.OPair;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.cas.OEmptyWALRecord;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.cas.OWriteableWALRecord;
+import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.bteebonsai.bonsaibucket.OBonsaiBucketAddAllPageOperation;
+import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.bteebonsai.bonsaibucket.OBonsaiBucketConvertToLeafPageOperation;
+import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.bteebonsai.bonsaibucket.OBonsaiBucketConvertToNonLeafPageOperation;
+import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.bteebonsai.bonsaibucket.OBonsaiBucketInitPageOperation;
+import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.bteebonsai.bonsaibucket.OBonsaiBucketInsertLeafEntryPageOperation;
+import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.bteebonsai.bonsaibucket.OBonsaiBucketInsertNonLeafEntryPageOperation;
+import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.bteebonsai.bonsaibucket.OBonsaiBucketRemoveLeafEntryPageOperation;
+import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.bteebonsai.bonsaibucket.OBonsaiBucketRemoveNonLeafEntryPageOperation;
+import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.bteebonsai.bonsaibucket.OBonsaiBucketSetDeletedPageOperation;
+import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.bteebonsai.bonsaibucket.OBonsaiBucketSetFreeListPointerPageOperation;
+import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.bteebonsai.bonsaibucket.OBonsaiBucketSetLeftSiblingPageOperation;
+import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.bteebonsai.bonsaibucket.OBonsaiBucketSetRightSiblingPageOperation;
+import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.bteebonsai.bonsaibucket.OBonsaiBucketSetTreeSizePageOperation;
+import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.bteebonsai.bonsaibucket.OBonsaiBucketShrinkPageOperation;
+import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.bteebonsai.bonsaibucket.OBonsaiBucketUpdateValuePageOperation;
+import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.bteebonsai.bonsaisysbucket.OBonsaiSysBucketInitPageOperation;
+import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.bteebonsai.bonsaisysbucket.OBonsaiSysBucketSetFreeListHeadPageOperation;
+import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.bteebonsai.bonsaisysbucket.OBonsaiSysBucketSetFreeListLengthPageOperation;
+import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.bteebonsai.bonsaisysbucket.OBonsaiSysBucketSetFreeSpacePointerPageOperation;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.btree.btreebucket.OSBTreeBucketAddAllPageOperation;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.btree.btreebucket.OSBTreeBucketConvertToLeafPageOperation;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.btree.btreebucket.OSBTreeBucketConvertToNonLeafPageOperation;
@@ -110,6 +129,25 @@ import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal
 import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.MAP_ENTRY_POINT_NEW_PAGE;
 import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.MAP_ENTRY_POINT_SET_FILE_SIZE;
 import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.NON_TX_OPERATION_PERFORMED_WAL_RECORD;
+import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.SBTREE_BONSAI_BUCKET_ADD_ALL;
+import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.SBTREE_BONSAI_BUCKET_CONVERT_TO_LEAF;
+import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.SBTREE_BONSAI_BUCKET_CONVERT_TO_NON_LEAF;
+import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.SBTREE_BONSAI_BUCKET_INIT;
+import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.SBTREE_BONSAI_BUCKET_INSERT_LEAF_ENTRY;
+import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.SBTREE_BONSAI_BUCKET_INSERT_NON_LEAF_ENTRY;
+import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.SBTREE_BONSAI_BUCKET_REMOVE_LEAF_ENTRY;
+import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.SBTREE_BONSAI_BUCKET_REMOVE_NON_LEAF_ENTRY;
+import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.SBTREE_BONSAI_BUCKET_SET_DELETED;
+import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.SBTREE_BONSAI_BUCKET_SET_FREE_LIST_POINTER;
+import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.SBTREE_BONSAI_BUCKET_SET_LEFT_SIBLING;
+import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.SBTREE_BONSAI_BUCKET_SET_RIGHT_SIBLING;
+import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.SBTREE_BONSAI_BUCKET_SET_TREE_SIZE;
+import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.SBTREE_BONSAI_BUCKET_SHRINK;
+import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.SBTREE_BONSAI_BUCKET_UPDATE_VALUE;
+import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.SBTREE_BONSAI_SYS_BUCKET_INIT;
+import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.SBTREE_BONSAI_SYS_BUCKET_SET_FREE_LIST_HEAD;
+import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.SBTREE_BONSAI_SYS_BUCKET_SET_FREE_LIST_LENGTH;
+import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.SBTREE_BONSAI_SYS_BUCKET_SET_FREE_SPACE_POINTER;
 import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.SBTREE_BUCKET_ADD_ALL;
 import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.SBTREE_BUCKET_CONVERT_TO_LEAF_PAGE;
 import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.SBTREE_BUCKET_CONVERT_TO_NON_LEAF_PAGE;
@@ -352,6 +390,63 @@ public final class OWALRecordsFactory {
       break;
     case SBTREE_BUCKET_CONVERT_TO_NON_LEAF_PAGE:
       walRecord = new OSBTreeBucketConvertToNonLeafPageOperation();
+      break;
+    case SBTREE_BONSAI_BUCKET_INIT:
+      walRecord = new OBonsaiBucketInitPageOperation();
+      break;
+    case SBTREE_BONSAI_BUCKET_SET_TREE_SIZE:
+      walRecord = new OBonsaiBucketSetTreeSizePageOperation();
+      break;
+    case SBTREE_BONSAI_BUCKET_REMOVE_LEAF_ENTRY:
+      walRecord = new OBonsaiBucketRemoveLeafEntryPageOperation();
+      break;
+    case SBTREE_BONSAI_BUCKET_CONVERT_TO_LEAF:
+      walRecord = new OBonsaiBucketConvertToLeafPageOperation();
+      break;
+    case SBTREE_BONSAI_BUCKET_CONVERT_TO_NON_LEAF:
+      walRecord = new OBonsaiBucketConvertToNonLeafPageOperation();
+      break;
+    case SBTREE_BONSAI_BUCKET_ADD_ALL:
+      walRecord = new OBonsaiBucketAddAllPageOperation();
+      break;
+    case SBTREE_BONSAI_BUCKET_SHRINK:
+      walRecord = new OBonsaiBucketShrinkPageOperation();
+      break;
+    case SBTREE_BONSAI_BUCKET_INSERT_LEAF_ENTRY:
+      walRecord = new OBonsaiBucketInsertLeafEntryPageOperation();
+      break;
+    case SBTREE_BONSAI_BUCKET_INSERT_NON_LEAF_ENTRY:
+      walRecord = new OBonsaiBucketInsertNonLeafEntryPageOperation();
+      break;
+    case SBTREE_BONSAI_BUCKET_REMOVE_NON_LEAF_ENTRY:
+      walRecord = new OBonsaiBucketRemoveNonLeafEntryPageOperation();
+      break;
+    case SBTREE_BONSAI_BUCKET_UPDATE_VALUE:
+      walRecord = new OBonsaiBucketUpdateValuePageOperation();
+      break;
+    case SBTREE_BONSAI_BUCKET_SET_FREE_LIST_POINTER:
+      walRecord = new OBonsaiBucketSetFreeListPointerPageOperation();
+      break;
+    case SBTREE_BONSAI_BUCKET_SET_DELETED:
+      walRecord = new OBonsaiBucketSetDeletedPageOperation();
+      break;
+    case SBTREE_BONSAI_BUCKET_SET_LEFT_SIBLING:
+      walRecord = new OBonsaiBucketSetLeftSiblingPageOperation();
+      break;
+    case SBTREE_BONSAI_BUCKET_SET_RIGHT_SIBLING:
+      walRecord = new OBonsaiBucketSetRightSiblingPageOperation();
+      break;
+    case SBTREE_BONSAI_SYS_BUCKET_INIT:
+      walRecord = new OBonsaiSysBucketInitPageOperation();
+      break;
+    case SBTREE_BONSAI_SYS_BUCKET_SET_FREE_LIST_LENGTH:
+      walRecord = new OBonsaiSysBucketSetFreeListLengthPageOperation();
+      break;
+    case SBTREE_BONSAI_SYS_BUCKET_SET_FREE_SPACE_POINTER:
+      walRecord = new OBonsaiSysBucketSetFreeSpacePointerPageOperation();
+      break;
+    case SBTREE_BONSAI_SYS_BUCKET_SET_FREE_LIST_HEAD:
+      walRecord = new OBonsaiSysBucketSetFreeListHeadPageOperation();
       break;
     default:
       if (idToTypeMap.containsKey(content[0])) {
