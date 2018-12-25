@@ -60,6 +60,7 @@ import com.orientechnologies.orient.server.distributed.ODistributedResponse;
 import com.orientechnologies.orient.server.distributed.ODistributedServerLog;
 import com.orientechnologies.orient.server.distributed.ODistributedServerManager;
 import com.orientechnologies.orient.server.distributed.ODistributedTxContext;
+import com.orientechnologies.orient.server.distributed.impl.metadata.OClassDistributed;
 import com.orientechnologies.orient.server.distributed.impl.metadata.OSharedContextDistributed;
 import com.orientechnologies.orient.server.distributed.impl.task.OCopyDatabaseChunkTask;
 import com.orientechnologies.orient.server.distributed.impl.task.ORunQueryExecutionPlanTask;
@@ -67,6 +68,7 @@ import com.orientechnologies.orient.server.distributed.impl.task.OSyncClusterTas
 import com.orientechnologies.orient.server.distributed.task.ODistributedLockException;
 import com.orientechnologies.orient.server.distributed.task.ORemoteTask;
 import com.orientechnologies.orient.server.hazelcast.OHazelcastPlugin;
+import com.orientechnologies.orient.server.plugin.OServerPluginInfo;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -81,7 +83,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.concurrent.Callable;
 
 import static com.orientechnologies.orient.core.config.OGlobalConfiguration.DISTRIBUTED_CONCURRENT_TX_MAX_AUTORETRY;
 import static com.orientechnologies.orient.server.distributed.impl.ONewDistributedTxContextImpl.Status.FAILED;
@@ -158,12 +159,9 @@ public class ODatabaseDocumentDistributed extends ODatabaseDocumentEmbedded {
   @Override
   protected void loadMetadata() {
     metadata = new OMetadataDefault(this);
-    sharedContext = getStorage().getResource(OSharedContext.class.getName(), new Callable<OSharedContext>() {
-      @Override
-      public OSharedContext call() throws Exception {
-        OSharedContext shared = new OSharedContextDistributed(getStorage());
-        return shared;
-      }
+    sharedContext = getStorage().getResource(OSharedContext.class.getName(), () -> {
+      OSharedContext shared = new OSharedContextDistributed(getStorage());
+      return shared;
     });
     metadata.init(sharedContext);
     sharedContext.load(this);
@@ -180,11 +178,7 @@ public class ODatabaseDocumentDistributed extends ODatabaseDocumentEmbedded {
     Set<String> servers = cfg.getRegisteredServers();
     for (String server : servers) {
       String dc = cfg.getDataCenterOfServer(server);
-      Set<String> dcConfig = result.get(dc);
-      if (dcConfig == null) {
-        dcConfig = new HashSet<>();
-        result.put(dc, dcConfig);
-      }
+      Set<String> dcConfig = result.computeIfAbsent(dc, k -> new HashSet<>());
       dcConfig.add(server);
     }
     return result;
@@ -459,12 +453,9 @@ public class ODatabaseDocumentDistributed extends ODatabaseDocumentEmbedded {
 
   protected void createMetadata() {
     // CREATE THE DEFAULT SCHEMA WITH DEFAULT USER
-    OSharedContext shared = getStorage().getResource(OSharedContext.class.getName(), new Callable<OSharedContext>() {
-      @Override
-      public OSharedContext call() throws Exception {
-        OSharedContext shared = new OSharedContextDistributed(getStorage());
-        return shared;
-      }
+    OSharedContext shared = getStorage().getResource(OSharedContext.class.getName(), () -> {
+      OSharedContext shared1 = new OSharedContextDistributed(getStorage());
+      return shared1;
     });
     metadata.init(shared);
     ((OSharedContextDistributed) shared).create(this);
@@ -488,7 +479,7 @@ public class ODatabaseDocumentDistributed extends ODatabaseDocumentEmbedded {
         if (schemaClass != null) {
           if (schemaClass.isAbstract())
             throw new OSchemaException("Document belongs to abstract class " + schemaClass.getName() + " and cannot be saved");
-          rid.setClusterId(schemaClass.getClusterForNewInstance((ODocument) record));
+          rid.setClusterId(((OClassDistributed) schemaClass).getClusterForNewInstance(this, (ODocument) record));
         } else
           throw new ODatabaseException("Cannot save (4) document " + record + ": no class or cluster defined");
       } else {
@@ -532,10 +523,16 @@ public class ODatabaseDocumentDistributed extends ODatabaseDocumentEmbedded {
         getStorageDistributed().checkNodeIsMaster(localNodeName, dbCfg, "Transaction Commit");
         ONewDistributedTransactionManager txManager = new ONewDistributedTransactionManager(getStorageDistributed(), dManager,
             getStorageDistributed().getLocalDistributedDatabase());
-        Set<String> otherNodesInQuorum = txManager
-            .getAvailableNodesButLocal(dbCfg, txManager.getInvolvedClusters(iTx.getRecordOperations()), getLocalNodeName());
-        List<String> online = dManager.getOnlineNodes(getName());
-        if (online.size() < ((otherNodesInQuorum.size() + 1) / 2) + 1) {
+        int quorum = 0;
+        for (String clusterName : txManager.getInvolvedClusters(iTx.getRecordOperations())) {
+          final List<String> clusterServers = dbCfg.getServers(clusterName, null);
+          final int writeQuorum = dbCfg.getWriteQuorum(clusterName, clusterServers.size(), localNodeName);
+          quorum = Math.max(quorum, writeQuorum);
+        }
+        final int availableNodes = dManager.getAvailableNodes(getName());
+
+        if (quorum > availableNodes) {
+          List<String> online = dManager.getOnlineNodes(getName());
           throw new ODistributedException("No enough nodes online to execute the operation, online nodes: " + online);
         }
 
@@ -545,11 +542,9 @@ public class ODatabaseDocumentDistributed extends ODatabaseDocumentEmbedded {
         return;
       } catch (OValidationException e) {
         throw e;
-      } catch (HazelcastInstanceNotActiveException e) {
+      } catch (HazelcastInstanceNotActiveException | HazelcastException e) {
         throw new OOfflineNodeException("Hazelcast instance is not available");
 
-      } catch (HazelcastException e) {
-        throw new OOfflineNodeException("Hazelcast instance is not available");
       } catch (Exception e) {
         getStorageDistributed().handleDistributedException("Cannot route TX operation against distributed node", e);
       }
@@ -808,7 +803,8 @@ public class ODatabaseDocumentDistributed extends ODatabaseDocumentEmbedded {
   @Override
   public OEnterpriseEndpoint getEnterpriseEndpoint() {
     OServer server = ((ODistributedStorage) getStorage()).getDistributedManager().getServerInstance();
-    return server.getPlugins().stream().filter(OEnterpriseEndpoint.class::isInstance).findFirst()
+    return server.getPlugins().stream().map(OServerPluginInfo::getInstance).filter(OEnterpriseEndpoint.class::isInstance)
+        .findFirst()
         .map(OEnterpriseEndpoint.class::cast).orElse(null);
   }
 }

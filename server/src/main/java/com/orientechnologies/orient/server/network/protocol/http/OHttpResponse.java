@@ -24,17 +24,33 @@ import com.orientechnologies.common.log.OLogManager;
 import com.orientechnologies.common.util.OCallable;
 import com.orientechnologies.orient.core.config.OGlobalConfiguration;
 import com.orientechnologies.orient.core.db.record.OIdentifiable;
+import com.orientechnologies.orient.core.record.OElement;
 import com.orientechnologies.orient.core.record.ORecord;
 import com.orientechnologies.orient.core.record.impl.ODocument;
 import com.orientechnologies.orient.core.serialization.serializer.OJSONWriter;
 import com.orientechnologies.orient.core.sql.executor.OResult;
 import com.orientechnologies.orient.server.OClientConnection;
 
-import java.io.*;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.io.StringWriter;
+import java.io.Writer;
 import java.net.Socket;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Date;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.TimeZone;
 import java.util.zip.GZIPOutputStream;
 
 /**
@@ -268,14 +284,24 @@ public class OHttpResponse {
 
             @Override
             public Void call(final OChunkedResponse iArgument) {
-              final LinkedHashSet<String> colNames = new LinkedHashSet<String>();
-              final List<ODocument> records = new ArrayList<ODocument>();
+              final LinkedHashSet<String> colNames = new LinkedHashSet<>();
+              final List<OElement> records = new ArrayList<>();
 
               // BROWSE ALL THE RECORD TO HAVE THE COMPLETE COLUMN
               // NAMES LIST
               while (it.hasNext()) {
                 final Object r = it.next();
-                if (r != null && r instanceof OIdentifiable) {
+
+                if (r instanceof OResult) {
+
+                  OResult result = (OResult) r;
+                  records.add(result.toElement());
+
+                  for (String fieldName : result.getPropertyNames()) {
+                    colNames.add(fieldName);
+                  }
+
+                } else if (r != null && r instanceof OIdentifiable) {
                   final ORecord rec = ((OIdentifiable) r).getRecord();
                   if (rec != null) {
                     if (rec instanceof ODocument) {
@@ -290,7 +316,7 @@ public class OHttpResponse {
                 }
               }
 
-              final List<String> orderedColumns = new ArrayList<String>(colNames);
+              final List<String> orderedColumns = new ArrayList<>(colNames);
 
               try {
                 // WRITE THE HEADER
@@ -303,13 +329,13 @@ public class OHttpResponse {
                 iArgument.write(OHttpUtils.EOL);
 
                 // WRITE EACH RECORD
-                for (ODocument doc : records) {
+                for (OElement doc : records) {
                   for (int col = 0; col < orderedColumns.size(); ++col) {
                     if (col > 0) {
                       iArgument.write(',');
                     }
 
-                    Object value = doc.field(orderedColumns.get(col));
+                    Object value = doc.getProperty(orderedColumns.get(col));
                     if (value != null) {
                       if (!(value instanceof Number))
                         value = "\"" + value + "\"";
@@ -536,7 +562,7 @@ public class OHttpResponse {
     GZIPOutputStream gout = null;
     ByteArrayOutputStream baos = null;
     try {
-      byte[] incoming = jsonStr.getBytes("UTF-8");
+      byte[] incoming = jsonStr.getBytes(StandardCharsets.UTF_8);
       baos = new ByteArrayOutputStream();
       gout = new GZIPOutputStream(baos, 16384); // 16KB
       gout.write(incoming);

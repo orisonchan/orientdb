@@ -13,7 +13,15 @@ import com.orientechnologies.orient.core.record.OElement;
 import com.orientechnologies.orient.core.sql.executor.OResult;
 import com.orientechnologies.orient.core.sql.executor.OResultInternal;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 public class OUpdateItem extends SimpleNode {
@@ -89,14 +97,11 @@ public class OUpdateItem extends SimpleNode {
 
     if (operator != that.operator)
       return false;
-    if (left != null ? !left.equals(that.left) : that.left != null)
+    if (!Objects.equals(left, that.left))
       return false;
-    if (leftModifier != null ? !leftModifier.equals(that.leftModifier) : that.leftModifier != null)
+    if (!Objects.equals(leftModifier, that.leftModifier))
       return false;
-    if (right != null ? !right.equals(that.right) : that.right != null)
-      return false;
-
-    return true;
+    return Objects.equals(right, that.right);
   }
 
   @Override
@@ -117,8 +122,34 @@ public class OUpdateItem extends SimpleNode {
       applyOperation(doc, left, rightValue, ctx);
     } else {
       Object val = doc.getProperty(left.getStringValue());
+      if (val == null) {
+        val = initSchemafullCollections(doc, left.getStringValue());
+      }
       leftModifier.setValue(doc, val, rightValue, ctx);
     }
+  }
+
+  private Object initSchemafullCollections(OResultInternal doc, String propName) {
+    OClass oClass = doc.getElement().flatMap(OElement::getSchemaType).orElse(null);
+    if (oClass == null) {
+      return null;
+    }
+    OProperty prop = oClass.getProperty(propName);
+    if (prop == null) {
+      return null;
+    }
+    Object result = null;
+    if (prop.getType() == OType.EMBEDDEDMAP || prop.getType() == OType.LINKMAP) {
+      result = new HashMap<>();
+      doc.setProperty(propName, result);
+    } else if (prop.getType() == OType.EMBEDDEDLIST || prop.getType() == OType.LINKLIST) {
+      result = new ArrayList<>();
+      doc.setProperty(propName, result);
+    } else if (prop.getType() == OType.EMBEDDEDSET || prop.getType() == OType.LINKSET) {
+      result = new HashSet<>();
+      doc.setProperty(propName, result);
+    }
+    return result;
   }
 
   private OClass calculateLinkedTypeForThisItem(OResultInternal doc, OCommandContext ctx) {
@@ -247,10 +278,10 @@ public class OUpdateItem extends SimpleNode {
       return value;
     }
     if (value instanceof List && containsOResult((Collection) value)) {
-      return ((List) value).stream().map(x -> convertResultToDocument(x)).collect(Collectors.toList());
+      return ((List) value).stream().map(OUpdateItem::convertResultToDocument).collect(Collectors.toList());
     }
     if (value instanceof Set && containsOResult((Collection) value)) {
-      return ((Set) value).stream().map(x -> convertResultToDocument(x)).collect(Collectors.toSet());
+      return ((Set) value).stream().map(OUpdateItem::convertResultToDocument).collect(Collectors.toSet());
     }
     return value;
   }
