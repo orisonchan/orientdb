@@ -22,6 +22,7 @@ package com.orientechnologies.orient.core.storage.cache.local.twoq;
 
 import com.orientechnologies.orient.core.storage.cache.OCacheEntry;
 
+import javax.annotation.Nonnull;
 import java.util.Iterator;
 
 /**
@@ -45,6 +46,7 @@ public interface LRUList extends Iterable<OCacheEntry> {
   OCacheEntry getLRU();
 
   @Override
+  @Nonnull
   Iterator<OCacheEntry> iterator();
 
   /**

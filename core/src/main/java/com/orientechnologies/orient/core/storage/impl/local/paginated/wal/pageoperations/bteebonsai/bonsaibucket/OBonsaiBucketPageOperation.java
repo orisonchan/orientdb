@@ -18,6 +18,10 @@ abstract class OBonsaiBucketPageOperation extends OPageOperationRecord<OSBTreeBo
     this.pageOffset = pageOffset;
   }
 
+  public final int getPageOffset() {
+    return pageOffset;
+  }
+
   @Override
   public final boolean isUpdateMasterRecord() {
     return false;
@@ -66,7 +70,7 @@ abstract class OBonsaiBucketPageOperation extends OPageOperationRecord<OSBTreeBo
   }
 
   private static ByteBuffer createNativeByteBuffer(final byte[] content, final int offset) {
-    return ByteBuffer.wrap(content, offset, content.length).order(ByteOrder.nativeOrder());
+    return ByteBuffer.wrap(content, offset, content.length - offset).order(ByteOrder.nativeOrder());
   }
 
   static void serializeByteArray(final byte[] value, final ByteBuffer buffer) {

@@ -36,7 +36,7 @@ abstract class OBonsaiSysBucketPageOperation extends OPageOperationRecord<OSysBu
   }
 
   private static ByteBuffer createNativeByteBuffer(final byte[] content, final int offset) {
-    return ByteBuffer.wrap(content, offset, content.length).order(ByteOrder.nativeOrder());
+    return ByteBuffer.wrap(content, offset, content.length - offset).order(ByteOrder.nativeOrder());
   }
 
   protected abstract void serializeToByteBuffer(ByteBuffer buffer);

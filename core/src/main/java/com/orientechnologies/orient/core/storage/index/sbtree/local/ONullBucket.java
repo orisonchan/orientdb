@@ -25,8 +25,6 @@ import com.orientechnologies.orient.core.storage.impl.local.paginated.base.ODura
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.btree.btreenullbucket.OSBTreeNullBucketRemoveValuePageOperation;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.btree.btreenullbucket.OSBTreeNullBucketSetValuePageOperation;
 
-import java.io.IOException;
-
 /**
  * Bucket which is intended to save values stored in sbtree under <code>null</code> key. Bucket has following layout:
  * <ol>
@@ -39,10 +37,10 @@ import java.io.IOException;
  * @author Andrey Lomakin (a.lomakin-at-orientdb.com)
  * @since 4/15/14
  */
-public class ONullBucket<V> extends ODurablePage {
+public final class ONullBucket<V> extends ODurablePage {
   private final OBinarySerializer<V> valueSerializer;
 
-  public ONullBucket(OCacheEntry cacheEntry, OBinarySerializer<V> valueSerializer, boolean isNew) {
+  public ONullBucket(final OCacheEntry cacheEntry, final OBinarySerializer<V> valueSerializer, final boolean isNew) {
     super(cacheEntry);
     this.valueSerializer = valueSerializer;
 
@@ -52,7 +50,7 @@ public class ONullBucket<V> extends ODurablePage {
 
   }
 
-  public void setValue(OSBTreeValue<V> value) {
+  public final void setValue(final OSBTreeValue<V> value) {
     final int valueSize = valueSerializer.getObjectSize(value.getValue());
 
     final byte[] serializedValue = new byte[valueSize];
@@ -61,7 +59,7 @@ public class ONullBucket<V> extends ODurablePage {
     setValue(serializedValue);
   }
 
-  public void setValue(final byte[] value) {
+  public final void setValue(final byte[] value) {
     final byte[] prevValue;
     if (getByteValue(NEXT_FREE_POSITION) == 0) {
       prevValue = null;
@@ -76,18 +74,18 @@ public class ONullBucket<V> extends ODurablePage {
     addPageOperation(new OSBTreeNullBucketSetValuePageOperation(value, prevValue));
   }
 
-  public OSBTreeValue<V> getValue() {
+  public final OSBTreeValue<V> getValue() {
     if (getByteValue(NEXT_FREE_POSITION) == 0)
       return null;
 
     final boolean isLink = getByteValue(NEXT_FREE_POSITION + 1) == 0;
     if (isLink)
-      return new OSBTreeValue<V>(true, getLongValue(NEXT_FREE_POSITION + 2), null);
+      return new OSBTreeValue<>(true, getLongValue(NEXT_FREE_POSITION + 2), null);
 
-    return new OSBTreeValue<V>(false, -1, deserializeFromDirectMemory(valueSerializer, NEXT_FREE_POSITION + 2));
+    return new OSBTreeValue<>(false, -1, deserializeFromDirectMemory(valueSerializer, NEXT_FREE_POSITION + 2));
   }
 
-  public void removeValue() {
+  public final void removeValue() {
     if (getByteValue(NEXT_FREE_POSITION) > 0) {
       final byte[] prevValue = getBinaryValue(NEXT_FREE_POSITION + 2,
           getObjectSizeInDirectMemory(valueSerializer, NEXT_FREE_POSITION + 2));

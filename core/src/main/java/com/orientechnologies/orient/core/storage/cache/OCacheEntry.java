@@ -1,67 +1,106 @@
-/*
- *
- *  *  Copyright 2010-2016 OrientDB LTD (http://orientdb.com)
- *  *
- *  *  Licensed under the Apache License, Version 2.0 (the "License");
- *  *  you may not use this file except in compliance with the License.
- *  *  You may obtain a copy of the License at
- *  *
- *  *       http://www.apache.org/licenses/LICENSE-2.0
- *  *
- *  *  Unless required by applicable law or agreed to in writing, software
- *  *  distributed under the License is distributed on an "AS IS" BASIS,
- *  *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  *  See the License for the specific language governing permissions and
- *  *  limitations under the License.
- *  *
- *  * For more information: http://orientdb.com
- *
- */
-
 package com.orientechnologies.orient.core.storage.cache;
 
-import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OLogSequenceNumber;
-import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OWALChanges;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * @author Andrey Lomakin (a.lomakin-at-orientdb.com)
- * @since 7/23/13
+ * Created by tglman on 23/06/16.
  */
-public interface OCacheEntry {
-  OCachePointer getCachePointer();
+public final class OCacheEntry {
+  private       OCachePointer dataPointer;
+  private final long          fileId;
+  private final long          pageIndex;
 
-  void clearCachePointer();
+  private final AtomicInteger usagesCount = new AtomicInteger();
 
-  void setCachePointer(OCachePointer cachePointer);
+  public OCacheEntry(final long fileId, final long pageIndex, final OCachePointer dataPointer) {
+    this.fileId = fileId;
+    this.pageIndex = pageIndex;
 
-  long getFileId();
+    this.dataPointer = dataPointer;
+  }
 
-  long getPageIndex();
+  public OCachePointer getCachePointer() {
+    return dataPointer;
+  }
 
-  void acquireExclusiveLock();
+  public void clearCachePointer() {
+    dataPointer = null;
+  }
 
-  void releaseExclusiveLock();
+  public void setCachePointer(final OCachePointer cachePointer) {
+    this.dataPointer = cachePointer;
+  }
 
-  void acquireSharedLock();
+  public long getFileId() {
+    return fileId;
+  }
 
-  void releaseSharedLock();
+  public long getPageIndex() {
+    return pageIndex;
+  }
 
-  int getUsagesCount();
+  public void acquireExclusiveLock() {
+    dataPointer.acquireExclusiveLock();
+  }
 
-  void incrementUsages();
+  public void releaseExclusiveLock() {
+    dataPointer.releaseExclusiveLock();
+  }
+
+  public void acquireSharedLock() {
+    dataPointer.acquireSharedLock();
+  }
+
+  public void releaseSharedLock() {
+    dataPointer.releaseSharedLock();
+  }
+
+  public int getUsagesCount() {
+    return usagesCount.get();
+  }
+
+  public void incrementUsages() {
+    usagesCount.incrementAndGet();
+  }
 
   /**
    * DEBUG only !!
    *
    * @return Whether lock acquired on current entry
    */
-  boolean isLockAcquiredByCurrentThread();
+  @SuppressWarnings("BooleanMethodIsAlwaysInverted")
+  public boolean isLockAcquiredByCurrentThread() {
+    return dataPointer.isLockAcquiredByCurrentThread();
+  }
 
-  void decrementUsages();
+  public void decrementUsages() {
+    usagesCount.decrementAndGet();
+  }
 
-  OWALChanges getChanges();
+  @Override
+  public boolean equals(final Object o) {
+    if (this == o)
+      return true;
+    if (o == null || getClass() != o.getClass())
+      return false;
 
-  OLogSequenceNumber getEndLSN();
+    final OCacheEntry that = (OCacheEntry) o;
 
-  void setEndLSN(OLogSequenceNumber endLSN);
+    if (fileId != that.fileId)
+      return false;
+    return pageIndex == that.pageIndex;
+  }
+
+  @Override
+  public int hashCode() {
+    int result = (int) (fileId ^ (fileId >>> 32));
+    result = 31 * result + (int) (pageIndex ^ (pageIndex >>> 32));
+    return result;
+  }
+
+  @Override
+  public String toString() {
+    return "OCacheEntryImpl{" + "dataPointer=" + dataPointer + ", fileId=" + fileId + ", pageIndex=" + pageIndex + ", usagesCount="
+        + usagesCount + '}';
+  }
 }

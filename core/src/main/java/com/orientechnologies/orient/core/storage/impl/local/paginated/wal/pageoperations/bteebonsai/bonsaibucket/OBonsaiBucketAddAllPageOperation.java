@@ -20,6 +20,10 @@ public final class OBonsaiBucketAddAllPageOperation extends OBonsaiBucketPageOpe
     this.entries = entries;
   }
 
+  public final List<byte[]> getEntries() {
+    return entries;
+  }
+
   @Override
   public final byte getId() {
     return WALRecordTypes.SBTREE_BONSAI_BUCKET_ADD_ALL;

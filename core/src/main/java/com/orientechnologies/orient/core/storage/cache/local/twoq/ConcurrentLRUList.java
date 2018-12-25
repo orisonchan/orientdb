@@ -22,9 +22,11 @@ package com.orientechnologies.orient.core.storage.cache.local.twoq;
 
 import com.orientechnologies.orient.core.storage.cache.OCacheEntry;
 
+import javax.annotation.Nonnull;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
-import java.util.concurrent.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -36,13 +38,13 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  *
  * @author Artem Orobets (enisher-at-gmail.com)
  */
-public class ConcurrentLRUList implements LRUList {
+public final class ConcurrentLRUList implements LRUList {
 
   @SuppressWarnings("CanBeFinal")
   private static boolean assertionsEnabled;
 
   static {
-    //noinspection AssertWithSideEffects,ConstantConditions
+    //noinspection AssertWithSideEffects
     assert assertionsEnabled = true;
   }
 
@@ -60,7 +62,7 @@ public class ConcurrentLRUList implements LRUList {
   }
 
   @Override
-  public OCacheEntry get(long fileId, long pageIndex) {
+  public OCacheEntry get(final long fileId, final long pageIndex) {
     final LRUEntry lruEntry = cache.get(new CacheKey(fileId, pageIndex));
 
     purge();
@@ -72,8 +74,8 @@ public class ConcurrentLRUList implements LRUList {
   }
 
   @Override
-  public OCacheEntry remove(long fileId, long pageIndex) {
-    CacheKey key = new CacheKey(fileId, pageIndex);
+  public OCacheEntry remove(final long fileId, final long pageIndex) {
+    final CacheKey key = new CacheKey(fileId, pageIndex);
     final LRUEntry valueToRemove = cache.remove(key);
 
     if (valueToRemove == null)
@@ -82,7 +84,7 @@ public class ConcurrentLRUList implements LRUList {
     valueToRemove.removeLock.writeLock().lock();
     try {
       valueToRemove.removed = true;
-      ListNode node = valueToRemove.listNode.get();
+      final ListNode node = valueToRemove.listNode.get();
       valueToRemove.listNode.lazySet(null);
 
       if (node != null)
@@ -97,9 +99,9 @@ public class ConcurrentLRUList implements LRUList {
   }
 
   @Override
-  public void putToMRU(OCacheEntry cacheEntry) {
+  public void putToMRU(final OCacheEntry cacheEntry) {
     final CacheKey key = new CacheKey(cacheEntry.getFileId(), cacheEntry.getPageIndex());
-    LRUEntry value = new LRUEntry(key, cacheEntry);
+    final LRUEntry value = new LRUEntry(key, cacheEntry);
     final LRUEntry existingValue = cache.putIfAbsent(key, value);
 
     if (existingValue != null) {
@@ -111,7 +113,7 @@ public class ConcurrentLRUList implements LRUList {
     purge();
   }
 
-  private void offer(LRUEntry lruEntry) {
+  private void offer(final LRUEntry lruEntry) {
     lruEntry.removeLock.readLock().lock();
     try {
       if (lruEntry.removed)
@@ -122,7 +124,7 @@ public class ConcurrentLRUList implements LRUList {
       if (!lruEntry.equals(tail.entry)) {
         final ListNode oldNode = lruEntry.listNode.get();
 
-        ListNode newNode = new ListNode(lruEntry, false);
+        final ListNode newNode = new ListNode(lruEntry, false);
         if (lruEntry.listNode.compareAndSet(oldNode, newNode)) {
 
           while (true) {
@@ -159,7 +161,7 @@ public class ConcurrentLRUList implements LRUList {
         if (currentEntry != null && isInUse(currentEntry.entry))
           inUseCounter++;
 
-        ListNode next = current.next.get();
+        final ListNode next = current.next.get();
 
         if (next == null) {
           if (cache.size() == inUseCounter)
@@ -177,7 +179,7 @@ public class ConcurrentLRUList implements LRUList {
         currentEntry.removeLock.writeLock().lock();
         try {
           currentEntry.removed = true;
-          ListNode node = currentEntry.listNode.get();
+          final ListNode node = currentEntry.listNode.get();
 
           currentEntry.listNode.lazySet(null);
           addToTrash(node);
@@ -208,7 +210,7 @@ public class ConcurrentLRUList implements LRUList {
       if (currentEntry != null && isInUse(currentEntry.entry))
         inUseCounter++;
 
-      ListNode next = current.next.get();
+      final ListNode next = current.next.get();
 
       if (next == null) {
         if (cache.size() == inUseCounter)
@@ -262,7 +264,7 @@ public class ConcurrentLRUList implements LRUList {
       assert next == null || next.previous.get() == node;
 
       if (assertionsEnabled) {
-        boolean success = previous.next.compareAndSet(node, next);
+        final boolean success = previous.next.compareAndSet(node, next);
         assert success;
       } else
         previous.next.set(next);
@@ -284,11 +286,11 @@ public class ConcurrentLRUList implements LRUList {
   }
 
   @Override
-  public boolean contains(long fileId, long filePosition) {
+  public boolean contains(final long fileId, final long filePosition) {
     return cache.containsKey(new CacheKey(fileId, filePosition));
   }
 
-  private void addToTrash(ListNode node) {
+  private void addToTrash(final ListNode node) {
     node.entry = null;
 
     trash.add(node);
@@ -300,12 +302,13 @@ public class ConcurrentLRUList implements LRUList {
     return cache.size();
   }
 
-  private boolean isInUse(OCacheEntry entry) {
+  private static boolean isInUse(final OCacheEntry entry) {
     return entry != null && entry.getUsagesCount() != 0;
   }
 
   @Override
-  public Iterator<OCacheEntry> iterator() {
+  @Nonnull
+  public final Iterator<OCacheEntry> iterator() {
     return new OCacheEntryIterator(tailReference.get());
   }
 
@@ -317,23 +320,23 @@ public class ConcurrentLRUList implements LRUList {
     return new OReverseCacheEntryIterator(headReference);
   }
 
-  private static class OCacheEntryIterator implements Iterator<OCacheEntry> {
+  private static final class OCacheEntryIterator implements Iterator<OCacheEntry> {
 
     private ListNode current;
 
-    public OCacheEntryIterator(ListNode start) {
+    OCacheEntryIterator(final ListNode start) {
       current = start;
       while (current != null && current.entry == null)
         current = current.previous.get();
     }
 
     @Override
-    public boolean hasNext() {
+    public final boolean hasNext() {
       return current != null && current.entry != null;
     }
 
     @Override
-    public OCacheEntry next() {
+    public final OCacheEntry next() {
       if (!hasNext())
         throw new NoSuchElementException();
 
@@ -347,7 +350,7 @@ public class ConcurrentLRUList implements LRUList {
     }
 
     @Override
-    public void remove() {
+    public final void remove() {
       throw new UnsupportedOperationException();
     }
   }
@@ -355,10 +358,10 @@ public class ConcurrentLRUList implements LRUList {
   /**
    * Iterates from head to tail of LRU queue.
    */
-  private static class OReverseCacheEntryIterator implements Iterator<OCacheEntry> {
+  private static final class OReverseCacheEntryIterator implements Iterator<OCacheEntry> {
     private ListNode current;
 
-    public OReverseCacheEntryIterator(ListNode start) {
+    OReverseCacheEntryIterator(final ListNode start) {
       current = start;
       //because we purge nodes into background and because
       //head node is dummy we skip entries with empty entries
@@ -367,12 +370,12 @@ public class ConcurrentLRUList implements LRUList {
     }
 
     @Override
-    public boolean hasNext() {
+    public final boolean hasNext() {
       return current != null && current.entry != null;
     }
 
     @Override
-    public OCacheEntry next() {
+    public final OCacheEntry next() {
       if (!hasNext())
         throw new NoSuchElementException();
 
@@ -388,67 +391,64 @@ public class ConcurrentLRUList implements LRUList {
     }
 
     @Override
-    public void remove() {
+    public final void remove() {
       throw new UnsupportedOperationException();
     }
   }
 
-  private static class CacheKey {
+  private static final class CacheKey {
     private final long fileId;
     private final long pageIndex;
 
-    private CacheKey(long fileId, long pageIndex) {
+    private CacheKey(final long fileId, final long pageIndex) {
       this.fileId = fileId;
       this.pageIndex = pageIndex;
     }
 
     @Override
-    public boolean equals(Object o) {
+    public final boolean equals(final Object o) {
       if (this == o)
         return true;
       if (o == null || getClass() != o.getClass())
         return false;
 
-      CacheKey that = (CacheKey) o;
+      final CacheKey that = (CacheKey) o;
 
       if (fileId != that.fileId)
         return false;
-      if (pageIndex != that.pageIndex)
-        return false;
-
-      return true;
+      return pageIndex == that.pageIndex;
     }
 
     @Override
-    public int hashCode() {
+    public final int hashCode() {
       int result = (int) (fileId ^ (fileId >>> 32));
       result = 31 * result + (int) (pageIndex ^ (pageIndex >>> 32));
       return result;
     }
   }
 
-  private static class LRUEntry {
-    private final AtomicReference<ListNode> listNode = new AtomicReference<>();
-    private final    CacheKey    key;
-    private volatile OCacheEntry entry;
+  private static final class LRUEntry {
+    private final    AtomicReference<ListNode> listNode = new AtomicReference<>();
+    private final    CacheKey                  key;
+    private volatile OCacheEntry               entry;
 
-    private       boolean       removed    = false;
+    private       boolean       removed;
     private final ReadWriteLock removeLock = new ReentrantReadWriteLock();
 
-    private LRUEntry(CacheKey key, OCacheEntry entry) {
+    private LRUEntry(final CacheKey key, final OCacheEntry entry) {
       this.key = key;
       this.entry = entry;
     }
   }
 
-  private static class ListNode {
+  private static final class ListNode {
     private volatile LRUEntry entry;
     private final AtomicReference<ListNode> next     = new AtomicReference<>();
     private final AtomicReference<ListNode> previous = new AtomicReference<>();
 
     private final boolean isDummy;
 
-    private ListNode(LRUEntry key, boolean isDummy) {
+    private ListNode(final LRUEntry key, final boolean isDummy) {
       this.entry = key;
       this.isDummy = isDummy;
     }

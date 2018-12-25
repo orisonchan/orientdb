@@ -24,6 +24,19 @@ public final class OBonsaiBucketRemoveLeafEntryPageOperation extends OBonsaiBuck
     this.prevValue = prevValue;
   }
 
+  public int getIndex() {
+    return index;
+  }
+
+  byte[] getPrevKey() {
+    return prevKey;
+  }
+
+  @SuppressFBWarnings("EI_EXPOSE_REP")
+  public byte[] getPrevValue() {
+    return prevValue;
+  }
+
   @Override
   public byte getId() {
     return WALRecordTypes.SBTREE_BONSAI_BUCKET_REMOVE_LEAF_ENTRY;
@@ -41,16 +54,16 @@ public final class OBonsaiBucketRemoveLeafEntryPageOperation extends OBonsaiBuck
 
   @Override
   protected void deserializeFromByteBuffer(final ByteBuffer buffer) {
-    buffer.putInt(index);
-    serializeByteArray(prevKey, buffer);
-    serializeByteArray(prevValue, buffer);
+    index = buffer.getInt();
+    prevKey = deserializeByteArray(buffer);
+    prevValue = deserializeByteArray(buffer);
   }
 
   @Override
   protected void serializeToByteBuffer(final ByteBuffer buffer) {
-    index = buffer.getInt();
-    prevKey = deserializeByteArray(buffer);
-    prevValue = deserializeByteArray(buffer);
+    buffer.putInt(index);
+    serializeByteArray(prevKey, buffer);
+    serializeByteArray(prevValue, buffer);
   }
 
   @Override

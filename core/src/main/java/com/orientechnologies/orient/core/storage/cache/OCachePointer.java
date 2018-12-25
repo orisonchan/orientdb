@@ -21,7 +21,6 @@ package com.orientechnologies.orient.core.storage.cache;
 
 import com.orientechnologies.common.directmemory.OByteBufferPool;
 import com.orientechnologies.common.directmemory.OPointer;
-import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OLogSequenceNumber;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -54,8 +53,6 @@ public final class OCachePointer {
   private final long fileId;
   private final long pageIndex;
 
-  private OLogSequenceNumber endLSN;
-
   public OCachePointer(final OPointer pointer, final OByteBufferPool bufferPool, final long fileId, final long pageIndex) {
     this.pointer = pointer;
     this.bufferPool = bufferPool;
@@ -64,7 +61,7 @@ public final class OCachePointer {
     this.pageIndex = pageIndex;
   }
 
-  public void setWritersListener(WritersListener writersListener) {
+  public void setWritersListener(final WritersListener writersListener) {
     this.writersListener = writersListener;
   }
 
@@ -239,7 +236,7 @@ public final class OCachePointer {
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
@@ -247,13 +244,9 @@ public final class OCachePointer {
       return false;
     }
 
-    OCachePointer that = (OCachePointer) o;
+    final OCachePointer that = (OCachePointer) o;
 
-    if (!pointer.equals(that.pointer)) {
-      return false;
-    }
-
-    return true;
+    return pointer.equals(that.pointer);
   }
 
   @Override
@@ -266,15 +259,15 @@ public final class OCachePointer {
     return "OCachePointer{" + "referrersCount=" + referrersCount + ", usagesCount=" + usagesCounter + '}';
   }
 
-  private static long composeReadersWriters(int readers, int writers) {
+  private static long composeReadersWriters(final int readers, final int writers) {
     return ((long) writers) << WRITERS_OFFSET | readers;
   }
 
-  private static int getReaders(long readersWriters) {
+  private static int getReaders(final long readersWriters) {
     return (int) (readersWriters & READERS_MASK);
   }
 
-  private static int getWriters(long readersWriters) {
+  private static int getWriters(final long readersWriters) {
     return (int) (readersWriters >>> WRITERS_OFFSET);
   }
 
@@ -282,13 +275,5 @@ public final class OCachePointer {
     void addOnlyWriters(long fileId, long pageIndex);
 
     void removeOnlyWriters(long fileId, long pageIndex);
-  }
-
-  public OLogSequenceNumber getEndLSN() {
-    return endLSN;
-  }
-
-  void setEndLSN(OLogSequenceNumber endLSN) {
-    this.endLSN = endLSN;
   }
 }
