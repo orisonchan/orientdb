@@ -7,7 +7,6 @@ import org.junit.Test;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.util.Random;
 
 public class OSBTreeBucketInsertNonLeafKeyNeighboursPageOperationSerializationTest {
   @Test
@@ -17,16 +16,12 @@ public class OSBTreeBucketInsertNonLeafKeyNeighboursPageOperationSerializationTe
     final OOperationUnitId operationUnitId = OOperationUnitId.generateId();
 
     final int index = 12;
-    final byte[] serializedKey = new byte[34];
-    final Random random = new Random();
-    random.nextBytes(serializedKey);
+    final int keySize = 34;
 
-    int leftChild = 45;
-    int rightChild = 87;
     int prevChildPointer = 17;
 
     OSBTreeBucketInsertNonLeafKeyNeighboursPageOperation operation = new OSBTreeBucketInsertNonLeafKeyNeighboursPageOperation(index,
-        serializedKey, leftChild, rightChild, prevChildPointer);
+        keySize, prevChildPointer);
     operation.setFileId(fileId);
     operation.setPageIndex(pageIndex);
     operation.setOperationUnitId(operationUnitId);
@@ -46,9 +41,7 @@ public class OSBTreeBucketInsertNonLeafKeyNeighboursPageOperationSerializationTe
     Assert.assertEquals(operationUnitId, restoredOperation.getOperationUnitId());
 
     Assert.assertEquals(index, restoredOperation.getIndex());
-    Assert.assertArrayEquals(serializedKey, restoredOperation.getSerializedKey());
-    Assert.assertEquals(leftChild, restoredOperation.getLeftChild());
-    Assert.assertEquals(rightChild, restoredOperation.getRightChild());
+    Assert.assertEquals(keySize, restoredOperation.getKeySize());
     Assert.assertEquals(prevChildPointer, restoredOperation.getPrevChildPointer());
   }
 
@@ -59,16 +52,11 @@ public class OSBTreeBucketInsertNonLeafKeyNeighboursPageOperationSerializationTe
     final OOperationUnitId operationUnitId = OOperationUnitId.generateId();
 
     final int index = 12;
-    final byte[] serializedKey = new byte[34];
-    final Random random = new Random();
-    random.nextBytes(serializedKey);
-
-    int leftChild = 45;
-    int rightChild = 87;
+    final int keySize = 34;
     int prevChildPointer = 17;
 
     OSBTreeBucketInsertNonLeafKeyNeighboursPageOperation operation = new OSBTreeBucketInsertNonLeafKeyNeighboursPageOperation(index,
-        serializedKey, leftChild, rightChild, prevChildPointer);
+        keySize, prevChildPointer);
     operation.setFileId(fileId);
     operation.setPageIndex(pageIndex);
     operation.setOperationUnitId(operationUnitId);
@@ -89,9 +77,7 @@ public class OSBTreeBucketInsertNonLeafKeyNeighboursPageOperationSerializationTe
     Assert.assertEquals(operationUnitId, restoredOperation.getOperationUnitId());
 
     Assert.assertEquals(index, restoredOperation.getIndex());
-    Assert.assertArrayEquals(serializedKey, restoredOperation.getSerializedKey());
-    Assert.assertEquals(leftChild, restoredOperation.getLeftChild());
-    Assert.assertEquals(rightChild, restoredOperation.getRightChild());
+    Assert.assertEquals(keySize, restoredOperation.getKeySize());
     Assert.assertEquals(prevChildPointer, restoredOperation.getPrevChildPointer());
   }
 }

@@ -11,8 +11,6 @@ import java.nio.ByteBuffer;
 public final class OBonsaiBucketRemoveNonLeafEntryPageOperation extends OBonsaiBucketPageOperation {
   private int    entryIndex;
   private byte[] key;
-  private int    prevChildPageIndex;
-  private int    prevChildPageOffset;
 
   private int leftPageIndex;
   private int leftPageOffset;
@@ -25,14 +23,11 @@ public final class OBonsaiBucketRemoveNonLeafEntryPageOperation extends OBonsaiB
 
   @SuppressFBWarnings("EI_EXPOSE_REP2")
   public OBonsaiBucketRemoveNonLeafEntryPageOperation(final int pageOffset, final int entryIndex, final byte[] key,
-      final int prevChildPageIndex, final int prevChildPageOffset, final int leftPageIndex, final int leftPageOffset,
-      final int rightPageIndex, final int rightPageOffset) {
+      final int leftPageIndex, final int leftPageOffset, final int rightPageIndex, final int rightPageOffset) {
     super(pageOffset);
 
     this.entryIndex = entryIndex;
     this.key = key;
-    this.prevChildPageIndex = prevChildPageIndex;
-    this.prevChildPageOffset = prevChildPageOffset;
     this.leftPageIndex = leftPageIndex;
     this.leftPageOffset = leftPageOffset;
     this.rightPageIndex = rightPageIndex;
@@ -42,11 +37,6 @@ public final class OBonsaiBucketRemoveNonLeafEntryPageOperation extends OBonsaiB
   @Override
   public final byte getId() {
     return WALRecordTypes.SBTREE_BONSAI_BUCKET_REMOVE_NON_LEAF_ENTRY;
-  }
-
-  @Override
-  protected final void doRedo(final OSBTreeBonsaiBucket page) {
-    page.removeNonLeafEntry(entryIndex, key, prevChildPageIndex, prevChildPageOffset);
   }
 
   @Override
@@ -61,9 +51,6 @@ public final class OBonsaiBucketRemoveNonLeafEntryPageOperation extends OBonsaiB
 
     serializeByteArray(key, buffer);
 
-    buffer.putInt(prevChildPageIndex);
-    buffer.putInt(prevChildPageOffset);
-
     buffer.putInt(leftPageIndex);
     buffer.putInt(leftPageOffset);
 
@@ -77,9 +64,6 @@ public final class OBonsaiBucketRemoveNonLeafEntryPageOperation extends OBonsaiB
 
     key = deserializeByteArray(buffer);
 
-    prevChildPageIndex = buffer.getInt();
-    prevChildPageOffset = buffer.getInt();
-
     leftPageIndex = buffer.getInt();
     leftPageOffset = buffer.getInt();
 
@@ -89,6 +73,6 @@ public final class OBonsaiBucketRemoveNonLeafEntryPageOperation extends OBonsaiB
 
   @Override
   public final int serializedSize() {
-    return super.serializedSize() + 8 * OIntegerSerializer.INT_SIZE + key.length;
+    return super.serializedSize() + 6 * OIntegerSerializer.INT_SIZE + key.length;
   }
 }

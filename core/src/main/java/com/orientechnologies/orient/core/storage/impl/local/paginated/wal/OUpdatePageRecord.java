@@ -24,27 +24,22 @@ import com.orientechnologies.common.serialization.types.OLongSerializer;
 import com.orientechnologies.orient.core.storage.cache.OReadCache;
 import com.orientechnologies.orient.core.storage.cache.OWriteCache;
 
-import java.io.IOException;
 import java.nio.ByteBuffer;
 
 /**
  * @author Andrey Lomakin (a.lomakin-at-orientdb.com)
  * @since 26.04.13
  */
-public class OUpdatePageRecord extends OAbstractPageWALRecord {
-  private OWALChanges        changes;
+public final class OUpdatePageRecord extends OAbstractPageWALRecord {
+  private OWALChanges changes;
 
   @SuppressWarnings("WeakerAccess")
   public OUpdatePageRecord() {
   }
 
   @Override
-  public void redo(OReadCache readCache, OWriteCache writeCache) throws IOException {
-
-  }
-
-  @Override
-  public void undo(OReadCache readCache, OWriteCache writeCache, OWriteAheadLog writeAheadLog, OOperationUnitId operationUnitId) throws IOException {
+  public void undo(final OReadCache readCache, final OWriteCache writeCache, final OWriteAheadLog writeAheadLog,
+      final OOperationUnitId operationUnitId) {
 
   }
 
@@ -59,7 +54,7 @@ public class OUpdatePageRecord extends OAbstractPageWALRecord {
   }
 
   @Override
-  public int serializedSize() {
+  public final int serializedSize() {
     int serializedSize = super.serializedSize();
     serializedSize += changes.serializedSize();
 
@@ -69,7 +64,7 @@ public class OUpdatePageRecord extends OAbstractPageWALRecord {
   }
 
   @Override
-  public int toStream(final byte[] content, int offset) {
+  public final int toStream(final byte[] content, int offset) {
     offset = super.toStream(content, offset);
     offset = changes.toStream(offset, content);
 
@@ -77,13 +72,13 @@ public class OUpdatePageRecord extends OAbstractPageWALRecord {
   }
 
   @Override
-  public void toStream(final ByteBuffer buffer) {
+  public final void toStream(final ByteBuffer buffer) {
     super.toStream(buffer);
     changes.toStream(buffer);
   }
 
   @Override
-  public int fromStream(final byte[] content, int offset) {
+  public final int fromStream(final byte[] content, int offset) {
     offset = super.fromStream(content, offset);
 
     changes = new OWALPageChangesPortion();
@@ -93,12 +88,12 @@ public class OUpdatePageRecord extends OAbstractPageWALRecord {
   }
 
   @Override
-  public boolean isUpdateMasterRecord() {
+  public final boolean isUpdateMasterRecord() {
     return false;
   }
 
   @Override
-  public boolean equals(final Object o) {
+  public final boolean equals(final Object o) {
     if (this == o)
       return true;
     if (o == null || getClass() != o.getClass())
@@ -117,21 +112,18 @@ public class OUpdatePageRecord extends OAbstractPageWALRecord {
     if (that.lsn == null)
       return false;
 
-    if (!lsn.equals(that.lsn))
-      return false;
-
-    return true;
+    return lsn.equals(that.lsn);
   }
 
   @Override
-  public int hashCode() {
+  public final int hashCode() {
     int result = super.hashCode();
     result = 31 * result + lsn.hashCode();
     return result;
   }
 
   @Override
-  public byte getId() {
+  public final byte getId() {
     return WALRecordTypes.UPDATE_PAGE_RECORD;
   }
 }

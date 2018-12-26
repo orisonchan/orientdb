@@ -15,13 +15,11 @@ public class OClusterPositionMapUndoResurrectOperationSerializationTest {
     final OOperationUnitId operationUnitId = OOperationUnitId.generateId();
 
     final int index = 1;
-    final int recordPageIndex = 12;
-    final int recordPosition = 21;
     final int oldRecordPosition = 3;
     final int oldRecordPageIndex = 7;
 
-    OClusterPositionMapUndoResurrectOperation operation = new OClusterPositionMapUndoResurrectOperation(index, recordPageIndex,
-        recordPosition, oldRecordPageIndex, oldRecordPosition);
+    OClusterPositionMapUndoResurrectOperation operation = new OClusterPositionMapUndoResurrectOperation(index, oldRecordPageIndex,
+        oldRecordPosition);
     operation.setFileId(fileId);
     operation.setPageIndex(pageIndex);
     operation.setOperationUnitId(operationUnitId);
@@ -40,8 +38,6 @@ public class OClusterPositionMapUndoResurrectOperationSerializationTest {
     Assert.assertEquals(pageIndex, restoredOperation.getPageIndex());
     Assert.assertEquals(operationUnitId, restoredOperation.getOperationUnitId());
     Assert.assertEquals(index, restoredOperation.getIndex());
-    Assert.assertEquals(recordPageIndex, restoredOperation.getRecordPageIndex());
-    Assert.assertEquals(recordPosition, restoredOperation.getRecordPosition());
     Assert.assertEquals(oldRecordPosition, restoredOperation.getOldRecordPosition());
     Assert.assertEquals(oldRecordPageIndex, restoredOperation.getOldRecordPageIndex());
   }
@@ -53,13 +49,11 @@ public class OClusterPositionMapUndoResurrectOperationSerializationTest {
     final OOperationUnitId operationUnitId = OOperationUnitId.generateId();
 
     final int index = 1;
-    final int recordPageIndex = 12;
-    final int recordPosition = 21;
     final int oldRecordPosition = 3;
     final int oldRecordPageIndex = 7;
 
-    OClusterPositionMapUndoResurrectOperation operation = new OClusterPositionMapUndoResurrectOperation(index, recordPageIndex,
-        recordPosition, oldRecordPageIndex, oldRecordPosition);
+    OClusterPositionMapUndoResurrectOperation operation = new OClusterPositionMapUndoResurrectOperation(index, oldRecordPageIndex,
+        oldRecordPosition);
     operation.setFileId(fileId);
     operation.setPageIndex(pageIndex);
     operation.setOperationUnitId(operationUnitId);
@@ -80,8 +74,6 @@ public class OClusterPositionMapUndoResurrectOperationSerializationTest {
     Assert.assertEquals(pageIndex, restoredOperation.getPageIndex());
     Assert.assertEquals(operationUnitId, restoredOperation.getOperationUnitId());
     Assert.assertEquals(index, restoredOperation.getIndex());
-    Assert.assertEquals(recordPageIndex, restoredOperation.getRecordPageIndex());
-    Assert.assertEquals(recordPosition, restoredOperation.getRecordPosition());
     Assert.assertEquals(oldRecordPosition, restoredOperation.getOldRecordPosition());
     Assert.assertEquals(oldRecordPageIndex, restoredOperation.getOldRecordPageIndex());
   }

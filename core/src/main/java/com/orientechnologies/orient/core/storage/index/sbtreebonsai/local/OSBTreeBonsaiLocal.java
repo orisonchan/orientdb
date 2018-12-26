@@ -476,8 +476,8 @@ public final class OSBTreeBonsaiLocal<K, V> extends ODurableComponent implements
 
           removed = keyBucket.getEntry(bucketSearchResult.itemIndex, keySerializer, valueSerializer).value;
 
-          keyBucket.removeLeafEntry(bucketSearchResult.itemIndex, keySerializer.serializeNativeAsWhole(key),
-              valueSerializer.serializeNativeAsWhole(removed));
+          keyBucket.removeLeafEntry(bucketSearchResult.itemIndex, keySerializer.getObjectSize(key),
+              valueSerializer.getObjectSize(removed));
         } finally {
           releasePageFromWrite(keyBucket, atomicOperation);
         }

@@ -19,7 +19,7 @@ public class OSBtreeBucketSetFreeListFirstIndexPageOperationSerializationTest {
     final int prevFreeListPageIndex = 56;
 
     OSBtreeBucketSetFreeListFirstIndexPageOperation operation = new OSBtreeBucketSetFreeListFirstIndexPageOperation(
-        freeListPageIndex, prevFreeListPageIndex);
+        prevFreeListPageIndex);
     operation.setFileId(fileId);
     operation.setPageIndex(pageIndex);
     operation.setOperationUnitId(operationUnitId);
@@ -37,7 +37,6 @@ public class OSBtreeBucketSetFreeListFirstIndexPageOperationSerializationTest {
     Assert.assertEquals(fileId, restoredOperation.getFileId());
     Assert.assertEquals(pageIndex, restoredOperation.getPageIndex());
     Assert.assertEquals(operationUnitId, restoredOperation.getOperationUnitId());
-    Assert.assertEquals(freeListPageIndex, restoredOperation.getFreeListPageIndex());
     Assert.assertEquals(prevFreeListPageIndex, restoredOperation.getPrevPageIndex());
   }
 
@@ -51,7 +50,7 @@ public class OSBtreeBucketSetFreeListFirstIndexPageOperationSerializationTest {
     final int prevFreeListPageIndex = 56;
 
     OSBtreeBucketSetFreeListFirstIndexPageOperation operation = new OSBtreeBucketSetFreeListFirstIndexPageOperation(
-        freeListPageIndex, prevFreeListPageIndex);
+        prevFreeListPageIndex);
     operation.setFileId(fileId);
     operation.setPageIndex(pageIndex);
     operation.setOperationUnitId(operationUnitId);
@@ -71,7 +70,6 @@ public class OSBtreeBucketSetFreeListFirstIndexPageOperationSerializationTest {
     Assert.assertEquals(fileId, restoredOperation.getFileId());
     Assert.assertEquals(pageIndex, restoredOperation.getPageIndex());
     Assert.assertEquals(operationUnitId, restoredOperation.getOperationUnitId());
-    Assert.assertEquals(freeListPageIndex, restoredOperation.getFreeListPageIndex());
     Assert.assertEquals(prevFreeListPageIndex, restoredOperation.getPrevPageIndex());
   }
 }

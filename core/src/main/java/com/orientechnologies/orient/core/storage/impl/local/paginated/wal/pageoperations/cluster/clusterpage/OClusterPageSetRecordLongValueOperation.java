@@ -13,16 +13,14 @@ public final class OClusterPageSetRecordLongValueOperation extends OPageOperatio
   private int recordPosition;
   private int recordOffset;
 
-  private long value;
   private long oldValue;
 
   public OClusterPageSetRecordLongValueOperation() {
   }
 
-  public OClusterPageSetRecordLongValueOperation(int recordPosition, int recordOffset, long value, long oldValue) {
+  public OClusterPageSetRecordLongValueOperation(final int recordPosition, final int recordOffset, final long oldValue) {
     this.recordPosition = recordPosition;
     this.recordOffset = recordOffset;
-    this.value = value;
     this.oldValue = oldValue;
   }
 
@@ -34,26 +32,17 @@ public final class OClusterPageSetRecordLongValueOperation extends OPageOperatio
     return recordOffset;
   }
 
-  public long getValue() {
-    return value;
-  }
-
   public long getOldValue() {
     return oldValue;
   }
 
   @Override
-  protected OClusterPage createPageInstance(OCacheEntry cacheEntry) {
+  protected OClusterPage createPageInstance(final OCacheEntry cacheEntry) {
     return new OClusterPage(cacheEntry, false);
   }
 
   @Override
-  protected void doRedo(OClusterPage clusterPage) {
-    clusterPage.setRecordLongValue(recordPosition, recordOffset, value);
-  }
-
-  @Override
-  protected void doUndo(OClusterPage clusterPage) {
+  protected void doUndo(final OClusterPage clusterPage) {
     clusterPage.setRecordLongValue(recordPosition, recordOffset, oldValue);
   }
 
@@ -68,7 +57,7 @@ public final class OClusterPageSetRecordLongValueOperation extends OPageOperatio
   }
 
   @Override
-  public int toStream(byte[] content, int offset) {
+  public int toStream(final byte[] content, int offset) {
     offset = super.toStream(content, offset);
 
     OIntegerSerializer.INSTANCE.serializeNative(recordPosition, content, offset);
@@ -77,9 +66,6 @@ public final class OClusterPageSetRecordLongValueOperation extends OPageOperatio
     OIntegerSerializer.INSTANCE.serializeNative(recordOffset, content, offset);
     offset += OIntegerSerializer.INT_SIZE;
 
-    OLongSerializer.INSTANCE.serializeNative(value, content, offset);
-    offset += OLongSerializer.LONG_SIZE;
-
     OLongSerializer.INSTANCE.serializeNative(oldValue, content, offset);
     offset += OLongSerializer.LONG_SIZE;
 
@@ -87,18 +73,17 @@ public final class OClusterPageSetRecordLongValueOperation extends OPageOperatio
   }
 
   @Override
-  public void toStream(ByteBuffer buffer) {
+  public void toStream(final ByteBuffer buffer) {
     super.toStream(buffer);
 
     buffer.putInt(recordPosition);
     buffer.putInt(recordOffset);
 
-    buffer.putLong(value);
     buffer.putLong(oldValue);
   }
 
   @Override
-  public int fromStream(byte[] content, int offset) {
+  public int fromStream(final byte[] content, int offset) {
     offset = super.fromStream(content, offset);
 
     recordPosition = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
@@ -106,9 +91,6 @@ public final class OClusterPageSetRecordLongValueOperation extends OPageOperatio
 
     recordOffset = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
     offset += OIntegerSerializer.INT_SIZE;
-
-    value = OLongSerializer.INSTANCE.deserializeNative(content, offset);
-    offset += OLongSerializer.LONG_SIZE;
 
     oldValue = OLongSerializer.INSTANCE.deserializeNative(content, offset);
     offset += OLongSerializer.LONG_SIZE;
@@ -118,6 +100,6 @@ public final class OClusterPageSetRecordLongValueOperation extends OPageOperatio
 
   @Override
   public int serializedSize() {
-    return super.serializedSize() + 2 * OIntegerSerializer.INT_SIZE + 2 * OLongSerializer.LONG_SIZE;
+    return super.serializedSize() + 2 * OIntegerSerializer.INT_SIZE + OLongSerializer.LONG_SIZE;
   }
 }

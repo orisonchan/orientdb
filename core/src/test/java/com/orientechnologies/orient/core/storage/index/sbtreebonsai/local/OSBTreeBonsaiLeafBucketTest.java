@@ -274,8 +274,8 @@ public class OSBTreeBonsaiLeafBucketTest {
     int itemsToDelete = originalSize / 2;
     for (int i = 0; i < itemsToDelete; i++) {
       final int removeIndex = treeBucket.size() - 1;
-      treeBucket.removeLeafEntry(removeIndex, treeBucket.getRawKey(removeIndex, OLongSerializer.INSTANCE),
-          treeBucket.getRawValue(removeIndex, OLongSerializer.INSTANCE, OLinkSerializer.INSTANCE));
+      treeBucket.removeLeafEntry(removeIndex, treeBucket.getRawKey(removeIndex, OLongSerializer.INSTANCE).length,
+          treeBucket.getRawValue(removeIndex, OLongSerializer.INSTANCE, OLinkSerializer.INSTANCE).length);
     }
 
     Assert.assertEquals(treeBucket.size(), originalSize - itemsToDelete);

@@ -9,29 +9,29 @@ import com.orientechnologies.orient.core.storage.index.sbtree.local.OSBTreeBucke
 import java.nio.ByteBuffer;
 
 public final class OSBTreeBucketInsertLeafKeyValuePageOperation extends OPageOperationRecord<OSBTreeBucket> {
-  private int    index;
-  private byte[] serializedKey;
-  private byte[] serializedValue;
+  private int index;
+  private int keySize;
+  private int valueSize;
 
   public OSBTreeBucketInsertLeafKeyValuePageOperation() {
   }
 
-  public OSBTreeBucketInsertLeafKeyValuePageOperation(int index, byte[] serializedKey, byte[] serializedValue) {
+  public OSBTreeBucketInsertLeafKeyValuePageOperation(final int index, final int keySize, final int valueSize) {
     this.index = index;
-    this.serializedKey = serializedKey;
-    this.serializedValue = serializedValue;
+    this.keySize = keySize;
+    this.valueSize = valueSize;
   }
 
   public int getIndex() {
     return index;
   }
 
-  public byte[] getSerializedKey() {
-    return serializedKey;
+  public int getKeySize() {
+    return keySize;
   }
 
-  public byte[] getSerializedValue() {
-    return serializedValue;
+  public int getValueSize() {
+    return valueSize;
   }
 
   @Override
@@ -45,79 +45,58 @@ public final class OSBTreeBucketInsertLeafKeyValuePageOperation extends OPageOpe
   }
 
   @Override
-  protected OSBTreeBucket createPageInstance(OCacheEntry cacheEntry) {
+  protected OSBTreeBucket createPageInstance(final OCacheEntry cacheEntry) {
     return new OSBTreeBucket(cacheEntry);
   }
 
   @Override
-  protected void doRedo(OSBTreeBucket page) {
-    page.insertLeafKeyValue(index, serializedKey, serializedValue);
+  protected void doUndo(final OSBTreeBucket page) {
+    page.removeLeafEntry(index, keySize, valueSize);
   }
 
   @Override
-  protected void doUndo(OSBTreeBucket page) {
-    page.removeLeafEntry(index, serializedKey, serializedValue);
-  }
-
-  @Override
-  public int toStream(byte[] content, int offset) {
+  public int toStream(final byte[] content, int offset) {
     offset = super.toStream(content, offset);
 
     OIntegerSerializer.INSTANCE.serializeNative(index, content, offset);
     offset += OIntegerSerializer.INT_SIZE;
 
-    OIntegerSerializer.INSTANCE.serializeNative(serializedKey.length, content, offset);
+    OIntegerSerializer.INSTANCE.serializeNative(keySize, content, offset);
     offset += OIntegerSerializer.INT_SIZE;
 
-    System.arraycopy(serializedKey, 0, content, offset, serializedKey.length);
-    offset += serializedKey.length;
-
-    OIntegerSerializer.INSTANCE.serializeNative(serializedValue.length, content, offset);
+    OIntegerSerializer.INSTANCE.serializeNative(valueSize, content, offset);
     offset += OIntegerSerializer.INT_SIZE;
-
-    System.arraycopy(serializedValue, 0, content, offset, serializedValue.length);
-    offset += serializedValue.length;
 
     return offset;
   }
 
   @Override
-  public void toStream(ByteBuffer buffer) {
+  public void toStream(final ByteBuffer buffer) {
     super.toStream(buffer);
 
     buffer.putInt(index);
-    buffer.putInt(serializedKey.length);
-    buffer.put(serializedKey);
-    buffer.putInt(serializedValue.length);
-    buffer.put(serializedValue);
+    buffer.putInt(keySize);
+    buffer.putInt(valueSize);
   }
 
   @Override
-  public int fromStream(byte[] content, int offset) {
+  public int fromStream(final byte[] content, int offset) {
     offset = super.fromStream(content, offset);
 
     index = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
     offset += OIntegerSerializer.INT_SIZE;
 
-    int keyLen = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
+    keySize = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
     offset += OIntegerSerializer.INT_SIZE;
 
-    serializedKey = new byte[keyLen];
-    System.arraycopy(content, offset, serializedKey, 0, keyLen);
-    offset += keyLen;
-
-    int valueLen = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
+    valueSize = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
     offset += OIntegerSerializer.INT_SIZE;
-
-    serializedValue = new byte[valueLen];
-    System.arraycopy(content, offset, serializedValue, 0, valueLen);
-    offset += valueLen;
 
     return offset;
   }
 
   @Override
   public int serializedSize() {
-    return super.serializedSize() + 3 * OIntegerSerializer.INT_SIZE + serializedValue.length + serializedKey.length;
+    return super.serializedSize() + 3 * OIntegerSerializer.INT_SIZE;
   }
 }

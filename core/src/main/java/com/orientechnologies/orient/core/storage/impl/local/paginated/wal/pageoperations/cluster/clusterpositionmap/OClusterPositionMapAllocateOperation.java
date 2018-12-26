@@ -8,17 +8,12 @@ import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRec
 public final class OClusterPositionMapAllocateOperation extends OPageOperationRecord<OClusterPositionMapBucket> {
 
   @Override
-  protected OClusterPositionMapBucket createPageInstance(OCacheEntry cacheEntry) {
+  protected OClusterPositionMapBucket createPageInstance(final OCacheEntry cacheEntry) {
     return new OClusterPositionMapBucket(cacheEntry, false);
   }
 
   @Override
-  protected void doRedo(OClusterPositionMapBucket bucket) {
-    bucket.allocate();
-  }
-
-  @Override
-  protected void doUndo(OClusterPositionMapBucket bucket) {
+  protected void doUndo(final OClusterPositionMapBucket bucket) {
     bucket.undoAllocation();
   }
 

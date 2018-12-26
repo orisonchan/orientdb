@@ -7,9 +7,6 @@ import org.junit.Test;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
 
 public class OSBTreeBucketAddAllPageOperationSerializationTest {
   @Test
@@ -18,28 +15,14 @@ public class OSBTreeBucketAddAllPageOperationSerializationTest {
     final int pageIndex = 12;
     final OOperationUnitId operationUnitId = OOperationUnitId.generateId();
 
-    final List<byte[]> entries = new ArrayList<>();
-
-    long seed = System.nanoTime();
-    System.out.println("testStreamSerialization seed: " + seed);
-
-    final Random random = new Random();
-    final int size = random.nextInt(5);
-
-    for (int i = 0; i < size; i++) {
-      final int entrySize = random.nextInt(50) + 1;
-      final byte[] entry = new byte[entrySize];
-      random.nextBytes(entry);
-
-      entries.add(entry);
-    }
+    final int size = 5;
 
     final byte keySerializerId = 2;
     final byte valueSerializerId = 5;
     final boolean isEncrypted = true;
 
-    OSBTreeBucketAddAllPageOperation operation = new OSBTreeBucketAddAllPageOperation(entries, keySerializerId, valueSerializerId,
-        isEncrypted);
+    OSBTreeBucketAddAllPageOperation operation = new OSBTreeBucketAddAllPageOperation(keySerializerId, valueSerializerId,
+        isEncrypted, size);
     operation.setFileId(fileId);
     operation.setPageIndex(pageIndex);
     operation.setOperationUnitId(operationUnitId);
@@ -60,16 +43,7 @@ public class OSBTreeBucketAddAllPageOperationSerializationTest {
     Assert.assertEquals(keySerializerId, restoredOperation.getKeySerializerId());
     Assert.assertEquals(valueSerializerId, restoredOperation.getValueSerializerId());
     Assert.assertEquals(isEncrypted, restoredOperation.isEncrypted());
-
-    final List<byte[]> restoredEntries = restoredOperation.getEntries();
-    Assert.assertEquals(entries.size(), restoredEntries.size());
-
-    for (int i = 0; i < entries.size(); i++) {
-      final byte[] entry = entries.get(i);
-      final byte[] restoredEntry = restoredEntries.get(i);
-
-      Assert.assertArrayEquals(entry, restoredEntry);
-    }
+    Assert.assertEquals(size, restoredOperation.getEntriesCount());
   }
 
   @Test
@@ -78,28 +52,14 @@ public class OSBTreeBucketAddAllPageOperationSerializationTest {
     final int pageIndex = 12;
     final OOperationUnitId operationUnitId = OOperationUnitId.generateId();
 
-    final List<byte[]> entries = new ArrayList<>();
-
-    long seed = System.nanoTime();
-    System.out.println("testBufferSerialization seed: " + seed);
-
-    final Random random = new Random();
-    final int size = random.nextInt(5);
-
-    for (int i = 0; i < size; i++) {
-      final int entrySize = random.nextInt(50) + 1;
-      final byte[] entry = new byte[entrySize];
-      random.nextBytes(entry);
-
-      entries.add(entry);
-    }
+    final int size = 5;
 
     final byte keySerializerId = 2;
     final byte valueSerializerId = 5;
     final boolean isEncrypted = true;
 
-    OSBTreeBucketAddAllPageOperation operation = new OSBTreeBucketAddAllPageOperation(entries, keySerializerId, valueSerializerId,
-        isEncrypted);
+    OSBTreeBucketAddAllPageOperation operation = new OSBTreeBucketAddAllPageOperation(keySerializerId, valueSerializerId,
+        isEncrypted, size);
     operation.setFileId(fileId);
     operation.setPageIndex(pageIndex);
     operation.setOperationUnitId(operationUnitId);
@@ -121,16 +81,7 @@ public class OSBTreeBucketAddAllPageOperationSerializationTest {
     Assert.assertEquals(keySerializerId, restoredOperation.getKeySerializerId());
     Assert.assertEquals(valueSerializerId, restoredOperation.getValueSerializerId());
     Assert.assertEquals(isEncrypted, restoredOperation.isEncrypted());
-
-    final List<byte[]> restoredEntries = restoredOperation.getEntries();
-    Assert.assertEquals(entries.size(), restoredEntries.size());
-
-    for (int i = 0; i < entries.size(); i++) {
-      final byte[] entry = entries.get(i);
-      final byte[] restoredEntry = restoredEntries.get(i);
-
-      Assert.assertArrayEquals(entry, restoredEntry);
-    }
+    Assert.assertEquals(size, restoredOperation.getEntriesCount());
   }
 
 }

@@ -39,8 +39,6 @@ import static org.mockito.Mockito.when;
  * @since 20.03.13
  */
 public class ClusterPageTest {
-  private static final int SYSTEM_OFFSET = 24;
-
   @Test
   public void testAddOneRecord() throws Exception {
     OByteBufferPool bufferPool = OByteBufferPool.instance(null);
@@ -55,8 +53,6 @@ public class ClusterPageTest {
       OClusterPage localPage = new OClusterPage(cacheEntry, true);
 
       addOneRecord(localPage);
-
-      assertChangesTracking(localPage, bufferPool, pointer);
 
       revertedCacheEntry = revertChanges(localPage, bufferPool);
 
@@ -99,8 +95,6 @@ public class ClusterPageTest {
       OClusterPage localPage = new OClusterPage(cacheEntry, true);
 
       addThreeRecords(localPage);
-
-      assertChangesTracking(localPage, bufferPool, pointer);
 
       revertedCacheEntry = revertChanges(localPage, bufferPool);
 
@@ -161,7 +155,6 @@ public class ClusterPageTest {
       OClusterPage localPage = new OClusterPage(cacheEntry, true);
 
       addFullPage(localPage);
-      assertChangesTracking(localPage, bufferPool, pointer);
 
       revertedCacheEntry = revertChanges(localPage, bufferPool);
 
@@ -217,8 +210,6 @@ public class ClusterPageTest {
 
       deleteAddLowerVersion(localPage);
 
-      assertChangesTracking(localPage, bufferPool, pointer);
-
       revertedCacheEntry = revertChanges(localPage, bufferPool);
 
       OClusterPage revertedPage = new OClusterPage(revertedCacheEntry, false);
@@ -266,8 +257,6 @@ public class ClusterPageTest {
       OClusterPage localPage = new OClusterPage(cacheEntry, true);
 
       deleteAddBiggerVersion(localPage);
-
-      assertChangesTracking(localPage, bufferPool, pointer);
 
       revertedCacheEntry = revertChanges(localPage, bufferPool);
 
@@ -322,8 +311,6 @@ public class ClusterPageTest {
 
       deleteAddEqualVersion(localPage);
 
-      assertChangesTracking(localPage, bufferPool, pointer);
-
       revertedCacheEntry = revertChanges(localPage, bufferPool);
 
       OClusterPage revertedPage = new OClusterPage(revertedCacheEntry, false);
@@ -369,8 +356,6 @@ public class ClusterPageTest {
 
       deleteAddEqualVersionKeepTombstoneVersion(localPage);
 
-      assertChangesTracking(localPage, bufferPool, pointer);
-
       revertedCacheEntry = revertChanges(localPage, bufferPool);
       OClusterPage revertedPage = new OClusterPage(revertedCacheEntry, false);
 
@@ -415,8 +400,6 @@ public class ClusterPageTest {
       OClusterPage localPage = new OClusterPage(cacheEntry, true);
 
       deleteTwoOutOfFour(localPage);
-
-      assertChangesTracking(localPage, bufferPool, pointer);
 
       revertedCacheEntry = revertChanges(localPage, bufferPool);
       OClusterPage revertedPage = new OClusterPage(revertedCacheEntry, false);
@@ -498,8 +481,6 @@ public class ClusterPageTest {
 
       addFullPageDeleteAndAddAgain(localPage);
 
-      assertChangesTracking(localPage, bufferPool, pointer);
-
       revertedCacheEntry = revertChanges(localPage, bufferPool);
       OClusterPage revertedPage = new OClusterPage(revertedCacheEntry, false);
 
@@ -578,8 +559,6 @@ public class ClusterPageTest {
 
       addBigRecordDeleteAndAddSmallRecords(seed, localPage);
 
-      assertChangesTracking(localPage, bufferPool, pointer);
-
       revertedCacheEntry = revertChanges(localPage, bufferPool);
       OClusterPage revertedPage = new OClusterPage(revertedCacheEntry, false);
 
@@ -647,8 +626,6 @@ public class ClusterPageTest {
       OClusterPage localPage = new OClusterPage(cacheEntry, true);
 
       findFirstRecord(seed, localPage);
-
-      assertChangesTracking(localPage, bufferPool, pointer);
 
       revertedCacheEntry = revertChanges(localPage, bufferPool);
 
@@ -728,8 +705,6 @@ public class ClusterPageTest {
 
       findLastRecord(seed, localPage);
 
-      assertChangesTracking(localPage, bufferPool, pointer);
-
       revertedCacheEntry = revertChanges(localPage, bufferPool);
       OClusterPage revertedPage = new OClusterPage(revertedCacheEntry, false);
 
@@ -804,8 +779,6 @@ public class ClusterPageTest {
 
       setGetNextPage(localPage);
 
-      assertChangesTracking(localPage, bufferPool, pointer);
-
       revertedCacheEntry = revertChanges(localPage, bufferPool);
     } finally {
       cachePointer.decrementReferrer();
@@ -835,8 +808,6 @@ public class ClusterPageTest {
       OClusterPage localPage = new OClusterPage(cacheEntry, true);
 
       setGetPrevPage(localPage);
-
-      assertChangesTracking(localPage, bufferPool, pointer);
 
       revertedCacheEntry = revertChanges(localPage, bufferPool);
 
@@ -869,8 +840,6 @@ public class ClusterPageTest {
       OClusterPage localPage = new OClusterPage(cacheEntry, true);
 
       replaceOneRecordWithEqualSize(localPage);
-
-      assertChangesTracking(localPage, bufferPool, pointer);
 
       revertedCacheEntry = revertChanges(localPage, bufferPool);
       OClusterPage revertedPage = new OClusterPage(revertedCacheEntry, false);
@@ -923,8 +892,6 @@ public class ClusterPageTest {
 
       replaceOneRecordNoVersionUpdate(localPage);
 
-      assertChangesTracking(localPage, bufferPool, pointer);
-
       revertedCacheEntry = revertChanges(localPage, bufferPool);
 
       OClusterPage revertedPage = new OClusterPage(revertedCacheEntry, false);
@@ -972,8 +939,6 @@ public class ClusterPageTest {
 
       replaceOneRecordLowerVersion(localPage);
 
-      assertChangesTracking(localPage, bufferPool, pointer);
-
       revertedCacheEntry = revertChanges(localPage, bufferPool);
       OClusterPage revertedPage = new OClusterPage(revertedCacheEntry, false);
       replaceOneRecordLowerVersion(revertedPage);
@@ -1006,35 +971,6 @@ public class ClusterPageTest {
 
     assertThat(localPage.getRecordBinaryValue(index, 0, 11)).isEqualTo(new byte[] { 5, 2, 3, 4, 5, 11, 5, 4, 3, 2, 1 });
     Assert.assertEquals(localPage.getRecordVersion(index), recordVersion);
-  }
-
-  private static void assertChangesTracking(OClusterPage localPage, OByteBufferPool bufferPool, OPointer pointer)
-      throws IOException {
-    OPointer restoredPointer = bufferPool.acquireDirect(true);
-
-    OCachePointer cachePointer = new OCachePointer(restoredPointer, bufferPool, 0, 0);
-    cachePointer.incrementReferrer();
-
-    OCacheEntry cacheEntry = new OCacheEntry(0, 0, cachePointer);
-
-    OWriteCache writeCache = Mockito.mock(OWriteCache.class);
-    OReadCache readCache = Mockito.mock(OReadCache.class);
-
-    when(readCache
-        .loadForWrite(anyLong(), anyLong(), anyBoolean(), anyObject(), anyInt(), anyBoolean(), (OLogSequenceNumber) isNull()))
-        .thenReturn(cacheEntry);
-    try {
-      final List<OPageOperationRecord> operations = localPage.getOperations();
-
-      for (OPageOperationRecord operation : operations) {
-        operation.redo(readCache, writeCache);
-      }
-
-      assertThat(getBytes(restoredPointer.getNativeByteBuffer(), OClusterPage.PAGE_SIZE - SYSTEM_OFFSET))
-          .isEqualTo(getBytes(pointer.getNativeByteBuffer(), OClusterPage.PAGE_SIZE - SYSTEM_OFFSET));
-    } finally {
-      cachePointer.decrementReferrer();
-    }
   }
 
   private static OCacheEntry revertChanges(OClusterPage localPage, OByteBufferPool bufferPool) throws IOException {
@@ -1081,11 +1017,4 @@ public class ClusterPageTest {
     return revertedCacheEntry;
   }
 
-  private static byte[] getBytes(ByteBuffer buffer, int len) {
-    byte[] result = new byte[len];
-    buffer.position(ClusterPageTest.SYSTEM_OFFSET);
-    buffer.get(result);
-
-    return result;
-  }
 }

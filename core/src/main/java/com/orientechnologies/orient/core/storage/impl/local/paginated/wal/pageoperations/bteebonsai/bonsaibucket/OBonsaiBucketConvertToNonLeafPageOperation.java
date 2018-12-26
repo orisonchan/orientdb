@@ -19,11 +19,6 @@ public final class OBonsaiBucketConvertToNonLeafPageOperation extends OBonsaiBuc
   }
 
   @Override
-  protected final void doRedo(final OSBTreeBonsaiBucket page) {
-    page.convertToNonLeaf();
-  }
-
-  @Override
   protected final void doUndo(final OSBTreeBonsaiBucket page) {
     page.convertToLeaf();
   }

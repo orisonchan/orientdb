@@ -22,7 +22,6 @@ package com.orientechnologies.orient.core.storage.impl.local.paginated.wal;
 
 import com.orientechnologies.common.serialization.types.OLongSerializer;
 import com.orientechnologies.common.serialization.types.OStringSerializer;
-import com.orientechnologies.orient.core.exception.OStorageException;
 import com.orientechnologies.orient.core.storage.cache.OReadCache;
 import com.orientechnologies.orient.core.storage.cache.OWriteCache;
 
@@ -33,14 +32,14 @@ import java.nio.ByteBuffer;
  * @author Andrey Lomakin (a.lomakin-at-orientdb.com)
  * @since 5/21/14
  */
-public class OFileCreatedWALRecord extends OOperationUnitBodyRecord {
+public final class OFileCreatedWALRecord extends OOperationUnitBodyRecord {
   private String fileName;
   private long   fileId;
 
   public OFileCreatedWALRecord() {
   }
 
-  public OFileCreatedWALRecord(String fileName, long fileId) {
+  public OFileCreatedWALRecord(final String fileName, final long fileId) {
     this.fileName = fileName;
     this.fileId = fileId;
   }
@@ -53,17 +52,10 @@ public class OFileCreatedWALRecord extends OOperationUnitBodyRecord {
     return fileId;
   }
 
-  @Override
-  public void redo(OReadCache readCache, OWriteCache writeCache) throws IOException {
-    try {
-      readCache.addFile(fileName, fileId, writeCache);
-    } catch (IOException e) {
-      throw new OStorageException("Can not add file with name " + fileName + " and id " + fileId);
-    }
-  }
 
   @Override
-  public void undo(OReadCache readCache, OWriteCache writeCache, OWriteAheadLog writeAheadLog, OOperationUnitId operationUnitId)
+  public void undo(final OReadCache readCache, final OWriteCache writeCache, final OWriteAheadLog writeAheadLog,
+      final OOperationUnitId operationUnitId)
       throws IOException {
     final OFileDeletedWALRecord walRecord = new OFileDeletedWALRecord(fileId);
     walRecord.setOperationUnitId(operationUnitId);
@@ -73,7 +65,7 @@ public class OFileCreatedWALRecord extends OOperationUnitBodyRecord {
   }
 
   @Override
-  public int toStream(byte[] content, int offset) {
+  public final int toStream(final byte[] content, int offset) {
     offset = super.toStream(content, offset);
 
     OStringSerializer.INSTANCE.serializeNativeObject(fileName, content, offset);
@@ -86,7 +78,7 @@ public class OFileCreatedWALRecord extends OOperationUnitBodyRecord {
   }
 
   @Override
-  public void toStream(final ByteBuffer buffer) {
+  public final void toStream(final ByteBuffer buffer) {
     super.toStream(buffer);
 
     OStringSerializer.INSTANCE.serializeInByteBufferObject(fileName, buffer);
@@ -94,7 +86,7 @@ public class OFileCreatedWALRecord extends OOperationUnitBodyRecord {
   }
 
   @Override
-  public int fromStream(byte[] content, int offset) {
+  public final int fromStream(final byte[] content, int offset) {
     offset = super.fromStream(content, offset);
 
     fileName = OStringSerializer.INSTANCE.deserializeNativeObject(content, offset);
@@ -107,17 +99,17 @@ public class OFileCreatedWALRecord extends OOperationUnitBodyRecord {
   }
 
   @Override
-  public int serializedSize() {
+  public final int serializedSize() {
     return super.serializedSize() + OStringSerializer.INSTANCE.getObjectSize(fileName) + OLongSerializer.LONG_SIZE;
   }
 
   @Override
-  public boolean isUpdateMasterRecord() {
+  public final boolean isUpdateMasterRecord() {
     return false;
   }
 
   @Override
-  public byte getId() {
+  public final byte getId() {
     return WALRecordTypes.FILE_CREATED_WAL_RECORD;
   }
 }

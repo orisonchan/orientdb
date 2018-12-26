@@ -15,14 +15,13 @@ public class OClusterPageDeleteRecordOperationSerializationTest {
     final int pageIndex = 25;
     final OOperationUnitId operationUnitId = OOperationUnitId.generateId();
 
-    final int index = 34;
     final int recordVersion = 12;
 
     final byte[] record = new byte[23];
     final Random random = new Random();
     random.nextBytes(record);
 
-    OClusterPageDeleteRecordOperation operation = new OClusterPageDeleteRecordOperation(index, recordVersion, record);
+    OClusterPageDeleteRecordOperation operation = new OClusterPageDeleteRecordOperation(recordVersion, record);
     operation.setFileId(fileId);
     operation.setPageIndex(pageIndex);
     operation.setOperationUnitId(operationUnitId);
@@ -40,7 +39,6 @@ public class OClusterPageDeleteRecordOperationSerializationTest {
     Assert.assertEquals(fileId, restoredOperation.getFileId());
     Assert.assertEquals(pageIndex, restoredOperation.getPageIndex());
     Assert.assertEquals(operationUnitId, restoredOperation.getOperationUnitId());
-    Assert.assertEquals(index, restoredOperation.getIndex());
     Assert.assertEquals(recordVersion, restoredOperation.getRecordVersion());
     Assert.assertArrayEquals(record, restoredOperation.getRecord());
   }
@@ -51,14 +49,13 @@ public class OClusterPageDeleteRecordOperationSerializationTest {
     final int pageIndex = 25;
     final OOperationUnitId operationUnitId = OOperationUnitId.generateId();
 
-    final int index = 34;
     final int recordVersion = 12;
 
     final byte[] record = new byte[23];
     final Random random = new Random();
     random.nextBytes(record);
 
-    OClusterPageDeleteRecordOperation operation = new OClusterPageDeleteRecordOperation(index, recordVersion, record);
+    OClusterPageDeleteRecordOperation operation = new OClusterPageDeleteRecordOperation(recordVersion, record);
     operation.setFileId(fileId);
     operation.setPageIndex(pageIndex);
     operation.setOperationUnitId(operationUnitId);
@@ -78,7 +75,6 @@ public class OClusterPageDeleteRecordOperationSerializationTest {
     Assert.assertEquals(fileId, restoredOperation.getFileId());
     Assert.assertEquals(pageIndex, restoredOperation.getPageIndex());
     Assert.assertEquals(operationUnitId, restoredOperation.getOperationUnitId());
-    Assert.assertEquals(index, restoredOperation.getIndex());
     Assert.assertEquals(recordVersion, restoredOperation.getRecordVersion());
     Assert.assertArrayEquals(record, restoredOperation.getRecord());
   }

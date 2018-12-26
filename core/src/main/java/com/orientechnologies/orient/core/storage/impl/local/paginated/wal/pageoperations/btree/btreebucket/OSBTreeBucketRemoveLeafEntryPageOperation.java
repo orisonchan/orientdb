@@ -5,9 +5,11 @@ import com.orientechnologies.orient.core.storage.cache.OCacheEntry;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OPageOperationRecord;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes;
 import com.orientechnologies.orient.core.storage.index.sbtree.local.OSBTreeBucket;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.nio.ByteBuffer;
 
+@SuppressFBWarnings({ "EI_EXPOSE_REP2", "EI_EXPOSE_REP" })
 public final class OSBTreeBucketRemoveLeafEntryPageOperation extends OPageOperationRecord<OSBTreeBucket> {
   private int    entryIndex;
   private byte[] rawKey;
@@ -16,7 +18,7 @@ public final class OSBTreeBucketRemoveLeafEntryPageOperation extends OPageOperat
   public OSBTreeBucketRemoveLeafEntryPageOperation() {
   }
 
-  public OSBTreeBucketRemoveLeafEntryPageOperation(int entryIndex, byte[] rawKey, byte[] rawValue) {
+  public OSBTreeBucketRemoveLeafEntryPageOperation(final int entryIndex, final byte[] rawKey, final byte[] rawValue) {
     this.entryIndex = entryIndex;
     this.rawKey = rawKey;
     this.rawValue = rawValue;
@@ -35,17 +37,12 @@ public final class OSBTreeBucketRemoveLeafEntryPageOperation extends OPageOperat
   }
 
   @Override
-  protected OSBTreeBucket createPageInstance(OCacheEntry cacheEntry) {
+  protected OSBTreeBucket createPageInstance(final OCacheEntry cacheEntry) {
     return new OSBTreeBucket(cacheEntry);
   }
 
   @Override
-  protected void doRedo(OSBTreeBucket page) {
-    page.removeLeafEntry(entryIndex, rawKey, rawValue);
-  }
-
-  @Override
-  protected void doUndo(OSBTreeBucket page) {
+  protected void doUndo(final OSBTreeBucket page) {
     page.insertLeafKeyValue(entryIndex, rawKey, rawValue);
   }
 
@@ -60,7 +57,7 @@ public final class OSBTreeBucketRemoveLeafEntryPageOperation extends OPageOperat
   }
 
   @Override
-  public int toStream(byte[] content, int offset) {
+  public int toStream(final byte[] content, int offset) {
     offset = super.toStream(content, offset);
 
     OIntegerSerializer.INSTANCE.serializeNative(entryIndex, content, offset);
@@ -82,7 +79,7 @@ public final class OSBTreeBucketRemoveLeafEntryPageOperation extends OPageOperat
   }
 
   @Override
-  public void toStream(ByteBuffer buffer) {
+  public void toStream(final ByteBuffer buffer) {
     super.toStream(buffer);
 
     buffer.putInt(entryIndex);
@@ -93,20 +90,20 @@ public final class OSBTreeBucketRemoveLeafEntryPageOperation extends OPageOperat
   }
 
   @Override
-  public int fromStream(byte[] content, int offset) {
+  public int fromStream(final byte[] content, int offset) {
     offset = super.fromStream(content, offset);
 
     entryIndex = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
     offset += OIntegerSerializer.INT_SIZE;
 
-    int rawKeyLen = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
+    final int rawKeyLen = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
     offset += OIntegerSerializer.INT_SIZE;
 
     rawKey = new byte[rawKeyLen];
     System.arraycopy(content, offset, rawKey, 0, rawKeyLen);
     offset += rawKeyLen;
 
-    int rawValueLen = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
+    final int rawValueLen = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
     offset += OIntegerSerializer.INT_SIZE;
 
     rawValue = new byte[rawValueLen];

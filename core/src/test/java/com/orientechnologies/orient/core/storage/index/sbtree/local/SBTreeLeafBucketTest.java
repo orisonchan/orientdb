@@ -133,8 +133,7 @@ public class SBTreeLeafBucketTest {
       final byte[] rawValue = new byte[OLinkSerializer.RID_SIZE];
 
       OLinkSerializer.INSTANCE.serializeNativeObject(new ORecordId(i + 5, i + 5), rawValue, 0);
-      final byte[] prevValue = treeBucket.getRawValue(i, OLongSerializer.INSTANCE, OLinkSerializer.INSTANCE, null);
-      treeBucket.updateValue(i, rawValue, prevValue, OLongSerializer.INSTANCE, false);
+      treeBucket.updateValue(i, rawValue, OLongSerializer.INSTANCE, false);
     }
 
     for (Map.Entry<Long, Integer> keyIndexEntry : keyIndexMap.entrySet()) {
@@ -273,7 +272,7 @@ public class SBTreeLeafBucketTest {
       final byte[] rawKey = treeBucket.getRawKey(i, OLongSerializer.INSTANCE, null);
       final byte[] rawValue = treeBucket.getRawValue(i, OLongSerializer.INSTANCE, OLinkSerializer.INSTANCE, null);
 
-      treeBucket.removeLeafEntry(treeBucket.size() - 1, rawKey, rawValue);
+      treeBucket.removeLeafEntry(treeBucket.size() - 1, rawKey.length, rawValue.length);
     }
 
     Assert.assertEquals(treeBucket.size(), originalSize - itemsToDelete);

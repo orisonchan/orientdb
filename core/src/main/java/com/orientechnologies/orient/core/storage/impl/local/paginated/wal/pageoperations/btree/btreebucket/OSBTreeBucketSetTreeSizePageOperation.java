@@ -9,37 +9,25 @@ import com.orientechnologies.orient.core.storage.index.sbtree.local.OSBTreeBucke
 import java.nio.ByteBuffer;
 
 public final class OSBTreeBucketSetTreeSizePageOperation extends OPageOperationRecord<OSBTreeBucket> {
-  private int treeSize;
   private int prevTreeSize;
 
   public OSBTreeBucketSetTreeSizePageOperation() {
   }
 
-  public OSBTreeBucketSetTreeSizePageOperation(int treeSize, int prevTreeSize) {
-    this.treeSize = treeSize;
+  public OSBTreeBucketSetTreeSizePageOperation(final int prevTreeSize) {
     this.prevTreeSize = prevTreeSize;
   }
-
-  public int getTreeSize() {
-    return treeSize;
-  }
-
   public int getPrevTreeSize() {
     return prevTreeSize;
   }
 
   @Override
-  protected OSBTreeBucket createPageInstance(OCacheEntry cacheEntry) {
+  protected OSBTreeBucket createPageInstance(final OCacheEntry cacheEntry) {
     return new OSBTreeBucket(cacheEntry);
   }
 
   @Override
-  protected void doRedo(OSBTreeBucket page) {
-    page.setTreeSize(treeSize);
-  }
-
-  @Override
-  protected void doUndo(OSBTreeBucket page) {
+  protected void doUndo(final OSBTreeBucket page) {
     page.setTreeSize(prevTreeSize);
   }
 
@@ -54,11 +42,8 @@ public final class OSBTreeBucketSetTreeSizePageOperation extends OPageOperationR
   }
 
   @Override
-  public int toStream(byte[] content, int offset) {
+  public int toStream(final byte[] content, int offset) {
     offset = super.toStream(content, offset);
-
-    OIntegerSerializer.INSTANCE.serializeNative(treeSize, content, offset);
-    offset += OIntegerSerializer.INT_SIZE;
 
     OIntegerSerializer.INSTANCE.serializeNative(prevTreeSize, content, offset);
     offset += OIntegerSerializer.INT_SIZE;
@@ -67,19 +52,15 @@ public final class OSBTreeBucketSetTreeSizePageOperation extends OPageOperationR
   }
 
   @Override
-  public void toStream(ByteBuffer buffer) {
+  public void toStream(final ByteBuffer buffer) {
     super.toStream(buffer);
 
-    buffer.putInt(treeSize);
     buffer.putInt(prevTreeSize);
   }
 
   @Override
-  public int fromStream(byte[] content, int offset) {
+  public int fromStream(final byte[] content, int offset) {
     offset = super.fromStream(content, offset);
-
-    treeSize = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
-    offset += OIntegerSerializer.INT_SIZE;
 
     prevTreeSize = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
     offset += OIntegerSerializer.INT_SIZE;
@@ -89,6 +70,6 @@ public final class OSBTreeBucketSetTreeSizePageOperation extends OPageOperationR
 
   @Override
   public int serializedSize() {
-    return super.serializedSize() + 2 * OIntegerSerializer.INT_SIZE;
+    return super.serializedSize() + OIntegerSerializer.INT_SIZE;
   }
 }

@@ -8,57 +8,43 @@ import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRec
 
 import java.nio.ByteBuffer;
 
-public class OMapEntryPointSetFileSizeOperation extends OPageOperationRecord<MapEntryPoint> {
-  private int fileSize;
+public final class OMapEntryPointSetFileSizeOperation extends OPageOperationRecord<MapEntryPoint> {
   private int oldFileSize;
 
   public OMapEntryPointSetFileSizeOperation() {
   }
 
-  public OMapEntryPointSetFileSizeOperation(int fileSize, int oldFileSize) {
-    this.fileSize = fileSize;
+  public OMapEntryPointSetFileSizeOperation(final int oldFileSize) {
     this.oldFileSize = oldFileSize;
   }
 
-  public int getFileSize() {
-    return fileSize;
-  }
-
-  int getOldFileSize() {
+  final int getOldFileSize() {
     return oldFileSize;
   }
 
   @Override
-  protected MapEntryPoint createPageInstance(OCacheEntry cacheEntry) {
-    return new MapEntryPoint(cacheEntry, false);
+  protected MapEntryPoint createPageInstance(final OCacheEntry cacheEntry) {
+    return new MapEntryPoint(cacheEntry);
   }
 
   @Override
-  protected void doRedo(MapEntryPoint entryPoint) {
-    entryPoint.setFileSize(fileSize);
-  }
-
-  @Override
-  protected void doUndo(MapEntryPoint entryPoint) {
+  protected void doUndo(final MapEntryPoint entryPoint) {
     entryPoint.setFileSize(oldFileSize);
   }
 
   @Override
-  public boolean isUpdateMasterRecord() {
+  public final boolean isUpdateMasterRecord() {
     return false;
   }
 
   @Override
-  public byte getId() {
+  public final byte getId() {
     return WALRecordTypes.MAP_ENTRY_POINT_SET_FILE_SIZE;
   }
 
   @Override
-  public int toStream(byte[] content, int offset) {
+  public final int toStream(final byte[] content, int offset) {
     offset = super.toStream(content, offset);
-
-    OIntegerSerializer.INSTANCE.serializeNative(fileSize, content, offset);
-    offset += OIntegerSerializer.INT_SIZE;
 
     OIntegerSerializer.INSTANCE.serializeNative(oldFileSize, content, offset);
     offset += OIntegerSerializer.INT_SIZE;
@@ -67,19 +53,15 @@ public class OMapEntryPointSetFileSizeOperation extends OPageOperationRecord<Map
   }
 
   @Override
-  public void toStream(ByteBuffer buffer) {
+  public final void toStream(final ByteBuffer buffer) {
     super.toStream(buffer);
 
-    buffer.putInt(fileSize);
     buffer.putInt(oldFileSize);
   }
 
   @Override
-  public int fromStream(byte[] content, int offset) {
+  public final int fromStream(final byte[] content, int offset) {
     offset = super.fromStream(content, offset);
-
-    fileSize = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
-    offset += OIntegerSerializer.INT_SIZE;
 
     oldFileSize = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
     offset += OIntegerSerializer.INT_SIZE;
@@ -88,7 +70,7 @@ public class OMapEntryPointSetFileSizeOperation extends OPageOperationRecord<Map
   }
 
   @Override
-  public int serializedSize() {
-    return super.serializedSize() + 2 * OIntegerSerializer.INT_SIZE;
+  public final int serializedSize() {
+    return super.serializedSize() + OIntegerSerializer.INT_SIZE;
   }
 }

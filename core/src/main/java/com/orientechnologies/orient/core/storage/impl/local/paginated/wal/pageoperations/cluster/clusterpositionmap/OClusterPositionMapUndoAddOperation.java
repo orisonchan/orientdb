@@ -15,7 +15,7 @@ public final class OClusterPositionMapUndoAddOperation extends OPageOperationRec
   public OClusterPositionMapUndoAddOperation() {
   }
 
-  public OClusterPositionMapUndoAddOperation(int oldPageIndex, int oldRecordPosition) {
+  public OClusterPositionMapUndoAddOperation(final int oldPageIndex, final int oldRecordPosition) {
     super();
     this.oldPageIndex = oldPageIndex;
     this.oldRecordPosition = oldRecordPosition;
@@ -30,17 +30,12 @@ public final class OClusterPositionMapUndoAddOperation extends OPageOperationRec
   }
 
   @Override
-  protected OClusterPositionMapBucket createPageInstance(OCacheEntry cacheEntry) {
+  protected OClusterPositionMapBucket createPageInstance(final OCacheEntry cacheEntry) {
     return new OClusterPositionMapBucket(cacheEntry, false);
   }
 
   @Override
-  protected void doRedo(OClusterPositionMapBucket bucket) {
-    bucket.undoAdd();
-  }
-
-  @Override
-  protected void doUndo(OClusterPositionMapBucket bucket) {
+  protected void doUndo(final OClusterPositionMapBucket bucket) {
     bucket.add(oldPageIndex, oldRecordPosition);
   }
 
@@ -55,7 +50,7 @@ public final class OClusterPositionMapUndoAddOperation extends OPageOperationRec
   }
 
   @Override
-  public int toStream(byte[] content, int offset) {
+  public int toStream(final byte[] content, int offset) {
     offset = super.toStream(content, offset);
 
     OIntegerSerializer.INSTANCE.serializeNative(oldPageIndex, content, offset);
@@ -68,7 +63,7 @@ public final class OClusterPositionMapUndoAddOperation extends OPageOperationRec
   }
 
   @Override
-  public void toStream(ByteBuffer buffer) {
+  public void toStream(final ByteBuffer buffer) {
     super.toStream(buffer);
 
     buffer.putInt(oldPageIndex);
@@ -76,7 +71,7 @@ public final class OClusterPositionMapUndoAddOperation extends OPageOperationRec
   }
 
   @Override
-  public int fromStream(byte[] content, int offset) {
+  public int fromStream(final byte[] content, int offset) {
     offset = super.fromStream(content, offset);
 
     oldPageIndex = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);

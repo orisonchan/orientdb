@@ -5,25 +5,21 @@ import com.orientechnologies.orient.core.storage.cache.OCacheEntry;
 import com.orientechnologies.orient.core.storage.cluster.OClusterPage;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OPageOperationRecord;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.nio.ByteBuffer;
 
+@SuppressFBWarnings({ "EI_EXPOSE_REP", "EI_EXPOSE_REP2" })
 public final class OClusterPageDeleteRecordOperation extends OPageOperationRecord<OClusterPage> {
-  private int    index;
   private int    recordVersion;
   private byte[] record;
 
   public OClusterPageDeleteRecordOperation() {
   }
 
-  public OClusterPageDeleteRecordOperation(int index, int recordVersion, byte[] record) {
-    this.index = index;
+  public OClusterPageDeleteRecordOperation(final int recordVersion, final byte[] record) {
     this.recordVersion = recordVersion;
     this.record = record;
-  }
-
-  public int getIndex() {
-    return index;
   }
 
   public int getRecordVersion() {
@@ -35,19 +31,13 @@ public final class OClusterPageDeleteRecordOperation extends OPageOperationRecor
   }
 
   @Override
-  protected OClusterPage createPageInstance(OCacheEntry cacheEntry) {
+  protected OClusterPage createPageInstance(final OCacheEntry cacheEntry) {
     return new OClusterPage(cacheEntry, false);
   }
 
   @Override
-  protected void doRedo(OClusterPage clusterPage) {
-    clusterPage.deleteRecord(index);
-  }
-
-  @Override
-  protected void doUndo(OClusterPage clusterPage) {
-    final int pos = clusterPage.appendRecord(recordVersion, record);
-    assert pos == index;
+  protected void doUndo(final OClusterPage clusterPage) {
+    clusterPage.appendRecord(recordVersion, record);
   }
 
   @Override
@@ -61,11 +51,8 @@ public final class OClusterPageDeleteRecordOperation extends OPageOperationRecor
   }
 
   @Override
-  public int toStream(byte[] content, int offset) {
+  public int toStream(final byte[] content, int offset) {
     offset = super.toStream(content, offset);
-
-    OIntegerSerializer.INSTANCE.serializeNative(index, content, offset);
-    offset += OIntegerSerializer.INT_SIZE;
 
     OIntegerSerializer.INSTANCE.serializeNative(recordVersion, content, offset);
     offset += OIntegerSerializer.INT_SIZE;
@@ -80,10 +67,9 @@ public final class OClusterPageDeleteRecordOperation extends OPageOperationRecor
   }
 
   @Override
-  public void toStream(ByteBuffer buffer) {
+  public void toStream(final ByteBuffer buffer) {
     super.toStream(buffer);
 
-    buffer.putInt(index);
     buffer.putInt(recordVersion);
 
     buffer.putInt(record.length);
@@ -91,11 +77,8 @@ public final class OClusterPageDeleteRecordOperation extends OPageOperationRecor
   }
 
   @Override
-  public int fromStream(byte[] content, int offset) {
+  public int fromStream(final byte[] content, int offset) {
     offset = super.fromStream(content, offset);
-
-    index = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
-    offset += OIntegerSerializer.INT_SIZE;
 
     recordVersion = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
     offset += OIntegerSerializer.INT_SIZE;
@@ -112,6 +95,6 @@ public final class OClusterPageDeleteRecordOperation extends OPageOperationRecor
 
   @Override
   public int serializedSize() {
-    return super.serializedSize() + 3 * OIntegerSerializer.INT_SIZE + record.length;
+    return super.serializedSize() + 2 * OIntegerSerializer.INT_SIZE + record.length;
   }
 }

@@ -21,13 +21,11 @@ package com.orientechnologies.orient.core.storage.impl.local.paginated.atomicope
 
 import com.orientechnologies.orient.core.storage.cache.OReadCache;
 import com.orientechnologies.orient.core.storage.cache.OWriteCache;
-import com.orientechnologies.orient.core.storage.impl.local.OAbstractPaginatedStorage;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OLogSequenceNumber;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OOperationUnitBodyRecord;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OOperationUnitId;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OWriteAheadLog;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.cas.OWriteableWALRecord;
-import com.orientechnologies.orient.core.storage.memory.ODirectMemoryStorage;
 
 import java.io.IOException;
 import java.util.ArrayDeque;
@@ -65,10 +63,11 @@ public final class OAtomicOperation {
   private       OLogSequenceNumber             lastLSN;
   private final List<OOperationUnitBodyRecord> operations = new ArrayList<>();
 
-  private final boolean keepOnlyRids;
+  private boolean keepOnlyRids;
+  private int     totalLoggedSize;
 
-  public OAtomicOperation(OLogSequenceNumber startLSN, OOperationUnitId operationUnitId, OAbstractPaginatedStorage storage,
-      final OReadCache readCache, final OWriteCache writeCache, final OWriteAheadLog writeAheadLog) {
+  public OAtomicOperation(final OLogSequenceNumber startLSN, final OOperationUnitId operationUnitId, final OReadCache readCache,
+      final OWriteCache writeCache, final OWriteAheadLog writeAheadLog) {
     this.startLSN = startLSN;
     this.lastLSN = startLSN;
 
@@ -80,14 +79,14 @@ public final class OAtomicOperation {
     this.readCache = readCache;
     this.writeCache = writeCache;
 
-    keepOnlyRids = !(writeAheadLog == null || storage instanceof ODirectMemoryStorage);
+    keepOnlyRids = false;
   }
 
   OLogSequenceNumber getStartLSN() {
     return startLSN;
   }
 
-  public OLogSequenceNumber addOperation(OOperationUnitBodyRecord operationUnitBodyRecord) throws IOException {
+  public OLogSequenceNumber addOperation(final OOperationUnitBodyRecord operationUnitBodyRecord) throws IOException {
     operationUnitBodyRecord.setOperationUnitId(operationUnitId);
 
     final OLogSequenceNumber lsn;
@@ -98,19 +97,28 @@ public final class OAtomicOperation {
       lsn = lastLSN;
     } else {
       lsn = writeAheadLog.log(operationUnitBodyRecord);
-      operations.add(operationUnitBodyRecord);
+
+      totalLoggedSize += operationUnitBodyRecord.getDiskSize();
+      if (totalLoggedSize < 1024 * 1024) {
+        operations.add(operationUnitBodyRecord);
+      } else {
+        operations.clear();
+        keepOnlyRids = true;
+      }
+
+      lastLSN = lsn;
     }
 
     return lsn;
   }
 
   void rollbackOperations() throws IOException {
-    ArrayDeque<OOperationUnitBodyRecord> records = new ArrayDeque<>();
+    final ArrayDeque<OOperationUnitBodyRecord> records = new ArrayDeque<>(100);
 
     if (keepOnlyRids) {
       List<OWriteableWALRecord> readRecords = writeAheadLog.read(startLSN, 100);
       while (true) {
-        for (OWriteableWALRecord walRecord : readRecords) {
+        for (final OWriteableWALRecord walRecord : readRecords) {
           if (walRecord instanceof OOperationUnitBodyRecord) {
             final OOperationUnitBodyRecord bodyRecord = (OOperationUnitBodyRecord) walRecord;
 
@@ -126,7 +134,7 @@ public final class OAtomicOperation {
 
         final OLogSequenceNumber lastReadLSN = readRecords.get(readRecords.size() - 1).getLsn();
         if (lastReadLSN.compareTo(this.lastLSN) < 0) {
-          readRecords = writeAheadLog.next(lastReadLSN, 100);
+          readRecords = writeAheadLog.next(lastReadLSN, 50);
         } else {
           break;
         }
@@ -155,7 +163,7 @@ public final class OAtomicOperation {
    *
    * @see OAtomicOperationMetadata
    */
-  public void addMetadata(OAtomicOperationMetadata<?> metadata) {
+  public void addMetadata(final OAtomicOperationMetadata<?> metadata) {
     this.metadata.put(metadata.getKey(), metadata);
   }
 
@@ -164,7 +172,7 @@ public final class OAtomicOperation {
    *
    * @return Metadata by associated key or <code>null</code> if such metadata is absent.
    */
-  public OAtomicOperationMetadata<?> getMetadata(String key) {
+  public OAtomicOperationMetadata<?> getMetadata(final String key) {
     return metadata.get(key);
   }
 
@@ -195,11 +203,11 @@ public final class OAtomicOperation {
     return rollback;
   }
 
-  void addLockedObject(String lockedObject) {
+  void addLockedObject(final String lockedObject) {
     lockedObjects.add(lockedObject);
   }
 
-  boolean containsInLockedObjects(String objectToLock) {
+  boolean containsInLockedObjects(final String objectToLock) {
     return lockedObjects.contains(objectToLock);
   }
 
@@ -208,7 +216,7 @@ public final class OAtomicOperation {
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
@@ -216,13 +224,9 @@ public final class OAtomicOperation {
       return false;
     }
 
-    OAtomicOperation operation = (OAtomicOperation) o;
+    final OAtomicOperation operation = (OAtomicOperation) o;
 
-    if (!operationUnitId.equals(operation.operationUnitId)) {
-      return false;
-    }
-
-    return true;
+    return operationUnitId.equals(operation.operationUnitId);
   }
 
   @Override

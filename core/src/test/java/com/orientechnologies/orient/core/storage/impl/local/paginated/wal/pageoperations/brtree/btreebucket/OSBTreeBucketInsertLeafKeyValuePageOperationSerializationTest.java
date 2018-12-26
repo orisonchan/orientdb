@@ -5,8 +5,6 @@ import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageop
 import org.junit.Assert;
 import org.junit.Test;
 
-import java.util.Random;
-
 public class OSBTreeBucketInsertLeafKeyValuePageOperationSerializationTest {
   @Test
   public void testStreamSerialization() {
@@ -14,17 +12,13 @@ public class OSBTreeBucketInsertLeafKeyValuePageOperationSerializationTest {
     final int pageIndex = 34;
     final OOperationUnitId operationUnitId = OOperationUnitId.generateId();
 
-    final Random random = new Random();
     final int index = 456;
 
-    final byte[] serializedKey = new byte[23];
-    random.nextBytes(serializedKey);
+    final int keySize = 23;
+    final int valueSize = 12;
 
-    final byte[] serializedValue = new byte[12];
-    random.nextBytes(serializedValue);
-
-    OSBTreeBucketInsertLeafKeyValuePageOperation operation = new OSBTreeBucketInsertLeafKeyValuePageOperation(index, serializedKey,
-        serializedValue);
+    OSBTreeBucketInsertLeafKeyValuePageOperation operation = new OSBTreeBucketInsertLeafKeyValuePageOperation(index, keySize,
+        valueSize);
     operation.setFileId(fileId);
     operation.setPageIndex(pageIndex);
     operation.setOperationUnitId(operationUnitId);
@@ -42,8 +36,8 @@ public class OSBTreeBucketInsertLeafKeyValuePageOperationSerializationTest {
     Assert.assertEquals(fileId, restoredOperation.getFileId());
     Assert.assertEquals(pageIndex, restoredOperation.getPageIndex());
     Assert.assertEquals(operationUnitId, restoredOperation.getOperationUnitId());
-    Assert.assertArrayEquals(serializedKey, restoredOperation.getSerializedKey());
-    Assert.assertArrayEquals(serializedValue, restoredOperation.getSerializedValue());
+    Assert.assertEquals(keySize, restoredOperation.getKeySize());
+    Assert.assertEquals(valueSize, restoredOperation.getValueSize());
     Assert.assertEquals(index, restoredOperation.getIndex());
   }
 
@@ -53,17 +47,13 @@ public class OSBTreeBucketInsertLeafKeyValuePageOperationSerializationTest {
     final int pageIndex = 34;
     final OOperationUnitId operationUnitId = OOperationUnitId.generateId();
 
-    final Random random = new Random();
     final int index = 456;
 
-    final byte[] serializedKey = new byte[23];
-    random.nextBytes(serializedKey);
+    final int keySize = 23;
+    final int valueSize = 12;
 
-    final byte[] serializedValue = new byte[12];
-    random.nextBytes(serializedValue);
-
-    OSBTreeBucketInsertLeafKeyValuePageOperation operation = new OSBTreeBucketInsertLeafKeyValuePageOperation(index, serializedKey,
-        serializedValue);
+    OSBTreeBucketInsertLeafKeyValuePageOperation operation = new OSBTreeBucketInsertLeafKeyValuePageOperation(index, keySize,
+        valueSize);
     operation.setFileId(fileId);
     operation.setPageIndex(pageIndex);
     operation.setOperationUnitId(operationUnitId);
@@ -81,8 +71,8 @@ public class OSBTreeBucketInsertLeafKeyValuePageOperationSerializationTest {
     Assert.assertEquals(fileId, restoredOperation.getFileId());
     Assert.assertEquals(pageIndex, restoredOperation.getPageIndex());
     Assert.assertEquals(operationUnitId, restoredOperation.getOperationUnitId());
-    Assert.assertArrayEquals(serializedKey, restoredOperation.getSerializedKey());
-    Assert.assertArrayEquals(serializedValue, restoredOperation.getSerializedValue());
+    Assert.assertEquals(keySize, restoredOperation.getKeySize());
+    Assert.assertEquals(valueSize, restoredOperation.getValueSize());
     Assert.assertEquals(index, restoredOperation.getIndex());
   }
 }

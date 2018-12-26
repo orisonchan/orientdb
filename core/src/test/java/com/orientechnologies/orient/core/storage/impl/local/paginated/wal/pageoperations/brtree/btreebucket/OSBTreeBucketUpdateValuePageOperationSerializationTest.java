@@ -19,9 +19,6 @@ public class OSBTreeBucketUpdateValuePageOperationSerializationTest {
 
     final Random random = new Random();
 
-    final byte[] value = new byte[12];
-    random.nextBytes(value);
-
     final byte[] prevValue = new byte[12];
     random.nextBytes(prevValue);
 
@@ -29,8 +26,8 @@ public class OSBTreeBucketUpdateValuePageOperationSerializationTest {
 
     final byte keySerializerId = 3;
 
-    OSBTreeBucketUpdateValuePageOperation operation = new OSBTreeBucketUpdateValuePageOperation(index, value, prevValue,
-        keySerializerId, isEncrypted);
+    OSBTreeBucketUpdateValuePageOperation operation = new OSBTreeBucketUpdateValuePageOperation(index, prevValue, keySerializerId,
+        isEncrypted);
     operation.setFileId(fileId);
     operation.setPageIndex(pageIndex);
     operation.setOperationUnitId(operationUnitId);
@@ -49,7 +46,6 @@ public class OSBTreeBucketUpdateValuePageOperationSerializationTest {
     Assert.assertEquals(pageIndex, restoredOperation.getPageIndex());
     Assert.assertEquals(operationUnitId, restoredOperation.getOperationUnitId());
     Assert.assertEquals(index, restoredOperation.getIndex());
-    Assert.assertArrayEquals(value, restoredOperation.getValue());
     Assert.assertArrayEquals(prevValue, restoredOperation.getPrevValue());
     Assert.assertEquals(isEncrypted, restoredOperation.isEncrypted());
     Assert.assertEquals(keySerializerId, restoredOperation.getKeySerializerId());
@@ -64,17 +60,14 @@ public class OSBTreeBucketUpdateValuePageOperationSerializationTest {
 
     final Random random = new Random();
 
-    final byte[] value = new byte[12];
-    random.nextBytes(value);
-
     final byte[] prevValue = new byte[12];
     random.nextBytes(prevValue);
 
     final boolean isEncrypted = true;
     final byte keySerializerId = 3;
 
-    OSBTreeBucketUpdateValuePageOperation operation = new OSBTreeBucketUpdateValuePageOperation(index, value, prevValue,
-        keySerializerId, isEncrypted);
+    OSBTreeBucketUpdateValuePageOperation operation = new OSBTreeBucketUpdateValuePageOperation(index, prevValue, keySerializerId,
+        isEncrypted);
     operation.setFileId(fileId);
     operation.setPageIndex(pageIndex);
     operation.setOperationUnitId(operationUnitId);
@@ -94,7 +87,6 @@ public class OSBTreeBucketUpdateValuePageOperationSerializationTest {
     Assert.assertEquals(pageIndex, restoredOperation.getPageIndex());
     Assert.assertEquals(operationUnitId, restoredOperation.getOperationUnitId());
     Assert.assertEquals(index, restoredOperation.getIndex());
-    Assert.assertArrayEquals(value, restoredOperation.getValue());
     Assert.assertArrayEquals(prevValue, restoredOperation.getPrevValue());
     Assert.assertEquals(isEncrypted, restoredOperation.isEncrypted());
     Assert.assertEquals(keySerializerId, restoredOperation.getKeySerializerId());

@@ -9,22 +9,17 @@ import com.orientechnologies.orient.core.storage.index.sbtree.local.OSBTreeBucke
 import java.nio.ByteBuffer;
 
 public final class OSBTreeBucketInsertNonLeafKeyNeighboursPageOperation extends OPageOperationRecord<OSBTreeBucket> {
-  private int    index;
-  private byte[] serializedKey;
-  private int    leftChild;
-  private int    rightChild;
+  private int index;
+  private int keySize;
 
   private int prevChildPointer;
 
   public OSBTreeBucketInsertNonLeafKeyNeighboursPageOperation() {
   }
 
-  public OSBTreeBucketInsertNonLeafKeyNeighboursPageOperation(int index, byte[] serializedKey, int leftChild, int rightChild,
-      int prevChildPointer) {
+  public OSBTreeBucketInsertNonLeafKeyNeighboursPageOperation(final int index, final int keySize, final int prevChildPointer) {
     this.index = index;
-    this.serializedKey = serializedKey;
-    this.leftChild = leftChild;
-    this.rightChild = rightChild;
+    this.keySize = keySize;
 
     this.prevChildPointer = prevChildPointer;
   }
@@ -33,16 +28,8 @@ public final class OSBTreeBucketInsertNonLeafKeyNeighboursPageOperation extends 
     return index;
   }
 
-  public byte[] getSerializedKey() {
-    return serializedKey;
-  }
-
-  public int getLeftChild() {
-    return leftChild;
-  }
-
-  public int getRightChild() {
-    return rightChild;
+  public int getKeySize() {
+    return keySize;
   }
 
   public int getPrevChildPointer() {
@@ -60,37 +47,23 @@ public final class OSBTreeBucketInsertNonLeafKeyNeighboursPageOperation extends 
   }
 
   @Override
-  protected OSBTreeBucket createPageInstance(OCacheEntry cacheEntry) {
+  protected OSBTreeBucket createPageInstance(final OCacheEntry cacheEntry) {
     return new OSBTreeBucket(cacheEntry);
   }
 
   @Override
-  protected void doRedo(OSBTreeBucket page) {
-    page.insertNonLeafKeyNeighbours(index, serializedKey, leftChild, rightChild, prevChildPointer >= 0);
+  protected void doUndo(final OSBTreeBucket page) {
+    page.removeNonLeafEntry(index, keySize, prevChildPointer);
   }
 
   @Override
-  protected void doUndo(OSBTreeBucket page) {
-    page.removeNonLeafEntry(index, serializedKey, prevChildPointer);
-  }
-
-  @Override
-  public int toStream(byte[] content, int offset) {
+  public int toStream(final byte[] content, int offset) {
     offset = super.toStream(content, offset);
 
     OIntegerSerializer.INSTANCE.serializeNative(index, content, offset);
     offset += OIntegerSerializer.INT_SIZE;
 
-    OIntegerSerializer.INSTANCE.serializeNative(serializedKey.length, content, offset);
-    offset += OIntegerSerializer.INT_SIZE;
-
-    System.arraycopy(serializedKey, 0, content, offset, serializedKey.length);
-    offset += serializedKey.length;
-
-    OIntegerSerializer.INSTANCE.serializeNative(leftChild, content, offset);
-    offset += OIntegerSerializer.INT_SIZE;
-
-    OIntegerSerializer.INSTANCE.serializeNative(rightChild, content, offset);
+    OIntegerSerializer.INSTANCE.serializeNative(keySize, content, offset);
     offset += OIntegerSerializer.INT_SIZE;
 
     OIntegerSerializer.INSTANCE.serializeNative(prevChildPointer, content, offset);
@@ -100,38 +73,23 @@ public final class OSBTreeBucketInsertNonLeafKeyNeighboursPageOperation extends 
   }
 
   @Override
-  public void toStream(ByteBuffer buffer) {
+  public void toStream(final ByteBuffer buffer) {
     super.toStream(buffer);
 
     buffer.putInt(index);
 
-    buffer.putInt(serializedKey.length);
-    buffer.put(serializedKey);
-
-    buffer.putInt(leftChild);
-    buffer.putInt(rightChild);
-
+    buffer.putInt(keySize);
     buffer.putInt(prevChildPointer);
   }
 
   @Override
-  public int fromStream(byte[] content, int offset) {
+  public int fromStream(final byte[] content, int offset) {
     offset = super.fromStream(content, offset);
 
     index = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
     offset += OIntegerSerializer.INT_SIZE;
 
-    int keyLen = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
-    offset += OIntegerSerializer.INT_SIZE;
-
-    serializedKey = new byte[keyLen];
-    System.arraycopy(content, offset, serializedKey, 0, keyLen);
-    offset += keyLen;
-
-    leftChild = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
-    offset += OIntegerSerializer.INT_SIZE;
-
-    rightChild = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
+    keySize = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
     offset += OIntegerSerializer.INT_SIZE;
 
     prevChildPointer = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
@@ -142,7 +100,7 @@ public final class OSBTreeBucketInsertNonLeafKeyNeighboursPageOperation extends 
 
   @Override
   public int serializedSize() {
-    return super.serializedSize() + 5 * OIntegerSerializer.INT_SIZE + serializedKey.length;
+    return super.serializedSize() + 3 * OIntegerSerializer.INT_SIZE;
   }
 }
 

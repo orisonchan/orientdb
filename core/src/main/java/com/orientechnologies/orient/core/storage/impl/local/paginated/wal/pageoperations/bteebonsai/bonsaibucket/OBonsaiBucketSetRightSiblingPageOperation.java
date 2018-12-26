@@ -8,27 +8,17 @@ import com.orientechnologies.orient.core.storage.index.sbtreebonsai.local.OSBTre
 import java.nio.ByteBuffer;
 
 public final class OBonsaiBucketSetRightSiblingPageOperation extends OBonsaiBucketPageOperation {
-  private int rightSiblingPageIndex;
-  private int rightSiblingOffset;
-
   private int prevRightSiblingPageIndex;
   private int prevRightSiblingOffset;
 
   public OBonsaiBucketSetRightSiblingPageOperation() {
   }
 
-  public OBonsaiBucketSetRightSiblingPageOperation(final int pageOffset, final int rightSiblingPageIndex,
-      final int rightSiblingOffset, final int prevRightSiblingPageIndex, final int prevRightSiblingOffset) {
+  public OBonsaiBucketSetRightSiblingPageOperation(final int pageOffset, final int prevRightSiblingPageIndex,
+      final int prevRightSiblingOffset) {
     super(pageOffset);
-    this.rightSiblingPageIndex = rightSiblingPageIndex;
-    this.rightSiblingOffset = rightSiblingOffset;
     this.prevRightSiblingPageIndex = prevRightSiblingPageIndex;
     this.prevRightSiblingOffset = prevRightSiblingOffset;
-  }
-
-  @Override
-  protected final void doRedo(final OSBTreeBonsaiBucket page) {
-    page.setRightSibling(new OBonsaiBucketPointer(rightSiblingPageIndex, rightSiblingOffset));
   }
 
   @Override
@@ -38,9 +28,6 @@ public final class OBonsaiBucketSetRightSiblingPageOperation extends OBonsaiBuck
 
   @Override
   protected void serializeToByteBuffer(final ByteBuffer buffer) {
-    buffer.putInt(rightSiblingPageIndex);
-    buffer.putInt(rightSiblingOffset);
-
     buffer.putInt(prevRightSiblingPageIndex);
     buffer.putInt(prevRightSiblingOffset);
 
@@ -48,9 +35,6 @@ public final class OBonsaiBucketSetRightSiblingPageOperation extends OBonsaiBuck
 
   @Override
   protected void deserializeFromByteBuffer(final ByteBuffer buffer) {
-    rightSiblingPageIndex = buffer.getInt();
-    rightSiblingOffset = buffer.getInt();
-
     prevRightSiblingPageIndex = buffer.getInt();
     prevRightSiblingOffset = buffer.getInt();
   }
@@ -62,6 +46,6 @@ public final class OBonsaiBucketSetRightSiblingPageOperation extends OBonsaiBuck
 
   @Override
   public final int serializedSize() {
-    return super.serializedSize() + 4 * OIntegerSerializer.INT_SIZE;
+    return super.serializedSize() + 2 * OIntegerSerializer.INT_SIZE;
   }
 }

@@ -2,7 +2,6 @@ package com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageo
 
 import com.orientechnologies.common.serialization.types.OByteSerializer;
 import com.orientechnologies.common.serialization.types.OIntegerSerializer;
-import com.orientechnologies.orient.core.serialization.serializer.binary.OBinarySerializerFactory;
 import com.orientechnologies.orient.core.storage.cache.OCacheEntry;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OPageOperationRecord;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes;
@@ -14,7 +13,6 @@ import java.util.List;
 
 public final class OSBTreeBucketShrinkPageOperation extends OPageOperationRecord<OSBTreeBucket> {
   private List<byte[]> removedEntries;
-  private int          newSize;
   private byte         keySerializerId;
   private byte         valueSerializerId;
   private boolean      isEncrypted;
@@ -22,10 +20,9 @@ public final class OSBTreeBucketShrinkPageOperation extends OPageOperationRecord
   public OSBTreeBucketShrinkPageOperation() {
   }
 
-  public OSBTreeBucketShrinkPageOperation(final List<byte[]> removedEntries, final int newSize, final byte keySerializerId,
+  public OSBTreeBucketShrinkPageOperation(final List<byte[]> removedEntries, final byte keySerializerId,
       final byte valueSerializerId, final boolean isEncrypted) {
     this.removedEntries = removedEntries;
-    this.newSize = newSize;
     this.isEncrypted = isEncrypted;
     this.keySerializerId = keySerializerId;
     this.valueSerializerId = valueSerializerId;
@@ -41,10 +38,6 @@ public final class OSBTreeBucketShrinkPageOperation extends OPageOperationRecord
 
   public List<byte[]> getRemovedEntries() {
     return removedEntries;
-  }
-
-  public int getNewSize() {
-    return newSize;
   }
 
   public boolean isEncrypted() {
@@ -67,13 +60,6 @@ public final class OSBTreeBucketShrinkPageOperation extends OPageOperationRecord
   }
 
   @Override
-  protected void doRedo(final OSBTreeBucket page) {
-    final OBinarySerializerFactory factory = OBinarySerializerFactory.getInstance();
-    //noinspection unchecked
-    page.shrink(newSize, factory.getObjectSerializer(keySerializerId), factory.getObjectSerializer(valueSerializerId), isEncrypted);
-  }
-
-  @Override
   protected void doUndo(final OSBTreeBucket page) {
     page.addAll(removedEntries, keySerializerId, valueSerializerId, isEncrypted);
   }
@@ -81,9 +67,6 @@ public final class OSBTreeBucketShrinkPageOperation extends OPageOperationRecord
   @Override
   public int toStream(final byte[] content, int offset) {
     offset = super.toStream(content, offset);
-
-    OIntegerSerializer.INSTANCE.serializeNative(newSize, content, offset);
-    offset += OIntegerSerializer.INT_SIZE;
 
     content[offset] = keySerializerId;
     offset++;
@@ -111,7 +94,6 @@ public final class OSBTreeBucketShrinkPageOperation extends OPageOperationRecord
   @Override
   public void toStream(final ByteBuffer buffer) {
     super.toStream(buffer);
-    buffer.putInt(newSize);
 
     buffer.put(keySerializerId);
     buffer.put(valueSerializerId);
@@ -129,9 +111,6 @@ public final class OSBTreeBucketShrinkPageOperation extends OPageOperationRecord
   @Override
   public int fromStream(final byte[] content, int offset) {
     offset = super.fromStream(content, offset);
-
-    newSize = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
-    offset += OIntegerSerializer.INT_SIZE;
 
     keySerializerId = content[offset];
     offset++;
@@ -168,6 +147,6 @@ public final class OSBTreeBucketShrinkPageOperation extends OPageOperationRecord
       totalSize += entry.length;
     }
 
-    return super.serializedSize() + totalSize + OIntegerSerializer.INT_SIZE + 3 * OByteSerializer.BYTE_SIZE;
+    return super.serializedSize() + totalSize + 3 * OByteSerializer.BYTE_SIZE;
   }
 }

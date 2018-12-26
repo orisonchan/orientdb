@@ -23,7 +23,7 @@ public class OSBTreeNullBucketSetValuePageOperationSerializationTest {
     random.nextBytes(value);
     random.nextBytes(prevValue);
 
-    OSBTreeNullBucketSetValuePageOperation operation = new OSBTreeNullBucketSetValuePageOperation(value, prevValue);
+    OSBTreeNullBucketSetValuePageOperation operation = new OSBTreeNullBucketSetValuePageOperation(prevValue);
     operation.setFileId(fileId);
     operation.setPageIndex(pageIndex);
     operation.setOperationUnitId(operationUnitId);
@@ -41,7 +41,6 @@ public class OSBTreeNullBucketSetValuePageOperationSerializationTest {
     Assert.assertEquals(fileId, restoredOperation.getFileId());
     Assert.assertEquals(pageIndex, restoredOperation.getPageIndex());
     Assert.assertEquals(operationUnitId, restoredOperation.getOperationUnitId());
-    Assert.assertArrayEquals(value, restoredOperation.getValue());
     Assert.assertArrayEquals(prevValue, restoredOperation.getPrevValue());
   }
 
@@ -51,13 +50,10 @@ public class OSBTreeNullBucketSetValuePageOperationSerializationTest {
     final int pageIndex = 543;
     final OOperationUnitId operationUnitId = OOperationUnitId.generateId();
 
-    final byte[] value = new byte[12];
     final byte[] prevValue = null;
 
-    final Random random = new Random();
-    random.nextBytes(value);
-
-    OSBTreeNullBucketSetValuePageOperation operation = new OSBTreeNullBucketSetValuePageOperation(value, prevValue);
+    @SuppressWarnings("ConstantConditions")
+    OSBTreeNullBucketSetValuePageOperation operation = new OSBTreeNullBucketSetValuePageOperation(prevValue);
     operation.setFileId(fileId);
     operation.setPageIndex(pageIndex);
     operation.setOperationUnitId(operationUnitId);
@@ -75,7 +71,7 @@ public class OSBTreeNullBucketSetValuePageOperationSerializationTest {
     Assert.assertEquals(fileId, restoredOperation.getFileId());
     Assert.assertEquals(pageIndex, restoredOperation.getPageIndex());
     Assert.assertEquals(operationUnitId, restoredOperation.getOperationUnitId());
-    Assert.assertArrayEquals(value, restoredOperation.getValue());
+    //noinspection ConstantConditions
     Assert.assertArrayEquals(prevValue, restoredOperation.getPrevValue());
   }
 
@@ -85,14 +81,12 @@ public class OSBTreeNullBucketSetValuePageOperationSerializationTest {
     final int pageIndex = 543;
     final OOperationUnitId operationUnitId = OOperationUnitId.generateId();
 
-    final byte[] value = new byte[12];
     final byte[] prevValue = new byte[34];
 
     final Random random = new Random();
-    random.nextBytes(value);
     random.nextBytes(prevValue);
 
-    OSBTreeNullBucketSetValuePageOperation operation = new OSBTreeNullBucketSetValuePageOperation(value, prevValue);
+    OSBTreeNullBucketSetValuePageOperation operation = new OSBTreeNullBucketSetValuePageOperation(prevValue);
     operation.setFileId(fileId);
     operation.setPageIndex(pageIndex);
     operation.setOperationUnitId(operationUnitId);
@@ -112,7 +106,6 @@ public class OSBTreeNullBucketSetValuePageOperationSerializationTest {
     Assert.assertEquals(fileId, restoredOperation.getFileId());
     Assert.assertEquals(pageIndex, restoredOperation.getPageIndex());
     Assert.assertEquals(operationUnitId, restoredOperation.getOperationUnitId());
-    Assert.assertArrayEquals(value, restoredOperation.getValue());
     Assert.assertArrayEquals(prevValue, restoredOperation.getPrevValue());
   }
 
@@ -122,13 +115,10 @@ public class OSBTreeNullBucketSetValuePageOperationSerializationTest {
     final int pageIndex = 543;
     final OOperationUnitId operationUnitId = OOperationUnitId.generateId();
 
-    final byte[] value = new byte[12];
     final byte[] prevValue = null;
 
-    final Random random = new Random();
-    random.nextBytes(value);
-
-    OSBTreeNullBucketSetValuePageOperation operation = new OSBTreeNullBucketSetValuePageOperation(value, prevValue);
+    @SuppressWarnings("ConstantConditions")
+    OSBTreeNullBucketSetValuePageOperation operation = new OSBTreeNullBucketSetValuePageOperation(prevValue);
     operation.setFileId(fileId);
     operation.setPageIndex(pageIndex);
     operation.setOperationUnitId(operationUnitId);
@@ -148,7 +138,7 @@ public class OSBTreeNullBucketSetValuePageOperationSerializationTest {
     Assert.assertEquals(fileId, restoredOperation.getFileId());
     Assert.assertEquals(pageIndex, restoredOperation.getPageIndex());
     Assert.assertEquals(operationUnitId, restoredOperation.getOperationUnitId());
-    Assert.assertArrayEquals(value, restoredOperation.getValue());
+    //noinspection ConstantConditions
     Assert.assertArrayEquals(prevValue, restoredOperation.getPrevValue());
   }
 }

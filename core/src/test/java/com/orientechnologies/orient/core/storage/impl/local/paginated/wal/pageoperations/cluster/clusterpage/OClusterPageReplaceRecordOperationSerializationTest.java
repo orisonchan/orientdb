@@ -16,19 +16,14 @@ public class OClusterPageReplaceRecordOperationSerializationTest {
     final OOperationUnitId operationUnitId = OOperationUnitId.generateId();
 
     final int index = 34;
-    final byte[] record = new byte[24];
 
     final Random random = new Random();
-    random.nextBytes(record);
-
-    final int recordVersion = 12;
     final int oldRecordVersion = 25;
 
     final byte[] oldRecord = new byte[24];
     random.nextBytes(oldRecord);
 
-    OClusterPageReplaceRecordOperation operation = new OClusterPageReplaceRecordOperation(index, record, recordVersion,
-        oldRecordVersion, oldRecord);
+    OClusterPageReplaceRecordOperation operation = new OClusterPageReplaceRecordOperation(index, oldRecordVersion, oldRecord);
 
     operation.setFileId(fileId);
     operation.setPageIndex(pageIndex);
@@ -48,8 +43,6 @@ public class OClusterPageReplaceRecordOperationSerializationTest {
     Assert.assertEquals(pageIndex, restoredOperation.getPageIndex());
     Assert.assertEquals(operationUnitId, restoredOperation.getOperationUnitId());
     Assert.assertEquals(index, restoredOperation.getIndex());
-    Assert.assertArrayEquals(record, restoredOperation.getRecord());
-    Assert.assertEquals(recordVersion, restoredOperation.getRecordVersion());
     Assert.assertEquals(oldRecordVersion, restoredOperation.getOldRecordVersion());
     Assert.assertArrayEquals(oldRecord, restoredOperation.getOldRecord());
   }
@@ -61,19 +54,14 @@ public class OClusterPageReplaceRecordOperationSerializationTest {
     final OOperationUnitId operationUnitId = OOperationUnitId.generateId();
 
     final int index = 34;
-    final byte[] record = new byte[24];
 
     final Random random = new Random();
-    random.nextBytes(record);
-
-    final int recordVersion = 12;
     final int oldRecordVersion = 25;
 
     final byte[] oldRecord = new byte[24];
     random.nextBytes(oldRecord);
 
-    OClusterPageReplaceRecordOperation operation = new OClusterPageReplaceRecordOperation(index, record, recordVersion,
-        oldRecordVersion, oldRecord);
+    OClusterPageReplaceRecordOperation operation = new OClusterPageReplaceRecordOperation(index, oldRecordVersion, oldRecord);
 
     operation.setFileId(fileId);
     operation.setPageIndex(pageIndex);
@@ -95,8 +83,6 @@ public class OClusterPageReplaceRecordOperationSerializationTest {
     Assert.assertEquals(pageIndex, restoredOperation.getPageIndex());
     Assert.assertEquals(operationUnitId, restoredOperation.getOperationUnitId());
     Assert.assertEquals(index, restoredOperation.getIndex());
-    Assert.assertArrayEquals(record, restoredOperation.getRecord());
-    Assert.assertEquals(recordVersion, restoredOperation.getRecordVersion());
     Assert.assertEquals(oldRecordVersion, restoredOperation.getOldRecordVersion());
     Assert.assertArrayEquals(oldRecord, restoredOperation.getOldRecord());
   }

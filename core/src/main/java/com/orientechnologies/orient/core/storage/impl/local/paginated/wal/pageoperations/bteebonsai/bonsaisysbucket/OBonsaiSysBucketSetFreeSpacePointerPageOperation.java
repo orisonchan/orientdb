@@ -8,26 +8,15 @@ import com.orientechnologies.orient.core.storage.index.sbtreebonsai.local.OSysBu
 import java.nio.ByteBuffer;
 
 public final class OBonsaiSysBucketSetFreeSpacePointerPageOperation extends OBonsaiSysBucketPageOperation {
-  private int pointerPageIndex;
-  private int pointerPageOffset;
-
   private int prevPointerPageIndex;
   private int prevPointerPageOffset;
 
   public OBonsaiSysBucketSetFreeSpacePointerPageOperation() {
   }
 
-  public OBonsaiSysBucketSetFreeSpacePointerPageOperation(final int pointerPageIndex, final int pointerPageOffset,
-      final int prevPointerPageIndex, final int prevPointerPageOffset) {
-    this.pointerPageIndex = pointerPageIndex;
-    this.pointerPageOffset = pointerPageOffset;
+  public OBonsaiSysBucketSetFreeSpacePointerPageOperation(final int prevPointerPageIndex, final int prevPointerPageOffset) {
     this.prevPointerPageIndex = prevPointerPageIndex;
     this.prevPointerPageOffset = prevPointerPageOffset;
-  }
-
-  @Override
-  protected final void doRedo(final OSysBucket page) {
-    page.setFreeSpacePointer(new OBonsaiBucketPointer(pointerPageIndex, pointerPageOffset));
   }
 
   @Override
@@ -37,9 +26,6 @@ public final class OBonsaiSysBucketSetFreeSpacePointerPageOperation extends OBon
 
   @Override
   protected void serializeToByteBuffer(final ByteBuffer buffer) {
-    buffer.putInt(pointerPageIndex);
-    buffer.putInt(pointerPageOffset);
-
     buffer.putInt(prevPointerPageIndex);
     buffer.putInt(prevPointerPageOffset);
 
@@ -47,9 +33,6 @@ public final class OBonsaiSysBucketSetFreeSpacePointerPageOperation extends OBon
 
   @Override
   protected void deserializeFromByteBuffer(final ByteBuffer buffer) {
-    pointerPageIndex = buffer.getInt();
-    pointerPageOffset = buffer.getInt();
-
     prevPointerPageIndex = buffer.getInt();
     prevPointerPageOffset = buffer.getInt();
   }
@@ -61,6 +44,6 @@ public final class OBonsaiSysBucketSetFreeSpacePointerPageOperation extends OBon
 
   @Override
   public final int serializedSize() {
-    return super.serializedSize() + 4 * OIntegerSerializer.INT_SIZE;
+    return super.serializedSize() + 2 * OIntegerSerializer.INT_SIZE;
   }
 }

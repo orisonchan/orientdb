@@ -9,19 +9,13 @@ import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRec
 import java.nio.ByteBuffer;
 
 public final class OClusterPageSetNextPageOperation extends OPageOperationRecord<OClusterPage> {
-  private int nextPage;
   private int oldNextPage;
 
   public OClusterPageSetNextPageOperation() {
   }
 
-  public OClusterPageSetNextPageOperation(int nextPage, int oldNextPage) {
-    this.nextPage = nextPage;
+  public OClusterPageSetNextPageOperation(final int oldNextPage) {
     this.oldNextPage = oldNextPage;
-  }
-
-  public int getNextPage() {
-    return nextPage;
   }
 
   int getOldNextPage() {
@@ -29,17 +23,12 @@ public final class OClusterPageSetNextPageOperation extends OPageOperationRecord
   }
 
   @Override
-  protected OClusterPage createPageInstance(OCacheEntry cacheEntry) {
+  protected OClusterPage createPageInstance(final OCacheEntry cacheEntry) {
     return new OClusterPage(cacheEntry, false);
   }
 
   @Override
-  protected void doRedo(OClusterPage clusterPage) {
-    clusterPage.setNextPage(nextPage);
-  }
-
-  @Override
-  protected void doUndo(OClusterPage clusterPage) {
+  protected void doUndo(final OClusterPage clusterPage) {
     clusterPage.setNextPage(oldNextPage);
   }
 
@@ -54,11 +43,8 @@ public final class OClusterPageSetNextPageOperation extends OPageOperationRecord
   }
 
   @Override
-  public int toStream(byte[] content, int offset) {
+  public int toStream(final byte[] content, int offset) {
     offset = super.toStream(content, offset);
-
-    OIntegerSerializer.INSTANCE.serializeNative(nextPage, content, offset);
-    offset += OIntegerSerializer.INT_SIZE;
 
     OIntegerSerializer.INSTANCE.serializeNative(oldNextPage, content, offset);
     offset += OIntegerSerializer.INT_SIZE;
@@ -67,19 +53,15 @@ public final class OClusterPageSetNextPageOperation extends OPageOperationRecord
   }
 
   @Override
-  public void toStream(ByteBuffer buffer) {
+  public void toStream(final ByteBuffer buffer) {
     super.toStream(buffer);
 
-    buffer.putInt(nextPage);
     buffer.putInt(oldNextPage);
   }
 
   @Override
-  public int fromStream(byte[] content, int offset) {
+  public int fromStream(final byte[] content, int offset) {
     offset = super.fromStream(content, offset);
-
-    nextPage = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
-    offset += OIntegerSerializer.INT_SIZE;
 
     oldNextPage = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
     offset += OIntegerSerializer.INT_SIZE;
@@ -89,6 +71,6 @@ public final class OClusterPageSetNextPageOperation extends OPageOperationRecord
 
   @Override
   public int serializedSize() {
-    return super.serializedSize() + 2 * OIntegerSerializer.INT_SIZE;
+    return super.serializedSize() + OIntegerSerializer.INT_SIZE;
   }
 }

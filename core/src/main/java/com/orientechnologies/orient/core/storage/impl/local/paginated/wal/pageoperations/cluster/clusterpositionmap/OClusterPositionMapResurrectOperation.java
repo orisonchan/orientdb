@@ -10,8 +10,6 @@ import java.nio.ByteBuffer;
 
 public final class OClusterPositionMapResurrectOperation extends OPageOperationRecord<OClusterPositionMapBucket> {
   private int index;
-  private int recordPosition;
-  private int recordPageIndex;
 
   private int oldRecordPageIndex;
   private int oldRecordPosition;
@@ -19,26 +17,15 @@ public final class OClusterPositionMapResurrectOperation extends OPageOperationR
   public OClusterPositionMapResurrectOperation() {
   }
 
-  public OClusterPositionMapResurrectOperation(int index, int recordPosition, int recordPageIndex, int oldRecordPageIndex,
-      int oldRecordPosition) {
+  public OClusterPositionMapResurrectOperation(final int index, final int oldRecordPageIndex, final int oldRecordPosition) {
     super();
     this.index = index;
-    this.recordPosition = recordPosition;
-    this.recordPageIndex = recordPageIndex;
     this.oldRecordPageIndex = oldRecordPageIndex;
     this.oldRecordPosition = oldRecordPosition;
   }
 
   public int getIndex() {
     return index;
-  }
-
-  public int getRecordPosition() {
-    return recordPosition;
-  }
-
-  public int getRecordPageIndex() {
-    return recordPageIndex;
   }
 
   int getOldRecordPageIndex() {
@@ -50,17 +37,12 @@ public final class OClusterPositionMapResurrectOperation extends OPageOperationR
   }
 
   @Override
-  protected OClusterPositionMapBucket createPageInstance(OCacheEntry cacheEntry) {
+  protected OClusterPositionMapBucket createPageInstance(final OCacheEntry cacheEntry) {
     return new OClusterPositionMapBucket(cacheEntry, false);
   }
 
   @Override
-  protected void doRedo(OClusterPositionMapBucket bucket) {
-    bucket.set(index, new OClusterPositionMapBucket.PositionEntry(recordPageIndex, recordPosition));
-  }
-
-  @Override
-  protected void doUndo(OClusterPositionMapBucket bucket) {
+  protected void doUndo(final OClusterPositionMapBucket bucket) {
     bucket.undoResurrect(index, new OClusterPositionMapBucket.PositionEntry(oldRecordPageIndex, oldRecordPosition));
   }
 
@@ -75,16 +57,10 @@ public final class OClusterPositionMapResurrectOperation extends OPageOperationR
   }
 
   @Override
-  public int toStream(byte[] content, int offset) {
+  public int toStream(final byte[] content, int offset) {
     offset = super.toStream(content, offset);
 
     OIntegerSerializer.INSTANCE.serializeNative(index, content, offset);
-    offset += OIntegerSerializer.INT_SIZE;
-
-    OIntegerSerializer.INSTANCE.serializeNative(recordPosition, content, offset);
-    offset += OIntegerSerializer.INT_SIZE;
-
-    OIntegerSerializer.INSTANCE.serializeNative(recordPageIndex, content, offset);
     offset += OIntegerSerializer.INT_SIZE;
 
     OIntegerSerializer.INSTANCE.serializeNative(oldRecordPageIndex, content, offset);
@@ -97,27 +73,19 @@ public final class OClusterPositionMapResurrectOperation extends OPageOperationR
   }
 
   @Override
-  public void toStream(ByteBuffer buffer) {
+  public void toStream(final ByteBuffer buffer) {
     super.toStream(buffer);
 
     buffer.putInt(index);
-    buffer.putInt(recordPosition);
-    buffer.putInt(recordPageIndex);
     buffer.putInt(oldRecordPageIndex);
     buffer.putInt(oldRecordPosition);
   }
 
   @Override
-  public int fromStream(byte[] content, int offset) {
+  public int fromStream(final byte[] content, int offset) {
     offset = super.fromStream(content, offset);
 
     index = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
-    offset += OIntegerSerializer.INT_SIZE;
-
-    recordPosition = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
-    offset += OIntegerSerializer.INT_SIZE;
-
-    recordPageIndex = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
     offset += OIntegerSerializer.INT_SIZE;
 
     oldRecordPageIndex = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
@@ -131,6 +99,6 @@ public final class OClusterPositionMapResurrectOperation extends OPageOperationR
 
   @Override
   public int serializedSize() {
-    return super.serializedSize() + 5 * OIntegerSerializer.INT_SIZE;
+    return super.serializedSize() + 3 * OIntegerSerializer.INT_SIZE;
   }
 }

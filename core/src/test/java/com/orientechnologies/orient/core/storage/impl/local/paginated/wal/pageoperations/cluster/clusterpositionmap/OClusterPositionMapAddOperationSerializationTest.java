@@ -14,10 +14,7 @@ public class OClusterPositionMapAddOperationSerializationTest {
     final int pageIndex = 12;
     final OOperationUnitId operationUnitId = OOperationUnitId.generateId();
 
-    final int recordPageIndex = 21;
-    final int recordPosition = 54;
-
-    OClusterPositionMapAddOperation operation = new OClusterPositionMapAddOperation(recordPageIndex, recordPosition);
+    OClusterPositionMapAddOperation operation = new OClusterPositionMapAddOperation();
     operation.setFileId(fileId);
     operation.setPageIndex(pageIndex);
     operation.setOperationUnitId(operationUnitId);
@@ -35,8 +32,6 @@ public class OClusterPositionMapAddOperationSerializationTest {
     Assert.assertEquals(fileId, restoredOperation.getFileId());
     Assert.assertEquals(pageIndex, restoredOperation.getPageIndex());
     Assert.assertEquals(operationUnitId, restoredOperation.getOperationUnitId());
-    Assert.assertEquals(recordPageIndex, restoredOperation.getRecordPageIndex());
-    Assert.assertEquals(recordPosition, restoredOperation.getRecordPosition());
   }
 
   @Test
@@ -45,10 +40,7 @@ public class OClusterPositionMapAddOperationSerializationTest {
     final int pageIndex = 12;
     final OOperationUnitId operationUnitId = OOperationUnitId.generateId();
 
-    final int recordPageIndex = 21;
-    final int recordPosition = 54;
-
-    OClusterPositionMapAddOperation operation = new OClusterPositionMapAddOperation(recordPageIndex, recordPosition);
+    OClusterPositionMapAddOperation operation = new OClusterPositionMapAddOperation();
     operation.setFileId(fileId);
     operation.setPageIndex(pageIndex);
     operation.setOperationUnitId(operationUnitId);
@@ -67,7 +59,5 @@ public class OClusterPositionMapAddOperationSerializationTest {
     Assert.assertEquals(fileId, restoredOperation.getFileId());
     Assert.assertEquals(pageIndex, restoredOperation.getPageIndex());
     Assert.assertEquals(operationUnitId, restoredOperation.getOperationUnitId());
-    Assert.assertEquals(recordPageIndex, restoredOperation.getRecordPageIndex());
-    Assert.assertEquals(recordPosition, restoredOperation.getRecordPosition());
   }
 }

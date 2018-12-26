@@ -9,40 +9,23 @@ import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRec
 import java.nio.ByteBuffer;
 
 public final class OClusterPageAppendRecordOperation extends OPageOperationRecord<OClusterPage> {
-  private int    recordVersion;
-  private byte[] record;
-  private int    index;
+  private int index;
 
   public OClusterPageAppendRecordOperation() {
   }
 
-  public OClusterPageAppendRecordOperation(int recordVersion, byte[] record, int index) {
-    this.recordVersion = recordVersion;
-    this.record = record;
+  public OClusterPageAppendRecordOperation(final int index) {
     this.index = index;
   }
 
   @Override
-  protected OClusterPage createPageInstance(OCacheEntry cacheEntry) {
+  protected OClusterPage createPageInstance(final OCacheEntry cacheEntry) {
     return new OClusterPage(cacheEntry, false);
   }
 
   @Override
-  protected void doRedo(OClusterPage clusterPage) {
-    clusterPage.appendRecord(recordVersion, record);
-  }
-
-  @Override
-  protected void doUndo(OClusterPage clusterPage) {
+  protected void doUndo(final OClusterPage clusterPage) {
     clusterPage.deleteRecord(index);
-  }
-
-  public int getRecordVersion() {
-    return recordVersion;
-  }
-
-  public byte[] getRecord() {
-    return record;
   }
 
   public int getIndex() {
@@ -60,17 +43,8 @@ public final class OClusterPageAppendRecordOperation extends OPageOperationRecor
   }
 
   @Override
-  public int toStream(byte[] content, int offset) {
+  public int toStream(final byte[] content, int offset) {
     offset = super.toStream(content, offset);
-
-    OIntegerSerializer.INSTANCE.serializeNative(recordVersion, content, offset);
-    offset += OIntegerSerializer.INT_SIZE;
-
-    OIntegerSerializer.INSTANCE.serializeNative(record.length, content, offset);
-    offset += OIntegerSerializer.INT_SIZE;
-
-    System.arraycopy(record, 0, content, offset, record.length);
-    offset += record.length;
 
     OIntegerSerializer.INSTANCE.serializeNative(index, content, offset);
     offset += OIntegerSerializer.INT_SIZE;
@@ -79,30 +53,15 @@ public final class OClusterPageAppendRecordOperation extends OPageOperationRecor
   }
 
   @Override
-  public void toStream(ByteBuffer buffer) {
+  public void toStream(final ByteBuffer buffer) {
     super.toStream(buffer);
-
-    buffer.putInt(recordVersion);
-
-    buffer.putInt(record.length);
-    buffer.put(record);
 
     buffer.putInt(index);
   }
 
   @Override
-  public int fromStream(byte[] content, int offset) {
+  public int fromStream(final byte[] content, int offset) {
     offset = super.fromStream(content, offset);
-
-    recordVersion = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
-    offset += OIntegerSerializer.INT_SIZE;
-
-    final int recordSize = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
-    offset += OIntegerSerializer.INT_SIZE;
-
-    record = new byte[recordSize];
-    System.arraycopy(content, offset, record, 0, record.length);
-    offset += record.length;
 
     index = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
     offset += OIntegerSerializer.INT_SIZE;
@@ -112,6 +71,6 @@ public final class OClusterPageAppendRecordOperation extends OPageOperationRecor
 
   @Override
   public int serializedSize() {
-    return super.serializedSize() + 3 * OIntegerSerializer.INT_SIZE + record.length;
+    return super.serializedSize() + OIntegerSerializer.INT_SIZE;
   }
 }

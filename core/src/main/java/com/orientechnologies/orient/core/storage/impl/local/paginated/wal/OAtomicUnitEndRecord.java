@@ -30,7 +30,6 @@ import com.orientechnologies.orient.core.storage.cache.OWriteCache;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.ORecordOperationMetadata;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.atomicoperations.OAtomicOperationMetadata;
 
-import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -41,7 +40,7 @@ import java.util.Set;
  * @author Andrey Lomakin (a.lomakin-at-orientdb.com)
  * @since 24.05.13
  */
-public class OAtomicUnitEndRecord extends OOperationUnitBodyRecord {
+public final class OAtomicUnitEndRecord extends OOperationUnitBodyRecord {
   private boolean rollback;
 
   private Map<String, OAtomicOperationMetadata<?>> atomicOperationMetadataMap = new LinkedHashMap<>();
@@ -49,13 +48,10 @@ public class OAtomicUnitEndRecord extends OOperationUnitBodyRecord {
   public OAtomicUnitEndRecord() {
   }
 
-  @Override
-  public void redo(OReadCache readCache, OWriteCache writeCache) throws IOException {
-    //do nothing
-  }
 
   @Override
-  public void undo(OReadCache readCache, OWriteCache writeCache, OWriteAheadLog writeAheadLog, OOperationUnitId operationUnitId) throws IOException {
+  public void undo(final OReadCache readCache, final OWriteCache writeCache, final OWriteAheadLog writeAheadLog,
+      final OOperationUnitId operationUnitId) {
     //do nothing
   }
 
@@ -76,14 +72,14 @@ public class OAtomicUnitEndRecord extends OOperationUnitBodyRecord {
   }
 
   @Override
-  public int toStream(final byte[] content, int offset) {
+  public final int toStream(final byte[] content, int offset) {
     offset = super.toStream(content, offset);
 
     content[offset] = rollback ? (byte) 1 : 0;
     offset++;
 
     if (atomicOperationMetadataMap.size() > 0) {
-      for (Map.Entry<String, OAtomicOperationMetadata<?>> entry : atomicOperationMetadataMap.entrySet()) {
+      for (final Map.Entry<String, OAtomicOperationMetadata<?>> entry : atomicOperationMetadataMap.entrySet()) {
         if (entry.getKey().equals(ORecordOperationMetadata.RID_METADATA_KEY)) {
           content[offset] = 1;
           offset++;
@@ -93,7 +89,7 @@ public class OAtomicUnitEndRecord extends OOperationUnitBodyRecord {
           OIntegerSerializer.INSTANCE.serializeNative(rids.size(), content, offset);
           offset += OIntegerSerializer.INT_SIZE;
 
-          for (ORID rid : rids) {
+          for (final ORID rid : rids) {
             OLongSerializer.INSTANCE.serializeNative(rid.getClusterPosition(), content, offset);
             offset += OLongSerializer.LONG_SIZE;
 
@@ -112,7 +108,7 @@ public class OAtomicUnitEndRecord extends OOperationUnitBodyRecord {
   }
 
   @Override
-  public void toStream(final ByteBuffer buffer) {
+  public final void toStream(final ByteBuffer buffer) {
     super.toStream(buffer);
 
     buffer.put(rollback ? (byte) 1 : 0);
@@ -140,13 +136,13 @@ public class OAtomicUnitEndRecord extends OOperationUnitBodyRecord {
   }
 
   @Override
-  public int fromStream(final byte[] content, int offset) {
+  public final int fromStream(final byte[] content, int offset) {
     offset = super.fromStream(content, offset);
 
     rollback = content[offset] > 0;
     offset++;
 
-    atomicOperationMetadataMap = new LinkedHashMap<>();
+    atomicOperationMetadataMap = new LinkedHashMap<>(16);
 
     final int metadataId = content[offset];
     offset++;
@@ -178,14 +174,14 @@ public class OAtomicUnitEndRecord extends OOperationUnitBodyRecord {
   }
 
   @Override
-  public int serializedSize() {
+  public final int serializedSize() {
     return super.serializedSize() + OByteSerializer.BYTE_SIZE + metadataSize();
   }
 
   private int metadataSize() {
     int size = OByteSerializer.BYTE_SIZE;
 
-    for (Map.Entry<String, OAtomicOperationMetadata<?>> entry : atomicOperationMetadataMap.entrySet()) {
+    for (final Map.Entry<String, OAtomicOperationMetadata<?>> entry : atomicOperationMetadataMap.entrySet()) {
       if (entry.getKey().equals(ORecordOperationMetadata.RID_METADATA_KEY)) {
         final ORecordOperationMetadata recordOperationMetadata = (ORecordOperationMetadata) entry.getValue();
 
@@ -201,17 +197,17 @@ public class OAtomicUnitEndRecord extends OOperationUnitBodyRecord {
   }
 
   @Override
-  public boolean isUpdateMasterRecord() {
+  public final boolean isUpdateMasterRecord() {
     return false;
   }
 
   @Override
-  public String toString() {
+  public final String toString() {
     return toString("rollback=" + rollback);
   }
 
   @Override
-  public byte getId() {
+  public final byte getId() {
     return WALRecordTypes.ATOMIC_UNIT_END_RECORD;
   }
 

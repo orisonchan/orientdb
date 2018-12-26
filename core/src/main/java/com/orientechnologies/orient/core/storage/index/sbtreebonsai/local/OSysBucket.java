@@ -23,7 +23,6 @@ package com.orientechnologies.orient.core.storage.index.sbtreebonsai.local;
 import com.orientechnologies.common.serialization.types.OByteSerializer;
 import com.orientechnologies.common.serialization.types.OLongSerializer;
 import com.orientechnologies.orient.core.storage.cache.OCacheEntry;
-import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.bteebonsai.bonsaisysbucket.OBonsaiSysBucketInitPageOperation;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.bteebonsai.bonsaisysbucket.OBonsaiSysBucketSetFreeListHeadPageOperation;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.bteebonsai.bonsaisysbucket.OBonsaiSysBucketSetFreeListLengthPageOperation;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.bteebonsai.bonsaisysbucket.OBonsaiSysBucketSetFreeSpacePointerPageOperation;
@@ -63,8 +62,6 @@ public final class OSysBucket extends OBonsaiBucketAbstract {
     setBucketPointer(FREE_SPACE_OFFSET, new OBonsaiBucketPointer(0, OSBTreeBonsaiBucket.MAX_BUCKET_SIZE_BYTES));
     setBucketPointer(FREE_LIST_HEAD_OFFSET, OBonsaiBucketPointer.NULL);
     setLongValue(FREE_LIST_LENGTH_OFFSET, 0L);
-
-    addPageOperation(new OBonsaiSysBucketInitPageOperation());
   }
 
   public final boolean isInitialized() {
@@ -79,7 +76,7 @@ public final class OSysBucket extends OBonsaiBucketAbstract {
     final int preLength = (int) getLongValue(FREE_LIST_LENGTH_OFFSET);
 
     setLongValue(FREE_LIST_LENGTH_OFFSET, length);
-    addPageOperation(new OBonsaiSysBucketSetFreeListLengthPageOperation((int) length, preLength));
+    addPageOperation(new OBonsaiSysBucketSetFreeListLengthPageOperation(preLength));
   }
 
   final OBonsaiBucketPointer getFreeSpacePointer() {
@@ -91,8 +88,8 @@ public final class OSysBucket extends OBonsaiBucketAbstract {
 
     setBucketPointer(FREE_SPACE_OFFSET, pointer);
 
-    addPageOperation(new OBonsaiSysBucketSetFreeSpacePointerPageOperation((int) pointer.getPageIndex(), pointer.getPageOffset(),
-        (int) prevPointer.getPageIndex(), prevPointer.getPageOffset()));
+    addPageOperation(
+        new OBonsaiSysBucketSetFreeSpacePointerPageOperation((int) prevPointer.getPageIndex(), prevPointer.getPageOffset()));
   }
 
   final OBonsaiBucketPointer getFreeListHead() {
@@ -104,7 +101,7 @@ public final class OSysBucket extends OBonsaiBucketAbstract {
 
     setBucketPointer(FREE_LIST_HEAD_OFFSET, pointer);
 
-    addPageOperation(new OBonsaiSysBucketSetFreeListHeadPageOperation((int) pointer.getPageIndex(), pointer.getPageOffset(),
-        (int) prevPointer.getPageIndex(), prevPointer.getPageOffset()));
+    addPageOperation(
+        new OBonsaiSysBucketSetFreeListHeadPageOperation((int) prevPointer.getPageIndex(), prevPointer.getPageOffset()));
   }
 }

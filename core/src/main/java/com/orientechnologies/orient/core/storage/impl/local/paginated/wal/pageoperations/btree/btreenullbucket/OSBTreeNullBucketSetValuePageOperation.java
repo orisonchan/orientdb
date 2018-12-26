@@ -6,23 +6,19 @@ import com.orientechnologies.orient.core.storage.cache.OCacheEntry;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OPageOperationRecord;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes;
 import com.orientechnologies.orient.core.storage.index.sbtree.local.ONullBucket;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.nio.ByteBuffer;
 
+@SuppressFBWarnings({ "EI_EXPOSE_REP", "EI_EXPOSE_REP2" })
 public final class OSBTreeNullBucketSetValuePageOperation extends OPageOperationRecord<ONullBucket> {
-  private byte[] value;
   private byte[] prevValue;
 
   public OSBTreeNullBucketSetValuePageOperation() {
   }
 
-  public OSBTreeNullBucketSetValuePageOperation(byte[] value, byte[] prevValue) {
-    this.value = value;
+  public OSBTreeNullBucketSetValuePageOperation(final byte[] prevValue) {
     this.prevValue = prevValue;
-  }
-
-  public byte[] getValue() {
-    return value;
   }
 
   public byte[] getPrevValue() {
@@ -40,18 +36,13 @@ public final class OSBTreeNullBucketSetValuePageOperation extends OPageOperation
   }
 
   @Override
-  protected ONullBucket createPageInstance(OCacheEntry cacheEntry) {
+  protected ONullBucket createPageInstance(final OCacheEntry cacheEntry) {
     //noinspection unchecked
     return new ONullBucket(cacheEntry, null, false);
   }
 
   @Override
-  protected void doRedo(ONullBucket page) {
-    page.setValue(value);
-  }
-
-  @Override
-  protected void doUndo(ONullBucket page) {
+  protected void doUndo(final ONullBucket page) {
     if (prevValue != null) {
       page.setValue(prevValue);
     } else {
@@ -60,14 +51,8 @@ public final class OSBTreeNullBucketSetValuePageOperation extends OPageOperation
   }
 
   @Override
-  public int toStream(byte[] content, int offset) {
+  public int toStream(final byte[] content, int offset) {
     offset = super.toStream(content, offset);
-
-    OIntegerSerializer.INSTANCE.serializeNative(value.length, content, offset);
-    offset += OIntegerSerializer.INT_SIZE;
-
-    System.arraycopy(value, 0, content, offset, value.length);
-    offset += value.length;
 
     if (prevValue == null) {
       offset++;
@@ -86,11 +71,8 @@ public final class OSBTreeNullBucketSetValuePageOperation extends OPageOperation
   }
 
   @Override
-  public void toStream(ByteBuffer buffer) {
+  public void toStream(final ByteBuffer buffer) {
     super.toStream(buffer);
-
-    buffer.putInt(value.length);
-    buffer.put(value);
 
     if (prevValue == null) {
       buffer.put((byte) 0);
@@ -103,23 +85,15 @@ public final class OSBTreeNullBucketSetValuePageOperation extends OPageOperation
   }
 
   @Override
-  public int fromStream(byte[] content, int offset) {
+  public int fromStream(final byte[] content, int offset) {
     offset = super.fromStream(content, offset);
-
-    int valLen = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
-    offset += OIntegerSerializer.INT_SIZE;
-
-    value = new byte[valLen];
-
-    System.arraycopy(content, offset, value, 0, valLen);
-    offset += valLen;
 
     if (content[offset] == 0) {
       offset++;
     } else {
       offset++;
 
-      int prevValLen = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
+      final int prevValLen = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
       offset += OIntegerSerializer.INT_SIZE;
 
       prevValue = new byte[prevValLen];
@@ -132,7 +106,7 @@ public final class OSBTreeNullBucketSetValuePageOperation extends OPageOperation
 
   @Override
   public int serializedSize() {
-    return super.serializedSize() + OIntegerSerializer.INT_SIZE + value.length + (prevValue == null ?
+    return super.serializedSize() + (prevValue == null ?
         OByteSerializer.BYTE_SIZE :
         (prevValue.length + OByteSerializer.BYTE_SIZE + OIntegerSerializer.INT_SIZE));
   }

@@ -7,12 +7,13 @@ import com.orientechnologies.orient.core.storage.cache.OCacheEntry;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OPageOperationRecord;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes;
 import com.orientechnologies.orient.core.storage.index.sbtree.local.OSBTreeBucket;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.nio.ByteBuffer;
 
+@SuppressFBWarnings({ "EI_EXPOSE_REP2", "EI_EXPOSE_REP" })
 public final class OSBTreeBucketUpdateValuePageOperation extends OPageOperationRecord<OSBTreeBucket> {
   private int     index;
-  private byte[]  value;
   private byte[]  prevValue;
   private boolean isEncrypted;
   private byte    keySerializerId;
@@ -20,10 +21,9 @@ public final class OSBTreeBucketUpdateValuePageOperation extends OPageOperationR
   public OSBTreeBucketUpdateValuePageOperation() {
   }
 
-  public OSBTreeBucketUpdateValuePageOperation(final int index, final byte[] value, final byte[] prevValue,
-      final byte keySerializerId, final boolean isEncrypted) {
+  public OSBTreeBucketUpdateValuePageOperation(final int index, final byte[] prevValue, final byte keySerializerId,
+      final boolean isEncrypted) {
     this.index = index;
-    this.value = value;
     this.prevValue = prevValue;
     this.keySerializerId = keySerializerId;
     this.isEncrypted = isEncrypted;
@@ -35,10 +35,6 @@ public final class OSBTreeBucketUpdateValuePageOperation extends OPageOperationR
 
   public int getIndex() {
     return index;
-  }
-
-  public byte[] getValue() {
-    return value;
   }
 
   public byte[] getPrevValue() {
@@ -65,17 +61,10 @@ public final class OSBTreeBucketUpdateValuePageOperation extends OPageOperationR
   }
 
   @Override
-  protected void doRedo(final OSBTreeBucket page) {
-    final OBinarySerializerFactory factory = OBinarySerializerFactory.getInstance();
-    //noinspection unchecked
-    page.updateValue(index, value, prevValue, factory.getObjectSerializer(keySerializerId), isEncrypted);
-  }
-
-  @Override
   protected void doUndo(final OSBTreeBucket page) {
     final OBinarySerializerFactory factory = OBinarySerializerFactory.getInstance();
     //noinspection unchecked
-    page.updateValue(index, prevValue, value, factory.getObjectSerializer(keySerializerId), isEncrypted);
+    page.updateValue(index, prevValue, factory.getObjectSerializer(keySerializerId), isEncrypted);
   }
 
   @Override
@@ -84,12 +73,6 @@ public final class OSBTreeBucketUpdateValuePageOperation extends OPageOperationR
 
     OIntegerSerializer.INSTANCE.serializeNative(index, content, offset);
     offset += OIntegerSerializer.INT_SIZE;
-
-    OIntegerSerializer.INSTANCE.serializeNative(value.length, content, offset);
-    offset += OIntegerSerializer.INT_SIZE;
-
-    System.arraycopy(value, 0, content, offset, value.length);
-    offset += value.length;
 
     OIntegerSerializer.INSTANCE.serializeNative(prevValue.length, content, offset);
     offset += OIntegerSerializer.INT_SIZE;
@@ -112,9 +95,6 @@ public final class OSBTreeBucketUpdateValuePageOperation extends OPageOperationR
 
     buffer.putInt(index);
 
-    buffer.putInt(value.length);
-    buffer.put(value);
-
     buffer.putInt(prevValue.length);
     buffer.put(prevValue);
 
@@ -129,13 +109,6 @@ public final class OSBTreeBucketUpdateValuePageOperation extends OPageOperationR
 
     index = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
     offset += OIntegerSerializer.INT_SIZE;
-
-    final int valLen = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
-    offset += OIntegerSerializer.INT_SIZE;
-
-    value = new byte[valLen];
-    System.arraycopy(content, offset, value, 0, valLen);
-    offset += valLen;
 
     final int prevValLen = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
     offset += OIntegerSerializer.INT_SIZE;
@@ -155,7 +128,6 @@ public final class OSBTreeBucketUpdateValuePageOperation extends OPageOperationR
 
   @Override
   public int serializedSize() {
-    return super.serializedSize() + 3 * OIntegerSerializer.INT_SIZE + value.length + prevValue.length
-        + 2 * OByteSerializer.BYTE_SIZE;
+    return super.serializedSize() + 2 * OIntegerSerializer.INT_SIZE + prevValue.length + 2 * OByteSerializer.BYTE_SIZE;
   }
 }

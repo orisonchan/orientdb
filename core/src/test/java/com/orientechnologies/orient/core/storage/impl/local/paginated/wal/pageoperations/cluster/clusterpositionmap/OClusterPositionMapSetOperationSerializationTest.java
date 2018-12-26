@@ -15,15 +15,13 @@ public class OClusterPositionMapSetOperationSerializationTest {
     final OOperationUnitId operationUnitId = OOperationUnitId.generateId();
 
     final int index = 12;
-    final int recordPosition = 45;
-    final int recordPageIndex = 121;
 
     final int oldRecordPageIndex = 212;
     final int oldRecordPosition = 54;
     final byte oldFlag = 23;
 
-    OClusterPositionMapSetOperation operation = new OClusterPositionMapSetOperation(index, recordPosition, recordPageIndex,
-        oldRecordPageIndex, oldRecordPosition, oldFlag);
+    OClusterPositionMapSetOperation operation = new OClusterPositionMapSetOperation(index, oldRecordPageIndex, oldRecordPosition,
+        oldFlag);
 
     operation.setFileId(fileId);
     operation.setPageIndex(pageIndex);
@@ -43,8 +41,6 @@ public class OClusterPositionMapSetOperationSerializationTest {
     Assert.assertEquals(pageIndex, restoredOperation.getPageIndex());
     Assert.assertEquals(operationUnitId, restoredOperation.getOperationUnitId());
     Assert.assertEquals(index, restoredOperation.getIndex());
-    Assert.assertEquals(recordPosition, restoredOperation.getRecordPosition());
-    Assert.assertEquals(recordPageIndex, restoredOperation.getRecordPageIndex());
     Assert.assertEquals(oldRecordPageIndex, restoredOperation.getOldRecordPageIndex());
     Assert.assertEquals(oldRecordPosition, restoredOperation.getOldRecordPosition());
     Assert.assertEquals(oldFlag, restoredOperation.getOldFlag());
@@ -57,15 +53,13 @@ public class OClusterPositionMapSetOperationSerializationTest {
     final OOperationUnitId operationUnitId = OOperationUnitId.generateId();
 
     final int index = 12;
-    final int recordPosition = 45;
-    final int recordPageIndex = 121;
 
     final int oldRecordPageIndex = 212;
     final int oldRecordPosition = 54;
     final byte oldFlag = 23;
 
-    OClusterPositionMapSetOperation operation = new OClusterPositionMapSetOperation(index, recordPosition, recordPageIndex,
-        oldRecordPageIndex, oldRecordPosition, oldFlag);
+    OClusterPositionMapSetOperation operation = new OClusterPositionMapSetOperation(index, oldRecordPageIndex, oldRecordPosition,
+        oldFlag);
 
     operation.setFileId(fileId);
     operation.setPageIndex(pageIndex);
@@ -86,8 +80,6 @@ public class OClusterPositionMapSetOperationSerializationTest {
     Assert.assertEquals(pageIndex, restoredOperation.getPageIndex());
     Assert.assertEquals(operationUnitId, restoredOperation.getOperationUnitId());
     Assert.assertEquals(index, restoredOperation.getIndex());
-    Assert.assertEquals(recordPosition, restoredOperation.getRecordPosition());
-    Assert.assertEquals(recordPageIndex, restoredOperation.getRecordPageIndex());
     Assert.assertEquals(oldRecordPageIndex, restoredOperation.getOldRecordPageIndex());
     Assert.assertEquals(oldRecordPosition, restoredOperation.getOldRecordPosition());
     Assert.assertEquals(oldFlag, restoredOperation.getOldFlag());

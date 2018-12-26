@@ -14,7 +14,7 @@ public final class OClusterPositionMapRemoveOperation extends OPageOperationReco
   public OClusterPositionMapRemoveOperation() {
   }
 
-  public OClusterPositionMapRemoveOperation(int index) {
+  public OClusterPositionMapRemoveOperation(final int index) {
     super();
     this.index = index;
   }
@@ -24,17 +24,12 @@ public final class OClusterPositionMapRemoveOperation extends OPageOperationReco
   }
 
   @Override
-  protected OClusterPositionMapBucket createPageInstance(OCacheEntry cacheEntry) {
+  protected OClusterPositionMapBucket createPageInstance(final OCacheEntry cacheEntry) {
     return new OClusterPositionMapBucket(cacheEntry, false);
   }
 
   @Override
-  protected void doRedo(OClusterPositionMapBucket bucket) {
-    bucket.remove(index);
-  }
-
-  @Override
-  protected void doUndo(OClusterPositionMapBucket bucket) {
+  protected void doUndo(final OClusterPositionMapBucket bucket) {
     bucket.undoRemove(index);
   }
 
@@ -49,7 +44,7 @@ public final class OClusterPositionMapRemoveOperation extends OPageOperationReco
   }
 
   @Override
-  public int toStream(byte[] content, int offset) {
+  public int toStream(final byte[] content, int offset) {
     offset = super.toStream(content, offset);
 
     OIntegerSerializer.INSTANCE.serializeNative(index, content, offset);
@@ -59,14 +54,14 @@ public final class OClusterPositionMapRemoveOperation extends OPageOperationReco
   }
 
   @Override
-  public void toStream(ByteBuffer buffer) {
+  public void toStream(final ByteBuffer buffer) {
     super.toStream(buffer);
 
     buffer.putInt(index);
   }
 
   @Override
-  public int fromStream(byte[] content, int offset) {
+  public int fromStream(final byte[] content, int offset) {
     offset = super.fromStream(content, offset);
 
     index = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);

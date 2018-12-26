@@ -71,7 +71,7 @@ public final class ONullBucket<V> extends ODurablePage {
     setByteValue(NEXT_FREE_POSITION + 1, (byte) 1);
     setBinaryValue(NEXT_FREE_POSITION + 2, value);
 
-    addPageOperation(new OSBTreeNullBucketSetValuePageOperation(value, prevValue));
+    addPageOperation(new OSBTreeNullBucketSetValuePageOperation(prevValue));
   }
 
   public final OSBTreeValue<V> getValue() {

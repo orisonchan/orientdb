@@ -14,10 +14,9 @@ public class OMapEntryPointSetFileSizeOperationSerializationTest {
     final int pageIndex = 34;
     final OOperationUnitId operationUnitId = OOperationUnitId.generateId();
 
-    final int fileSize = 23;
     final int oldFileSize = 32;
 
-    OMapEntryPointSetFileSizeOperation operation = new OMapEntryPointSetFileSizeOperation(fileSize, oldFileSize);
+    OMapEntryPointSetFileSizeOperation operation = new OMapEntryPointSetFileSizeOperation(oldFileSize);
     operation.setFileId(fileId);
     operation.setPageIndex(pageIndex);
     operation.setOperationUnitId(operationUnitId);
@@ -35,7 +34,6 @@ public class OMapEntryPointSetFileSizeOperationSerializationTest {
     Assert.assertEquals(fileId, restoredOperation.getFileId());
     Assert.assertEquals(pageIndex, restoredOperation.getPageIndex());
     Assert.assertEquals(operationUnitId, restoredOperation.getOperationUnitId());
-    Assert.assertEquals(fileSize, restoredOperation.getFileSize());
     Assert.assertEquals(oldFileSize, restoredOperation.getOldFileSize());
   }
 
@@ -45,10 +43,9 @@ public class OMapEntryPointSetFileSizeOperationSerializationTest {
     final int pageIndex = 34;
     final OOperationUnitId operationUnitId = OOperationUnitId.generateId();
 
-    final int fileSize = 23;
     final int oldFileSize = 32;
 
-    OMapEntryPointSetFileSizeOperation operation = new OMapEntryPointSetFileSizeOperation(fileSize, oldFileSize);
+    OMapEntryPointSetFileSizeOperation operation = new OMapEntryPointSetFileSizeOperation(oldFileSize);
     operation.setFileId(fileId);
     operation.setPageIndex(pageIndex);
     operation.setOperationUnitId(operationUnitId);
@@ -67,7 +64,6 @@ public class OMapEntryPointSetFileSizeOperationSerializationTest {
     Assert.assertEquals(fileId, restoredOperation.getFileId());
     Assert.assertEquals(pageIndex, restoredOperation.getPageIndex());
     Assert.assertEquals(operationUnitId, restoredOperation.getOperationUnitId());
-    Assert.assertEquals(fileSize, restoredOperation.getFileSize());
     Assert.assertEquals(oldFileSize, restoredOperation.getOldFileSize());
   }
 }

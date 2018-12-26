@@ -28,7 +28,6 @@ import com.orientechnologies.orient.core.storage.cache.OCacheEntry;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.base.ODurablePage;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.cluster.clusterpositionmap.OClusterPositionMapAddOperation;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.cluster.clusterpositionmap.OClusterPositionMapAllocateOperation;
-import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.cluster.clusterpositionmap.OClusterPositionMapNewPageOperation;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.cluster.clusterpositionmap.OClusterPositionMapRemoveOperation;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.cluster.clusterpositionmap.OClusterPositionMapResurrectOperation;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.cluster.clusterpositionmap.OClusterPositionMapSetOperation;
@@ -57,17 +56,15 @@ public final class OClusterPositionMapBucket extends ODurablePage {
 
   public static final int MAX_ENTRIES = (MAX_PAGE_SIZE_BYTES - POSITIONS_OFFSET) / ENTRY_SIZE;
 
-  public OClusterPositionMapBucket(OCacheEntry cacheEntry, boolean clear) {
+  public OClusterPositionMapBucket(final OCacheEntry cacheEntry, final boolean clear) {
     super(cacheEntry);
     if (clear) {
       setIntValue(SIZE_OFFSET, 0);
-
-      addPageOperation(new OClusterPositionMapNewPageOperation());
     }
   }
 
-  public int add(long pageIndex, int recordPosition) {
-    int size = getIntValue(SIZE_OFFSET);
+  public int add(final long pageIndex, final int recordPosition) {
+    final int size = getIntValue(SIZE_OFFSET);
 
     int position = entryPosition(size);
 
@@ -77,7 +74,7 @@ public final class OClusterPositionMapBucket extends ODurablePage {
 
     setIntValue(SIZE_OFFSET, size + 1);
 
-    addPageOperation(new OClusterPositionMapAddOperation((int) pageIndex, recordPosition));
+    addPageOperation(new OClusterPositionMapAddOperation());
 
     return size;
   }
@@ -106,18 +103,13 @@ public final class OClusterPositionMapBucket extends ODurablePage {
       throw new IllegalStateException("Bucket size can not be less or equal zero: size = " + size);
     }
 
-    final int position = entryPosition(size - 1);
-
-    final long oldPageIndex = getLongValue(position);
-    final int oldRecordPosition = getIntValue(position + OLongSerializer.LONG_SIZE);
-
     setIntValue(SIZE_OFFSET, size - 1);
 
-    addPageOperation(new OClusterPositionMapUndoAllocateOperation((int) oldPageIndex, oldRecordPosition));
+    addPageOperation(new OClusterPositionMapUndoAllocateOperation());
   }
 
   public int allocate() {
-    int size = getIntValue(SIZE_OFFSET);
+    final int size = getIntValue(SIZE_OFFSET);
 
     int position = entryPosition(size);
 
@@ -131,14 +123,14 @@ public final class OClusterPositionMapBucket extends ODurablePage {
     return size;
   }
 
-  public PositionEntry get(int index) {
-    int size = getIntValue(SIZE_OFFSET);
+  public PositionEntry get(final int index) {
+    final int size = getIntValue(SIZE_OFFSET);
 
     if (index >= size) {
       return null;
     }
 
-    int position = entryPosition(index);
+    final int position = entryPosition(index);
     if (getByteValue(position) != FILLED) {
       return null;
     }
@@ -167,12 +159,10 @@ public final class OClusterPositionMapBucket extends ODurablePage {
 
     updateEntry(position, entry);
 
-    addPageOperation(
-        new OClusterPositionMapSetOperation(index, entry.recordPosition, (int) entry.pageIndex, (int) pageIndex, recordPosition,
-            flag));
+    addPageOperation(new OClusterPositionMapSetOperation(index, (int) pageIndex, recordPosition, flag));
   }
 
-  public void undoSet(int index, byte flag, final PositionEntry entry) {
+  public void undoSet(final int index, final byte flag, final PositionEntry entry) {
     final int size = getIntValue(SIZE_OFFSET);
 
     if (index >= size) {
@@ -190,12 +180,11 @@ public final class OClusterPositionMapBucket extends ODurablePage {
 
     updateEntry(position, entry);
 
-    addPageOperation(
-        new OClusterPositionMapUndoSetOperation(index, (int) entry.pageIndex, entry.recordPosition, flag, (int) pageIndex,
+    addPageOperation(new OClusterPositionMapUndoSetOperation(index, (int) pageIndex,
             recordPosition, oldFlag));
   }
 
-  public void undoResurrect(int index, final PositionEntry entry) {
+  public void undoResurrect(final int index, final PositionEntry entry) {
     final int size = getIntValue(SIZE_OFFSET);
 
     if (index >= size) {
@@ -211,9 +200,7 @@ public final class OClusterPositionMapBucket extends ODurablePage {
 
     updateEntry(position, entry);
 
-    addPageOperation(
-        new OClusterPositionMapUndoResurrectOperation(index, (int) entry.pageIndex, entry.recordPosition, (int) pageIndex,
-            recordPosition));
+    addPageOperation(new OClusterPositionMapUndoResurrectOperation(index, (int) pageIndex, recordPosition));
   }
 
   public void resurrect(final int index, final PositionEntry entry) {
@@ -236,11 +223,10 @@ public final class OClusterPositionMapBucket extends ODurablePage {
 
     updateEntry(position, entry);
 
-    addPageOperation(new OClusterPositionMapResurrectOperation(index, entry.recordPosition, (int) entry.pageIndex, (int) pageIndex,
-        recordPosition));
+    addPageOperation(new OClusterPositionMapResurrectOperation(index, (int) pageIndex, recordPosition));
   }
 
-  private static int entryPosition(int index) {
+  private static int entryPosition(final int index) {
     return index * ENTRY_SIZE + POSITIONS_OFFSET;
   }
 
@@ -252,14 +238,14 @@ public final class OClusterPositionMapBucket extends ODurablePage {
     return getIntValue(SIZE_OFFSET);
   }
 
-  public void remove(int index) {
-    int size = getIntValue(SIZE_OFFSET);
+  public void remove(final int index) {
+    final int size = getIntValue(SIZE_OFFSET);
 
     if (index >= size) {
       return;
     }
 
-    int position = entryPosition(index);
+    final int position = entryPosition(index);
 
     if (getByteValue(position) != FILLED) {
       return;
@@ -270,7 +256,7 @@ public final class OClusterPositionMapBucket extends ODurablePage {
     addPageOperation(new OClusterPositionMapRemoveOperation(index));
   }
 
-  public void undoRemove(int index) {
+  public void undoRemove(final int index) {
     final int size = getIntValue(SIZE_OFFSET);
 
     if (index >= size) {
@@ -308,7 +294,7 @@ public final class OClusterPositionMapBucket extends ODurablePage {
   }
 
   public boolean exists(final int index) {
-    int size = getIntValue(SIZE_OFFSET);
+    final int size = getIntValue(SIZE_OFFSET);
     if (index >= size) {
       return false;
     }
@@ -318,7 +304,7 @@ public final class OClusterPositionMapBucket extends ODurablePage {
   }
 
   public byte getStatus(final int index) {
-    int size = getIntValue(SIZE_OFFSET);
+    final int size = getIntValue(SIZE_OFFSET);
     if (index >= size) {
       return NOT_EXISTENT;
     }

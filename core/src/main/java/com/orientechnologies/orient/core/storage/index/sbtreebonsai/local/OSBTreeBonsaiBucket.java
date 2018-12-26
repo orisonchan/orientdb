@@ -30,7 +30,6 @@ import com.orientechnologies.orient.core.storage.cache.OCacheEntry;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.bteebonsai.bonsaibucket.OBonsaiBucketAddAllPageOperation;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.bteebonsai.bonsaibucket.OBonsaiBucketConvertToLeafPageOperation;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.bteebonsai.bonsaibucket.OBonsaiBucketConvertToNonLeafPageOperation;
-import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.bteebonsai.bonsaibucket.OBonsaiBucketInitPageOperation;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.bteebonsai.bonsaibucket.OBonsaiBucketInsertLeafEntryPageOperation;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.bteebonsai.bonsaibucket.OBonsaiBucketInsertNonLeafEntryPageOperation;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.bteebonsai.bonsaibucket.OBonsaiBucketRemoveLeafEntryPageOperation;
@@ -77,8 +76,8 @@ public final class OSBTreeBonsaiBucket<K, V> extends OBonsaiBucketAbstract {
   private final Comparator<? super K> comparator = ODefaultComparator.INSTANCE;
 
   public static final class SBTreeEntry<K, V> implements Map.Entry<K, V>, Comparable<SBTreeEntry<K, V>> {
-    public final  OBonsaiBucketPointer  leftChild;
-    public final  OBonsaiBucketPointer  rightChild;
+    final         OBonsaiBucketPointer  leftChild;
+    final         OBonsaiBucketPointer  rightChild;
     public final  K                     key;
     public final  V                     value;
     private final Comparator<? super K> comparator = ODefaultComparator.INSTANCE;
@@ -164,8 +163,6 @@ public final class OSBTreeBonsaiBucket<K, V> extends OBonsaiBucketAbstract {
 
     setByteValue(offset + KEY_SERIALIZER_OFFSET, keySerializerId);
     setByteValue(offset + VALUE_SERIALIZER_OFFSET, valueSerializerId);
-
-    addPageOperation(new OBonsaiBucketInitPageOperation(offset, isLeaf, keySerializerId, valueSerializerId));
   }
 
   public byte getKeySerializerId() {
@@ -176,14 +173,14 @@ public final class OSBTreeBonsaiBucket<K, V> extends OBonsaiBucketAbstract {
     return getByteValue(offset + VALUE_SERIALIZER_OFFSET);
   }
 
-  public long getTreeSize() {
+  long getTreeSize() {
     return getLongValue(offset + TREE_SIZE_OFFSET);
   }
 
   public void setTreeSize(final long size) {
     final int prevTreeSize = (int) getLongValue(offset + TREE_SIZE_OFFSET);
     setLongValue(offset + TREE_SIZE_OFFSET, size);
-    addPageOperation(new OBonsaiBucketSetTreeSizePageOperation(offset, (int) size, prevTreeSize));
+    addPageOperation(new OBonsaiBucketSetTreeSizePageOperation(offset, prevTreeSize));
   }
 
   public boolean isEmpty() {
@@ -209,12 +206,13 @@ public final class OSBTreeBonsaiBucket<K, V> extends OBonsaiBucketAbstract {
     return -(low + 1); // key not found.
   }
 
-  public void removeLeafEntry(final int entryIndex, final byte[] key, final byte[] value) {
+  public void removeLeafEntry(final int entryIndex, final int keySize, final int valueSize) {
     assert isLeaf;
 
     final int entryPosition = getIntValue(offset + POSITIONS_ARRAY_OFFSET + entryIndex * OIntegerSerializer.INT_SIZE);
-
-    final int entrySize = key.length + value.length;
+    final int entrySize = keySize + valueSize;
+    final byte[] key = getBinaryValue(entryPosition, keySize);
+    final byte[] value = getBinaryValue(entryPosition, valueSize);
 
     int size = size();
     if (entryIndex < size - 1) {
@@ -244,18 +242,20 @@ public final class OSBTreeBonsaiBucket<K, V> extends OBonsaiBucketAbstract {
     addPageOperation(new OBonsaiBucketRemoveLeafEntryPageOperation(offset, entryIndex, key, value));
   }
 
-  public void removeNonLeafEntry(final int entryIndex, final byte[] key, final int prevChildPageIndex,
+  public void removeNonLeafEntry(final int entryIndex, final int keySize, final int prevChildPageIndex,
       final int prevChildPageOffset) {
     assert isLeaf;
 
     final int entryPosition = getIntValue(offset + POSITIONS_ARRAY_OFFSET + entryIndex * OIntegerSerializer.INT_SIZE);
 
-    final int entrySize = key.length + 2 * (OIntegerSerializer.INT_SIZE + OLongSerializer.LONG_SIZE);
+    final int entrySize = keySize + 2 * (OIntegerSerializer.INT_SIZE + OLongSerializer.LONG_SIZE);
+    final byte[] key = getBinaryValue(entryPosition, keySize);
 
     int size = size();
     if (entryIndex < size - 1) {
       moveData(offset + POSITIONS_ARRAY_OFFSET + (entryIndex + 1) * OIntegerSerializer.INT_SIZE,
-          offset + POSITIONS_ARRAY_OFFSET + entryIndex * OIntegerSerializer.INT_SIZE, (size - entryIndex - 1) * OIntegerSerializer.INT_SIZE);
+          offset + POSITIONS_ARRAY_OFFSET + entryIndex * OIntegerSerializer.INT_SIZE,
+          (size - entryIndex - 1) * OIntegerSerializer.INT_SIZE);
     }
 
     size--;
@@ -309,8 +309,8 @@ public final class OSBTreeBonsaiBucket<K, V> extends OBonsaiBucketAbstract {
     }
 
     addPageOperation(
-        new OBonsaiBucketRemoveNonLeafEntryPageOperation(offset, entryIndex, key, prevChildPageIndex, prevChildPageOffset,
-            lefPageIndex, leftPageOffset, rightPageIndex, rightPageOffset));
+        new OBonsaiBucketRemoveNonLeafEntryPageOperation(offset, entryIndex, key, lefPageIndex, leftPageOffset, rightPageIndex,
+            rightPageOffset));
   }
 
   public int size() {
@@ -429,7 +429,7 @@ public final class OSBTreeBonsaiBucket<K, V> extends OBonsaiBucketAbstract {
     }
 
     setIntValue(offset + SIZE_OFFSET, size + entries.size());
-    addPageOperation(new OBonsaiBucketAddAllPageOperation(offset, entries));
+    addPageOperation(new OBonsaiBucketAddAllPageOperation(offset, entries.size()));
   }
 
   public void shrink(final int newSize, final OBinarySerializer<K> keySerializer, final OBinarySerializer<V> valueSerializer) {
@@ -454,7 +454,7 @@ public final class OSBTreeBonsaiBucket<K, V> extends OBonsaiBucketAbstract {
     }
 
     setIntValue(offset + SIZE_OFFSET, newSize);
-    addPageOperation(new OBonsaiBucketShrinkPageOperation(offset, removedEntries, newSize));
+    addPageOperation(new OBonsaiBucketShrinkPageOperation(offset, removedEntries));
   }
 
   boolean insertEntry(final int index, final SBTreeEntry<K, V> treeEntry, final OBinarySerializer<K> keySerializer,
@@ -501,7 +501,7 @@ public final class OSBTreeBonsaiBucket<K, V> extends OBonsaiBucketAbstract {
 
     setBinaryValue(offset + freePointer, serializedValue);
 
-    addPageOperation(new OBonsaiBucketInsertLeafEntryPageOperation(offset, index, serializedKey, serializedValue));
+    addPageOperation(new OBonsaiBucketInsertLeafEntryPageOperation(offset, index, serializedKey.length, serializedValue.length));
 
     return true;
   }
@@ -570,8 +570,7 @@ public final class OSBTreeBonsaiBucket<K, V> extends OBonsaiBucketAbstract {
       }
     }
 
-    addPageOperation(new OBonsaiBucketInsertNonLeafEntryPageOperation(offset, index, serializedKey, (int) leftChild.getPageIndex(),
-        leftChild.getPageOffset(), (int) rightChild.getPageIndex(), rightChild.getPageOffset(), prevChildPageIndex,
+    addPageOperation(new OBonsaiBucketInsertNonLeafEntryPageOperation(offset, index, serializedKey.length, prevChildPageIndex,
         prevChildPageOffset));
 
     return true;
@@ -597,7 +596,7 @@ public final class OSBTreeBonsaiBucket<K, V> extends OBonsaiBucketAbstract {
     final byte[] prevValue = getBinaryValue(offset + entryPosition, size);
     setBinaryValue(offset + entryPosition, value);
 
-    addPageOperation(new OBonsaiBucketUpdateValuePageOperation(offset, index, value, prevValue));
+    addPageOperation(new OBonsaiBucketUpdateValuePageOperation(offset, index, prevValue));
   }
 
   OBonsaiBucketPointer getFreeListPointer() {
@@ -608,11 +607,11 @@ public final class OSBTreeBonsaiBucket<K, V> extends OBonsaiBucketAbstract {
     final OBonsaiBucketPointer prevPointer = getBucketPointer(offset + FREE_LIST_POINTER_OFFSET);
 
     setBucketPointer(offset + FREE_LIST_POINTER_OFFSET, pointer);
-    addPageOperation(new OBonsaiBucketSetFreeListPointerPageOperation(offset, (int) pointer.getPageIndex(), pointer.getPageOffset(),
-        (int) prevPointer.getPageIndex(), prevPointer.getPageOffset()));
+    addPageOperation(
+        new OBonsaiBucketSetFreeListPointerPageOperation(offset, (int) prevPointer.getPageIndex(), prevPointer.getPageOffset()));
   }
 
-  public void setDeleted() {
+  void setDeleted() {
     assert size() == 0;
 
     final byte keySerializerId = getByteValue(KEY_SERIALIZER_OFFSET);
@@ -629,7 +628,7 @@ public final class OSBTreeBonsaiBucket<K, V> extends OBonsaiBucketAbstract {
     return (getByteValue(offset + FLAGS_OFFSET) & DELETED) == DELETED;
   }
 
-  public OBonsaiBucketPointer getLeftSibling() {
+  OBonsaiBucketPointer getLeftSibling() {
     return getBucketPointer(offset + LEFT_SIBLING_OFFSET);
   }
 
@@ -638,11 +637,11 @@ public final class OSBTreeBonsaiBucket<K, V> extends OBonsaiBucketAbstract {
 
     setBucketPointer(offset + LEFT_SIBLING_OFFSET, pointer);
 
-    addPageOperation(new OBonsaiBucketSetLeftSiblingPageOperation(offset, (int) pointer.getPageIndex(), pointer.getPageOffset(),
-        (int) prevPointer.getPageIndex(), prevPointer.getPageOffset()));
+    addPageOperation(
+        new OBonsaiBucketSetLeftSiblingPageOperation(offset, (int) prevPointer.getPageIndex(), prevPointer.getPageOffset()));
   }
 
-  public OBonsaiBucketPointer getRightSibling() {
+  OBonsaiBucketPointer getRightSibling() {
     return getBucketPointer(offset + RIGHT_SIBLING_OFFSET);
   }
 
@@ -651,8 +650,8 @@ public final class OSBTreeBonsaiBucket<K, V> extends OBonsaiBucketAbstract {
 
     setBucketPointer(offset + RIGHT_SIBLING_OFFSET, pointer);
 
-    addPageOperation(new OBonsaiBucketSetRightSiblingPageOperation(offset, (int) pointer.getPageIndex(), pointer.getPageOffset(),
-        (int) prevBucket.getPageIndex(), prevBucket.getPageOffset()));
+    addPageOperation(
+        new OBonsaiBucketSetRightSiblingPageOperation(offset, (int) prevBucket.getPageIndex(), prevBucket.getPageOffset()));
   }
 
   private static void checkEntreeSize(final int entreeSize) {

@@ -8,65 +8,51 @@ import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRec
 
 import java.nio.ByteBuffer;
 
-public class OClusterStateVOneSetFreeListPageOperation extends OPageOperationRecord<OPaginatedClusterStateV1> {
+public final class OClusterStateVOneSetFreeListPageOperation extends OPageOperationRecord<OPaginatedClusterStateV1> {
   private int index;
-  private int freeListPage;
   private int oldFreeListPage;
 
   public OClusterStateVOneSetFreeListPageOperation() {
   }
 
-  public OClusterStateVOneSetFreeListPageOperation(int index, int freeListPage, int oldFreeListPage) {
+  public OClusterStateVOneSetFreeListPageOperation(final int index, final int oldFreeListPage) {
     this.index = index;
-    this.freeListPage = freeListPage;
     this.oldFreeListPage = oldFreeListPage;
   }
 
-  public int getIndex() {
+  public final int getIndex() {
     return index;
   }
 
-  int getFreeListPage() {
-    return freeListPage;
-  }
-
-  int getOldFreeListPage() {
+  final int getOldFreeListPage() {
     return oldFreeListPage;
   }
 
   @Override
-  protected OPaginatedClusterStateV1 createPageInstance(OCacheEntry cacheEntry) {
-    return new OPaginatedClusterStateV1(cacheEntry, false);
+  protected OPaginatedClusterStateV1 createPageInstance(final OCacheEntry cacheEntry) {
+    return new OPaginatedClusterStateV1(cacheEntry);
   }
 
   @Override
-  protected void doRedo(OPaginatedClusterStateV1 clusterState) {
-    clusterState.setFreeListPage(index, freeListPage);
-  }
-
-  @Override
-  protected void doUndo(OPaginatedClusterStateV1 clusterState) {
+  protected void doUndo(final OPaginatedClusterStateV1 clusterState) {
     clusterState.setFreeListPage(index, oldFreeListPage);
   }
 
   @Override
-  public boolean isUpdateMasterRecord() {
+  public final boolean isUpdateMasterRecord() {
     return false;
   }
 
   @Override
-  public byte getId() {
+  public final byte getId() {
     return WALRecordTypes.CLUSTER_STATE_V_ONE_SET_FREE_LIST_PAGE;
   }
 
   @Override
-  public int toStream(byte[] content, int offset) {
+  public final int toStream(final byte[] content, int offset) {
     offset = super.toStream(content, offset);
 
     OIntegerSerializer.INSTANCE.serializeNative(index, content, offset);
-    offset += OIntegerSerializer.INT_SIZE;
-
-    OIntegerSerializer.INSTANCE.serializeNative(freeListPage, content, offset);
     offset += OIntegerSerializer.INT_SIZE;
 
     OIntegerSerializer.INSTANCE.serializeNative(oldFreeListPage, content, offset);
@@ -76,22 +62,18 @@ public class OClusterStateVOneSetFreeListPageOperation extends OPageOperationRec
   }
 
   @Override
-  public void toStream(ByteBuffer buffer) {
+  public final void toStream(final ByteBuffer buffer) {
     super.toStream(buffer);
 
     buffer.putInt(index);
-    buffer.putInt(freeListPage);
     buffer.putInt(oldFreeListPage);
   }
 
   @Override
-  public int fromStream(byte[] content, int offset) {
+  public final int fromStream(final byte[] content, int offset) {
     offset = super.fromStream(content, offset);
 
     index = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
-    offset += OIntegerSerializer.INT_SIZE;
-
-    freeListPage = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
     offset += OIntegerSerializer.INT_SIZE;
 
     oldFreeListPage = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
@@ -101,7 +83,7 @@ public class OClusterStateVOneSetFreeListPageOperation extends OPageOperationRec
   }
 
   @Override
-  public int serializedSize() {
-    return super.serializedSize() + 3 * OIntegerSerializer.INT_SIZE;
+  public final int serializedSize() {
+    return super.serializedSize() + 2 * OIntegerSerializer.INT_SIZE;
   }
 }

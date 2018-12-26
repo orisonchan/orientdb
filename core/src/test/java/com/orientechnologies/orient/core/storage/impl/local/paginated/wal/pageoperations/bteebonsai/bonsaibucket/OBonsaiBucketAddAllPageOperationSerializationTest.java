@@ -6,9 +6,6 @@ import org.junit.Test;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
 
 public class OBonsaiBucketAddAllPageOperationSerializationTest {
   @Test
@@ -18,16 +15,9 @@ public class OBonsaiBucketAddAllPageOperationSerializationTest {
     final OOperationUnitId operationUnitId = OOperationUnitId.generateId();
 
     final int pageOffset = 34;
-    final List<byte[]> entries = new ArrayList<>(3);
-    final Random random = new Random();
+    final int entriesSize = 3;
 
-    for (int i = 0; i < 3; i++) {
-      final byte[] entry = new byte[random.nextInt(20) + 10];
-      random.nextBytes(entry);
-      entries.add(entry);
-    }
-
-    OBonsaiBucketAddAllPageOperation operation = new OBonsaiBucketAddAllPageOperation(pageOffset, entries);
+    OBonsaiBucketAddAllPageOperation operation = new OBonsaiBucketAddAllPageOperation(pageOffset, entriesSize);
     operation.setFileId(fileId);
     operation.setPageIndex(pageIndex);
     operation.setOperationUnitId(operationUnitId);
@@ -45,16 +35,7 @@ public class OBonsaiBucketAddAllPageOperationSerializationTest {
     Assert.assertEquals(pageIndex, restoredOperation.getPageIndex());
     Assert.assertEquals(operationUnitId, restoredOperation.getOperationUnitId());
     Assert.assertEquals(pageOffset, restoredOperation.getPageOffset());
-
-    final List<byte[]> restoredEntries = restoredOperation.getEntries();
-    Assert.assertEquals(entries.size(), restoredEntries.size());
-
-    for (int i = 0; i < entries.size(); i++) {
-      final byte[] entry = entries.get(i);
-      final byte[] restoredEntry = restoredEntries.get(i);
-
-      Assert.assertArrayEquals(entry, restoredEntry);
-    }
+    Assert.assertEquals(entriesSize, restoredOperation.getEntriesSize());
   }
 
   @Test
@@ -64,16 +45,9 @@ public class OBonsaiBucketAddAllPageOperationSerializationTest {
     final OOperationUnitId operationUnitId = OOperationUnitId.generateId();
 
     final int pageOffset = 34;
-    final List<byte[]> entries = new ArrayList<>(3);
-    final Random random = new Random();
+    final int entriesSize = 3;
 
-    for (int i = 0; i < 3; i++) {
-      final byte[] entry = new byte[random.nextInt(20) + 10];
-      random.nextBytes(entry);
-      entries.add(entry);
-    }
-
-    OBonsaiBucketAddAllPageOperation operation = new OBonsaiBucketAddAllPageOperation(pageOffset, entries);
+    OBonsaiBucketAddAllPageOperation operation = new OBonsaiBucketAddAllPageOperation(pageOffset, entriesSize);
     operation.setFileId(fileId);
     operation.setPageIndex(pageIndex);
     operation.setOperationUnitId(operationUnitId);
@@ -93,16 +67,6 @@ public class OBonsaiBucketAddAllPageOperationSerializationTest {
     Assert.assertEquals(pageIndex, restoredOperation.getPageIndex());
     Assert.assertEquals(operationUnitId, restoredOperation.getOperationUnitId());
     Assert.assertEquals(pageOffset, restoredOperation.getPageOffset());
-
-    final List<byte[]> restoredEntries = restoredOperation.getEntries();
-    Assert.assertEquals(entries.size(), restoredEntries.size());
-
-    for (int i = 0; i < entries.size(); i++) {
-      final byte[] entry = entries.get(i);
-      final byte[] restoredEntry = restoredEntries.get(i);
-
-      Assert.assertArrayEquals(entry, restoredEntry);
-    }
+    Assert.assertEquals(entriesSize, restoredOperation.getEntriesSize());
   }
-
 }

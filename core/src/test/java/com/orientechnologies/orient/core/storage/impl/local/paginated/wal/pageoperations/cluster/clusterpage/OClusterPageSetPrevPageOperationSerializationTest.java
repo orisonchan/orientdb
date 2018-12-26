@@ -14,10 +14,9 @@ public class OClusterPageSetPrevPageOperationSerializationTest {
     final int pageIndex = 34;
     final OOperationUnitId operationUnitId = OOperationUnitId.generateId();
 
-    final int prevPage = 23;
     final int oldPrevPage = 32;
 
-    OClusterPageSetPrevPageOperation operation = new OClusterPageSetPrevPageOperation(prevPage, oldPrevPage);
+    OClusterPageSetPrevPageOperation operation = new OClusterPageSetPrevPageOperation(oldPrevPage);
     operation.setFileId(fileId);
     operation.setPageIndex(pageIndex);
     operation.setOperationUnitId(operationUnitId);
@@ -35,7 +34,6 @@ public class OClusterPageSetPrevPageOperationSerializationTest {
     Assert.assertEquals(fileId, restoredOperation.getFileId());
     Assert.assertEquals(pageIndex, restoredOperation.getPageIndex());
     Assert.assertEquals(operationUnitId, restoredOperation.getOperationUnitId());
-    Assert.assertEquals(prevPage, restoredOperation.getPrevPage());
     Assert.assertEquals(oldPrevPage, restoredOperation.getOldPrevPage());
   }
 
@@ -45,10 +43,9 @@ public class OClusterPageSetPrevPageOperationSerializationTest {
     final int pageIndex = 34;
     final OOperationUnitId operationUnitId = OOperationUnitId.generateId();
 
-    final int prevPage = 23;
     final int oldPrevPage = 32;
 
-    OClusterPageSetPrevPageOperation operation = new OClusterPageSetPrevPageOperation(prevPage, oldPrevPage);
+    OClusterPageSetPrevPageOperation operation = new OClusterPageSetPrevPageOperation(oldPrevPage);
     operation.setFileId(fileId);
     operation.setPageIndex(pageIndex);
     operation.setOperationUnitId(operationUnitId);
@@ -68,7 +65,6 @@ public class OClusterPageSetPrevPageOperationSerializationTest {
     Assert.assertEquals(fileId, restoredOperation.getFileId());
     Assert.assertEquals(pageIndex, restoredOperation.getPageIndex());
     Assert.assertEquals(operationUnitId, restoredOperation.getOperationUnitId());
-    Assert.assertEquals(prevPage, restoredOperation.getPrevPage());
     Assert.assertEquals(oldPrevPage, restoredOperation.getOldPrevPage());
   }
 }

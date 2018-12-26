@@ -29,11 +29,6 @@ public final class OBonsaiBucketInitPageOperation extends OBonsaiBucketPageOpera
   }
 
   @Override
-  protected void doRedo(final OSBTreeBonsaiBucket page) {
-    page.init(isLeaf, keySerializerId, valueSerializerId);
-  }
-
-  @Override
   protected void doUndo(final OSBTreeBonsaiBucket page) {
     //do nothing
   }

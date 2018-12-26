@@ -18,7 +18,7 @@ public class OSBTreeBucketSetLeftSiblingPageOperationSerializationTest {
     final int leftSibling = 21;
     final int prevLeftSibling = 12;
 
-    OSBTreeBucketSetLeftSiblingPageOperation operation = new OSBTreeBucketSetLeftSiblingPageOperation(leftSibling, prevLeftSibling);
+    OSBTreeBucketSetLeftSiblingPageOperation operation = new OSBTreeBucketSetLeftSiblingPageOperation(prevLeftSibling);
     operation.setFileId(fileId);
     operation.setPageIndex(pageIndex);
     operation.setOperationUnitId(operationUnitId);
@@ -29,15 +29,14 @@ public class OSBTreeBucketSetLeftSiblingPageOperationSerializationTest {
 
     Assert.assertEquals(serializedSize + 1, offset);
 
-    OSBTreeBucketSetLeftSiblingPageOperation resotredOperation = new OSBTreeBucketSetLeftSiblingPageOperation();
-    offset = resotredOperation.fromStream(stream, 1);
+    OSBTreeBucketSetLeftSiblingPageOperation restoredOperation = new OSBTreeBucketSetLeftSiblingPageOperation();
+    offset = restoredOperation.fromStream(stream, 1);
 
     Assert.assertEquals(serializedSize + 1, offset);
-    Assert.assertEquals(fileId, resotredOperation.getFileId());
-    Assert.assertEquals(pageIndex, resotredOperation.getPageIndex());
-    Assert.assertEquals(operationUnitId, resotredOperation.getOperationUnitId());
-    Assert.assertEquals(leftSibling, resotredOperation.getLeftSibling());
-    Assert.assertEquals(prevLeftSibling, resotredOperation.getPrevLeftSibling());
+    Assert.assertEquals(fileId, restoredOperation.getFileId());
+    Assert.assertEquals(pageIndex, restoredOperation.getPageIndex());
+    Assert.assertEquals(operationUnitId, restoredOperation.getOperationUnitId());
+    Assert.assertEquals(prevLeftSibling, restoredOperation.getPrevLeftSibling());
   }
 
   @Test
@@ -49,7 +48,7 @@ public class OSBTreeBucketSetLeftSiblingPageOperationSerializationTest {
     final int leftSibling = 21;
     final int prevLeftSibling = 12;
 
-    OSBTreeBucketSetLeftSiblingPageOperation operation = new OSBTreeBucketSetLeftSiblingPageOperation(leftSibling, prevLeftSibling);
+    OSBTreeBucketSetLeftSiblingPageOperation operation = new OSBTreeBucketSetLeftSiblingPageOperation(prevLeftSibling);
     operation.setFileId(fileId);
     operation.setPageIndex(pageIndex);
     operation.setOperationUnitId(operationUnitId);
@@ -62,15 +61,14 @@ public class OSBTreeBucketSetLeftSiblingPageOperationSerializationTest {
 
     Assert.assertEquals(serializedSize + 1, buffer.position());
 
-    OSBTreeBucketSetLeftSiblingPageOperation resotredOperation = new OSBTreeBucketSetLeftSiblingPageOperation();
-    int offset = resotredOperation.fromStream(buffer.array(), 1);
+    OSBTreeBucketSetLeftSiblingPageOperation restoredOperation = new OSBTreeBucketSetLeftSiblingPageOperation();
+    int offset = restoredOperation.fromStream(buffer.array(), 1);
 
     Assert.assertEquals(serializedSize + 1, offset);
-    Assert.assertEquals(fileId, resotredOperation.getFileId());
-    Assert.assertEquals(pageIndex, resotredOperation.getPageIndex());
-    Assert.assertEquals(operationUnitId, resotredOperation.getOperationUnitId());
-    Assert.assertEquals(leftSibling, resotredOperation.getLeftSibling());
-    Assert.assertEquals(prevLeftSibling, resotredOperation.getPrevLeftSibling());
+    Assert.assertEquals(fileId, restoredOperation.getFileId());
+    Assert.assertEquals(pageIndex, restoredOperation.getPageIndex());
+    Assert.assertEquals(operationUnitId, restoredOperation.getOperationUnitId());
+    Assert.assertEquals(prevLeftSibling, restoredOperation.getPrevLeftSibling());
   }
 
 }

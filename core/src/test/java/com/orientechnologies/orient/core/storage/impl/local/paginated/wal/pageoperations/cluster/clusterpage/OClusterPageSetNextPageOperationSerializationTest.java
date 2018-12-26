@@ -14,10 +14,9 @@ public class OClusterPageSetNextPageOperationSerializationTest {
     final int pageIndex = 12;
     final OOperationUnitId operationUnitId = OOperationUnitId.generateId();
 
-    final int nextPage = 32;
     final int oldNextPage = 23;
 
-    OClusterPageSetNextPageOperation operation = new OClusterPageSetNextPageOperation(nextPage, oldNextPage);
+    OClusterPageSetNextPageOperation operation = new OClusterPageSetNextPageOperation(oldNextPage);
 
     operation.setFileId(fileId);
     operation.setPageIndex(pageIndex);
@@ -36,7 +35,6 @@ public class OClusterPageSetNextPageOperationSerializationTest {
     Assert.assertEquals(fileId, restoredOperation.getFileId());
     Assert.assertEquals(pageIndex, restoredOperation.getPageIndex());
     Assert.assertEquals(operationUnitId, restoredOperation.getOperationUnitId());
-    Assert.assertEquals(nextPage, restoredOperation.getNextPage());
     Assert.assertEquals(oldNextPage, restoredOperation.getOldNextPage());
   }
 
@@ -46,10 +44,9 @@ public class OClusterPageSetNextPageOperationSerializationTest {
     final int pageIndex = 12;
     final OOperationUnitId operationUnitId = OOperationUnitId.generateId();
 
-    final int nextPage = 32;
     final int oldNextPage = 23;
 
-    OClusterPageSetNextPageOperation operation = new OClusterPageSetNextPageOperation(nextPage, oldNextPage);
+    OClusterPageSetNextPageOperation operation = new OClusterPageSetNextPageOperation(oldNextPage);
 
     operation.setFileId(fileId);
     operation.setPageIndex(pageIndex);
@@ -69,7 +66,6 @@ public class OClusterPageSetNextPageOperationSerializationTest {
     Assert.assertEquals(fileId, restoredOperation.getFileId());
     Assert.assertEquals(pageIndex, restoredOperation.getPageIndex());
     Assert.assertEquals(operationUnitId, restoredOperation.getOperationUnitId());
-    Assert.assertEquals(nextPage, restoredOperation.getNextPage());
     Assert.assertEquals(oldNextPage, restoredOperation.getOldNextPage());
   }
 }

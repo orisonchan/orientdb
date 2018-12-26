@@ -8,26 +8,15 @@ import com.orientechnologies.orient.core.storage.index.sbtreebonsai.local.OSysBu
 import java.nio.ByteBuffer;
 
 public final class OBonsaiSysBucketSetFreeListHeadPageOperation extends OBonsaiSysBucketPageOperation {
-  private int freeListPageIndex;
-  private int freeListPageOffset;
-
   private int prevFreeListPageIndex;
   private int prevFreeListPageOffset;
 
   public OBonsaiSysBucketSetFreeListHeadPageOperation() {
   }
 
-  public OBonsaiSysBucketSetFreeListHeadPageOperation(final int freeListPageIndex, final int freeListPageOffset,
-      final int prevFreeListPageIndex, final int prevFreeListPageOffset) {
-    this.freeListPageIndex = freeListPageIndex;
-    this.freeListPageOffset = freeListPageOffset;
+  public OBonsaiSysBucketSetFreeListHeadPageOperation(final int prevFreeListPageIndex, final int prevFreeListPageOffset) {
     this.prevFreeListPageIndex = prevFreeListPageIndex;
     this.prevFreeListPageOffset = prevFreeListPageOffset;
-  }
-
-  @Override
-  protected final void doRedo(final OSysBucket page) {
-    page.setFreeListHead(new OBonsaiBucketPointer(freeListPageIndex, freeListPageOffset));
   }
 
   @Override
@@ -37,19 +26,12 @@ public final class OBonsaiSysBucketSetFreeListHeadPageOperation extends OBonsaiS
 
   @Override
   protected void serializeToByteBuffer(final ByteBuffer buffer) {
-    buffer.putInt(freeListPageIndex);
-    buffer.putInt(freeListPageOffset);
-
     buffer.putInt(prevFreeListPageIndex);
     buffer.putInt(prevFreeListPageOffset);
-
   }
 
   @Override
   protected void deserializeFromByteBuffer(final ByteBuffer buffer) {
-    freeListPageIndex = buffer.getInt();
-    freeListPageOffset = buffer.getInt();
-
     prevFreeListPageIndex = buffer.getInt();
     prevFreeListPageOffset = buffer.getInt();
   }
@@ -61,6 +43,6 @@ public final class OBonsaiSysBucketSetFreeListHeadPageOperation extends OBonsaiS
 
   @Override
   public final int serializedSize() {
-    return super.serializedSize() + 4 * OIntegerSerializer.INT_SIZE;
+    return super.serializedSize() + 2 * OIntegerSerializer.INT_SIZE;
   }
 }

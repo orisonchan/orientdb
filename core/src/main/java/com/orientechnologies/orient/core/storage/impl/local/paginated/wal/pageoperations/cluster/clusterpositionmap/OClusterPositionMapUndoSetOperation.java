@@ -12,10 +12,6 @@ import java.nio.ByteBuffer;
 public final class OClusterPositionMapUndoSetOperation extends OPageOperationRecord<OClusterPositionMapBucket> {
   private int index;
 
-  private int  recordPageIndex;
-  private int  recordPosition;
-  private byte flag;
-
   private int  oldRecordPageIndex;
   private int  oldRecordPosition;
   private byte oldFlag;
@@ -23,14 +19,11 @@ public final class OClusterPositionMapUndoSetOperation extends OPageOperationRec
   public OClusterPositionMapUndoSetOperation() {
   }
 
-  public OClusterPositionMapUndoSetOperation(int index, int recordPageIndex, int recordPosition, byte flag, int oldRecordPageIndex,
-      int oldRecordPosition, byte oldFlag) {
+  public OClusterPositionMapUndoSetOperation(final int index, final int oldRecordPageIndex, final int oldRecordPosition,
+      final byte oldFlag) {
     super();
 
     this.index = index;
-    this.recordPageIndex = recordPageIndex;
-    this.recordPosition = recordPosition;
-    this.flag = flag;
     this.oldRecordPageIndex = oldRecordPageIndex;
     this.oldRecordPosition = oldRecordPosition;
     this.oldFlag = oldFlag;
@@ -38,18 +31,6 @@ public final class OClusterPositionMapUndoSetOperation extends OPageOperationRec
 
   public int getIndex() {
     return index;
-  }
-
-  public int getRecordPageIndex() {
-    return recordPageIndex;
-  }
-
-  public int getRecordPosition() {
-    return recordPosition;
-  }
-
-  public byte getFlag() {
-    return flag;
   }
 
   int getOldRecordPageIndex() {
@@ -65,13 +46,8 @@ public final class OClusterPositionMapUndoSetOperation extends OPageOperationRec
   }
 
   @Override
-  protected OClusterPositionMapBucket createPageInstance(OCacheEntry cacheEntry) {
+  protected OClusterPositionMapBucket createPageInstance(final OCacheEntry cacheEntry) {
     return new OClusterPositionMapBucket(cacheEntry, false);
-  }
-
-  @Override
-  protected void doRedo(final OClusterPositionMapBucket bucket) {
-    bucket.undoSet(index, flag, new OClusterPositionMapBucket.PositionEntry(recordPageIndex, recordPosition));
   }
 
   @Override
@@ -90,20 +66,11 @@ public final class OClusterPositionMapUndoSetOperation extends OPageOperationRec
   }
 
   @Override
-  public int toStream(byte[] content, int offset) {
+  public int toStream(final byte[] content, int offset) {
     offset = super.toStream(content, offset);
 
     OIntegerSerializer.INSTANCE.serializeNative(index, content, offset);
     offset += OIntegerSerializer.INT_SIZE;
-
-    OIntegerSerializer.INSTANCE.serializeNative(recordPageIndex, content, offset);
-    offset += OIntegerSerializer.INT_SIZE;
-
-    OIntegerSerializer.INSTANCE.serializeNative(recordPosition, content, offset);
-    offset += OIntegerSerializer.INT_SIZE;
-
-    content[offset] = flag;
-    offset++;
 
     OIntegerSerializer.INSTANCE.serializeNative(oldRecordPageIndex, content, offset);
     offset += OIntegerSerializer.INT_SIZE;
@@ -118,15 +85,10 @@ public final class OClusterPositionMapUndoSetOperation extends OPageOperationRec
   }
 
   @Override
-  public void toStream(ByteBuffer buffer) {
+  public void toStream(final ByteBuffer buffer) {
     super.toStream(buffer);
 
     buffer.putInt(index);
-
-    buffer.putInt(recordPageIndex);
-    buffer.putInt(recordPosition);
-
-    buffer.put(flag);
 
     buffer.putInt(oldRecordPageIndex);
     buffer.putInt(oldRecordPosition);
@@ -135,20 +97,11 @@ public final class OClusterPositionMapUndoSetOperation extends OPageOperationRec
   }
 
   @Override
-  public int fromStream(byte[] content, int offset) {
+  public int fromStream(final byte[] content, int offset) {
     offset = super.fromStream(content, offset);
 
     index = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
     offset += OIntegerSerializer.INT_SIZE;
-
-    recordPageIndex = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
-    offset += OIntegerSerializer.INT_SIZE;
-
-    recordPosition = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
-    offset += OIntegerSerializer.INT_SIZE;
-
-    flag = content[offset];
-    offset++;
 
     oldRecordPageIndex = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
     offset += OIntegerSerializer.INT_SIZE;
@@ -164,6 +117,6 @@ public final class OClusterPositionMapUndoSetOperation extends OPageOperationRec
 
   @Override
   public int serializedSize() {
-    return super.serializedSize() + 5 * OIntegerSerializer.INT_SIZE + 2 * OByteSerializer.BYTE_SIZE;
+    return super.serializedSize() + 3 * OIntegerSerializer.INT_SIZE + OByteSerializer.BYTE_SIZE;
   }
 }

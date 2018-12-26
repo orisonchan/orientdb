@@ -16,7 +16,7 @@ public final class OClusterPositionMapUndoRemove extends OPageOperationRecord<OC
   public OClusterPositionMapUndoRemove() {
   }
 
-  public OClusterPositionMapUndoRemove(int index, int pageIndex, int recordPosition) {
+  public OClusterPositionMapUndoRemove(final int index, final int pageIndex, final int recordPosition) {
     super();
     this.index = index;
 
@@ -28,7 +28,7 @@ public final class OClusterPositionMapUndoRemove extends OPageOperationRecord<OC
     return index;
   }
 
-  public int getRecordPageIndex() {
+  int getRecordPageIndex() {
     return recordPageIndex;
   }
 
@@ -37,17 +37,12 @@ public final class OClusterPositionMapUndoRemove extends OPageOperationRecord<OC
   }
 
   @Override
-  protected OClusterPositionMapBucket createPageInstance(OCacheEntry cacheEntry) {
+  protected OClusterPositionMapBucket createPageInstance(final OCacheEntry cacheEntry) {
     return new OClusterPositionMapBucket(cacheEntry, false);
   }
 
   @Override
-  protected void doRedo(OClusterPositionMapBucket bucket) {
-    bucket.undoRemove(index);
-  }
-
-  @Override
-  protected void doUndo(OClusterPositionMapBucket bucket) {
+  protected void doUndo(final OClusterPositionMapBucket bucket) {
     if (bucket.getSize() == index) {
       bucket.add(recordPageIndex, recordPosition);
     } else {
@@ -67,7 +62,7 @@ public final class OClusterPositionMapUndoRemove extends OPageOperationRecord<OC
   }
 
   @Override
-  public int toStream(byte[] content, int offset) {
+  public int toStream(final byte[] content, int offset) {
     offset = super.toStream(content, offset);
 
     OIntegerSerializer.INSTANCE.serializeNative(index, content, offset);
@@ -83,7 +78,7 @@ public final class OClusterPositionMapUndoRemove extends OPageOperationRecord<OC
   }
 
   @Override
-  public void toStream(ByteBuffer buffer) {
+  public void toStream(final ByteBuffer buffer) {
     super.toStream(buffer);
 
     buffer.putInt(index);
@@ -92,7 +87,7 @@ public final class OClusterPositionMapUndoRemove extends OPageOperationRecord<OC
   }
 
   @Override
-  public int fromStream(byte[] content, int offset) {
+  public int fromStream(final byte[] content, int offset) {
     offset = super.fromStream(content, offset);
 
     index = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);

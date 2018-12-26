@@ -18,11 +18,11 @@ public abstract class OPageOperationRecord<T extends ODurablePage> extends OOper
   public OPageOperationRecord() {
   }
 
-  public final void setPageIndex(int pageIndex) {
+  public final void setPageIndex(final int pageIndex) {
     this.pageIndex = pageIndex;
   }
 
-  public final void setFileId(long fileId) {
+  public final void setFileId(final long fileId) {
     this.fileId = fileId;
   }
 
@@ -35,19 +35,8 @@ public abstract class OPageOperationRecord<T extends ODurablePage> extends OOper
   }
 
   @Override
-  public final void redo(OReadCache readCache, OWriteCache writeCache) throws IOException {
-    final OCacheEntry cacheEntry = readCache.loadForWrite(fileId, pageIndex, false, writeCache, 1, true, null);
-    try {
-      final T page = createPageInstance(cacheEntry);
-      doRedo(page);
-    } finally {
-      readCache.releaseFromWrite(cacheEntry, writeCache);
-    }
-  }
-
-  @Override
-  public final void undo(OReadCache readCache, OWriteCache writeCache, OWriteAheadLog writeAheadLog,
-      OOperationUnitId operationUnitId) throws IOException {
+  public final void undo(final OReadCache readCache, final OWriteCache writeCache, final OWriteAheadLog writeAheadLog,
+      final OOperationUnitId operationUnitId) throws IOException {
     final OCacheEntry cacheEntry = readCache.loadForWrite(fileId, pageIndex, false, writeCache, 1, true, null);
     try {
       final T page = createPageInstance(cacheEntry);
@@ -57,7 +46,7 @@ public abstract class OPageOperationRecord<T extends ODurablePage> extends OOper
 
       if (!operations.isEmpty()) {
         OLogSequenceNumber lsn = null;
-        for (OPageOperationRecord pageOperationRecord : operations) {
+        for (final OPageOperationRecord pageOperationRecord : operations) {
           pageOperationRecord.setOperationUnitId(operationUnitId);
           lsn = writeAheadLog.log(pageOperationRecord);
         }
@@ -71,12 +60,10 @@ public abstract class OPageOperationRecord<T extends ODurablePage> extends OOper
 
   protected abstract T createPageInstance(OCacheEntry cacheEntry);
 
-  protected abstract void doRedo(T page);
-
   protected abstract void doUndo(T page);
 
   @Override
-  public int toStream(byte[] content, int offset) {
+  public int toStream(final byte[] content, int offset) {
     offset = super.toStream(content, offset);
 
     OLongSerializer.INSTANCE.serializeNative(fileId, content, offset);
@@ -89,7 +76,7 @@ public abstract class OPageOperationRecord<T extends ODurablePage> extends OOper
   }
 
   @Override
-  public void toStream(ByteBuffer buffer) {
+  public void toStream(final ByteBuffer buffer) {
     super.toStream(buffer);
 
     buffer.putLong(fileId);
@@ -97,7 +84,7 @@ public abstract class OPageOperationRecord<T extends ODurablePage> extends OOper
   }
 
   @Override
-  public int fromStream(byte[] content, int offset) {
+  public int fromStream(final byte[] content, int offset) {
     offset = super.fromStream(content, offset);
 
     fileId = OLongSerializer.INSTANCE.deserializeNative(content, offset);

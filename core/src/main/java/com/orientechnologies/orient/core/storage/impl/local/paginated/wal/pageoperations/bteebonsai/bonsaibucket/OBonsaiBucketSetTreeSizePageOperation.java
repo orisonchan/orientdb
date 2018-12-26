@@ -7,16 +7,14 @@ import com.orientechnologies.orient.core.storage.index.sbtreebonsai.local.OSBTre
 import java.nio.ByteBuffer;
 
 public final class OBonsaiBucketSetTreeSizePageOperation extends OBonsaiBucketPageOperation {
-  private int treeSize;
   private int prevTreeSize;
 
   public OBonsaiBucketSetTreeSizePageOperation() {
   }
 
-  public OBonsaiBucketSetTreeSizePageOperation(final int pageOffset, final int treeSize, final int prevTreeSize) {
+  public OBonsaiBucketSetTreeSizePageOperation(final int pageOffset, final int prevTreeSize) {
     super(pageOffset);
 
-    this.treeSize = treeSize;
     this.prevTreeSize = prevTreeSize;
   }
 
@@ -26,29 +24,22 @@ public final class OBonsaiBucketSetTreeSizePageOperation extends OBonsaiBucketPa
   }
 
   @Override
-  protected void doRedo(final OSBTreeBonsaiBucket page) {
-    page.setTreeSize(treeSize);
-  }
-
-  @Override
   protected void doUndo(final OSBTreeBonsaiBucket page) {
     page.setTreeSize(prevTreeSize);
   }
 
   @Override
   protected void deserializeFromByteBuffer(final ByteBuffer buffer) {
-    treeSize = buffer.getInt();
     prevTreeSize = buffer.getInt();
   }
 
   @Override
   protected void serializeToByteBuffer(final ByteBuffer buffer) {
-    buffer.putInt(treeSize);
     buffer.putInt(prevTreeSize);
   }
 
   @Override
   public int serializedSize() {
-    return super.serializedSize() + 2 * OIntegerSerializer.INT_SIZE;
+    return super.serializedSize() + OIntegerSerializer.INT_SIZE;
   }
 }

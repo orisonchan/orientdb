@@ -1,12 +1,10 @@
 package com.orientechnologies.orient.core.storage.impl.local.paginated.wal;
 
-import com.orientechnologies.common.exception.OException;
 import com.orientechnologies.common.serialization.types.OLongSerializer;
 import com.orientechnologies.orient.core.exception.OStorageException;
 import com.orientechnologies.orient.core.storage.cache.OReadCache;
 import com.orientechnologies.orient.core.storage.cache.OWriteCache;
 
-import java.io.IOException;
 import java.nio.ByteBuffer;
 
 public final class OFileDeletedWALRecord extends OOperationUnitBodyRecord {
@@ -15,21 +13,14 @@ public final class OFileDeletedWALRecord extends OOperationUnitBodyRecord {
   OFileDeletedWALRecord() {
   }
 
-  @Override
-  public void redo(OReadCache readCache, OWriteCache writeCache) throws IOException {
-    try {
-      readCache.deleteFile(fileId, writeCache);
-    } catch (IOException e) {
-      throw OException.wrapException(new OStorageException("Can not delete file with id " + fileId), e);
-    }
-  }
 
   @Override
-  public void undo(OReadCache readCache, OWriteCache writeCache, OWriteAheadLog writeAheadLog, OOperationUnitId operationUnitId) throws IOException {
+  public void undo(final OReadCache readCache, final OWriteCache writeCache, final OWriteAheadLog writeAheadLog,
+      final OOperationUnitId operationUnitId) {
     throw new OStorageException("File deletion can not be rolled back");
   }
 
-  public OFileDeletedWALRecord(long fileId) {
+  public OFileDeletedWALRecord(final long fileId) {
     this.fileId = fileId;
   }
 
@@ -38,7 +29,7 @@ public final class OFileDeletedWALRecord extends OOperationUnitBodyRecord {
   }
 
   @Override
-  public int toStream(byte[] content, int offset) {
+  public int toStream(final byte[] content, int offset) {
     offset = super.toStream(content, offset);
 
     OLongSerializer.INSTANCE.serializeNative(fileId, content, offset);
@@ -54,7 +45,7 @@ public final class OFileDeletedWALRecord extends OOperationUnitBodyRecord {
   }
 
   @Override
-  public int fromStream(byte[] content, int offset) {
+  public int fromStream(final byte[] content, int offset) {
     offset = super.fromStream(content, offset);
 
     fileId = OLongSerializer.INSTANCE.deserializeNative(content, offset);

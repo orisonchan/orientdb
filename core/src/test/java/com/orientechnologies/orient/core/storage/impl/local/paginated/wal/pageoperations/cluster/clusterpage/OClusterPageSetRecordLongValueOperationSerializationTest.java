@@ -16,11 +16,10 @@ public class OClusterPageSetRecordLongValueOperationSerializationTest {
 
     final int recordPosition = 56;
     final int recordOffset = 12;
-    final long value = 42;
     final long oldValue = 24;
 
     OClusterPageSetRecordLongValueOperation operation = new OClusterPageSetRecordLongValueOperation(recordPosition, recordOffset,
-        value, oldValue);
+        oldValue);
     operation.setFileId(fileId);
     operation.setPageIndex(pageIndex);
     operation.setOperationUnitId(operationUnitId);
@@ -29,6 +28,7 @@ public class OClusterPageSetRecordLongValueOperationSerializationTest {
     final byte[] stream = new byte[serializedSize + 1];
 
     int offset = operation.toStream(stream, 1);
+    Assert.assertEquals(serializedSize + 1, offset);
 
     OClusterPageSetRecordLongValueOperation restoredOperation = new OClusterPageSetRecordLongValueOperation();
     offset = restoredOperation.fromStream(stream, 1);
@@ -39,7 +39,6 @@ public class OClusterPageSetRecordLongValueOperationSerializationTest {
     Assert.assertEquals(operationUnitId, restoredOperation.getOperationUnitId());
     Assert.assertEquals(recordPosition, restoredOperation.getRecordPosition());
     Assert.assertEquals(recordOffset, restoredOperation.getRecordOffset());
-    Assert.assertEquals(value, restoredOperation.getValue());
     Assert.assertEquals(oldValue, restoredOperation.getOldValue());
   }
 
@@ -51,11 +50,10 @@ public class OClusterPageSetRecordLongValueOperationSerializationTest {
 
     final int recordPosition = 56;
     final int recordOffset = 12;
-    final long value = 42;
     final long oldValue = 24;
 
     OClusterPageSetRecordLongValueOperation operation = new OClusterPageSetRecordLongValueOperation(recordPosition, recordOffset,
-        value, oldValue);
+        oldValue);
     operation.setFileId(fileId);
     operation.setPageIndex(pageIndex);
     operation.setOperationUnitId(operationUnitId);
@@ -66,6 +64,8 @@ public class OClusterPageSetRecordLongValueOperationSerializationTest {
     buffer.position(1);
     operation.toStream(buffer);
 
+    Assert.assertEquals(serializedSize + 1, buffer.position());
+
     OClusterPageSetRecordLongValueOperation restoredOperation = new OClusterPageSetRecordLongValueOperation();
     int offset = restoredOperation.fromStream(buffer.array(), 1);
 
@@ -75,7 +75,6 @@ public class OClusterPageSetRecordLongValueOperationSerializationTest {
     Assert.assertEquals(operationUnitId, restoredOperation.getOperationUnitId());
     Assert.assertEquals(recordPosition, restoredOperation.getRecordPosition());
     Assert.assertEquals(recordOffset, restoredOperation.getRecordOffset());
-    Assert.assertEquals(value, restoredOperation.getValue());
     Assert.assertEquals(oldValue, restoredOperation.getOldValue());
   }
 }

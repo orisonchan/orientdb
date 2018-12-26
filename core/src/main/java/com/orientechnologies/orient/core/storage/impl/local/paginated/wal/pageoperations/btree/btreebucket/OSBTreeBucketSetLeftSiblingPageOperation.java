@@ -9,20 +9,15 @@ import com.orientechnologies.orient.core.storage.index.sbtree.local.OSBTreeBucke
 import java.nio.ByteBuffer;
 
 public final class OSBTreeBucketSetLeftSiblingPageOperation extends OPageOperationRecord<OSBTreeBucket> {
-  private int leftSibling;
   private int prevLeftSibling;
 
   public OSBTreeBucketSetLeftSiblingPageOperation() {
   }
 
-  public OSBTreeBucketSetLeftSiblingPageOperation(int leftSibling, int prevLeftSibling) {
-    this.leftSibling = leftSibling;
+  public OSBTreeBucketSetLeftSiblingPageOperation(final int prevLeftSibling) {
     this.prevLeftSibling = prevLeftSibling;
   }
 
-  public int getLeftSibling() {
-    return leftSibling;
-  }
 
   public int getPrevLeftSibling() {
     return prevLeftSibling;
@@ -39,26 +34,18 @@ public final class OSBTreeBucketSetLeftSiblingPageOperation extends OPageOperati
   }
 
   @Override
-  protected OSBTreeBucket createPageInstance(OCacheEntry cacheEntry) {
+  protected OSBTreeBucket createPageInstance(final OCacheEntry cacheEntry) {
     return new OSBTreeBucket(cacheEntry);
   }
 
   @Override
-  protected void doRedo(OSBTreeBucket page) {
-    page.setLeftSibling(leftSibling);
-  }
-
-  @Override
-  protected void doUndo(OSBTreeBucket page) {
+  protected void doUndo(final OSBTreeBucket page) {
     page.setLeftSibling(prevLeftSibling);
   }
 
   @Override
-  public int toStream(byte[] content, int offset) {
+  public int toStream(final byte[] content, int offset) {
     offset = super.toStream(content, offset);
-
-    OIntegerSerializer.INSTANCE.serializeNative(leftSibling, content, offset);
-    offset += OIntegerSerializer.INT_SIZE;
 
     OIntegerSerializer.INSTANCE.serializeNative(prevLeftSibling, content, offset);
     offset += OIntegerSerializer.INT_SIZE;
@@ -67,19 +54,15 @@ public final class OSBTreeBucketSetLeftSiblingPageOperation extends OPageOperati
   }
 
   @Override
-  public void toStream(ByteBuffer buffer) {
+  public void toStream(final ByteBuffer buffer) {
     super.toStream(buffer);
 
-    buffer.putInt(leftSibling);
     buffer.putInt(prevLeftSibling);
   }
 
   @Override
-  public int fromStream(byte[] content, int offset) {
+  public int fromStream(final byte[] content, int offset) {
     offset = super.fromStream(content, offset);
-
-    leftSibling = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
-    offset += OIntegerSerializer.INT_SIZE;
 
     prevLeftSibling = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
     offset += OIntegerSerializer.INT_SIZE;
@@ -89,6 +72,6 @@ public final class OSBTreeBucketSetLeftSiblingPageOperation extends OPageOperati
 
   @Override
   public int serializedSize() {
-    return super.serializedSize() + 2 * OIntegerSerializer.INT_SIZE;
+    return super.serializedSize() + OIntegerSerializer.INT_SIZE;
   }
 }

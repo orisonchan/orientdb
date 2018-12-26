@@ -8,20 +8,19 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.nio.ByteBuffer;
 
 public final class OBonsaiBucketInsertLeafEntryPageOperation extends OBonsaiBucketPageOperation {
-  private int    index;
-  private byte[] serializedKey;
-  private byte[] serializedValue;
+  private int index;
+  private int keySize;
+  private int valueSize;
 
   public OBonsaiBucketInsertLeafEntryPageOperation() {
   }
 
   @SuppressFBWarnings("EI_EXPOSE_REP2")
-  public OBonsaiBucketInsertLeafEntryPageOperation(final int pageOffset, final int index, final byte[] serializedKey,
-      final byte[] serializedValue) {
+  public OBonsaiBucketInsertLeafEntryPageOperation(final int pageOffset, final int index, final int keySize, final int valueSize) {
     super(pageOffset);
     this.index = index;
-    this.serializedKey = serializedKey;
-    this.serializedValue = serializedValue;
+    this.keySize = keySize;
+    this.valueSize = valueSize;
   }
 
   @Override
@@ -30,31 +29,26 @@ public final class OBonsaiBucketInsertLeafEntryPageOperation extends OBonsaiBuck
   }
 
   @Override
-  protected final void doRedo(final OSBTreeBonsaiBucket page) {
-    page.insertLeafEntry(index, serializedKey, serializedValue);
-  }
-
-  @Override
   protected final void doUndo(final OSBTreeBonsaiBucket page) {
-    page.removeLeafEntry(index, serializedKey, serializedValue);
+    page.removeLeafEntry(index, keySize, valueSize);
   }
 
   @Override
   protected void serializeToByteBuffer(final ByteBuffer buffer) {
     buffer.putInt(index);
-    serializeByteArray(serializedKey, buffer);
-    serializeByteArray(serializedValue, buffer);
+    buffer.putInt(keySize);
+    buffer.putInt(valueSize);
   }
 
   @Override
   protected void deserializeFromByteBuffer(final ByteBuffer buffer) {
     index = buffer.getInt();
-    serializedKey = deserializeByteArray(buffer);
-    serializedValue = deserializeByteArray(buffer);
+    keySize = buffer.getInt();
+    valueSize = buffer.getInt();
   }
 
   @Override
   public final int serializedSize() {
-    return super.serializedSize() + 3 * OIntegerSerializer.INT_SIZE + serializedValue.length + serializedKey.length;
+    return super.serializedSize() + 3 * OIntegerSerializer.INT_SIZE;
   }
 }

@@ -58,7 +58,7 @@ import java.util.concurrent.locks.LockSupport;
  * @author Andrey Lomakin (a.lomakin-at-orientdb.com)
  * @since 12/3/13
  */
-public class OAtomicOperationsManager implements OAtomicOperationsMangerMXBean {
+public final class OAtomicOperationsManager implements OAtomicOperationsMangerMXBean {
 
   private volatile boolean trackAtomicOperations = OGlobalConfiguration.TX_TRACK_ATOMIC_OPERATIONS.getValueAsBoolean();
 
@@ -101,7 +101,7 @@ public class OAtomicOperationsManager implements OAtomicOperationsMangerMXBean {
 
   private final Map<OOperationUnitId, OPair<String, StackTraceElement[]>> activeAtomicOperations = new ConcurrentHashMap<>();
 
-  public OAtomicOperationsManager(OAbstractPaginatedStorage storage) {
+  public OAtomicOperationsManager(final OAbstractPaginatedStorage storage) {
     this.storage = storage;
     this.writeAheadLog = storage.getWALInstance();
     this.readCache = storage.getReadCache();
@@ -111,7 +111,7 @@ public class OAtomicOperationsManager implements OAtomicOperationsMangerMXBean {
   /**
    * @see #startAtomicOperation(String, boolean)
    */
-  public OAtomicOperation startAtomicOperation(ODurableComponent durableComponent, boolean trackNonTxOperations)
+  public OAtomicOperation startAtomicOperation(final ODurableComponent durableComponent, final boolean trackNonTxOperations)
       throws IOException {
     if (durableComponent != null) {
       return startAtomicOperation(durableComponent.getLockName(), trackNonTxOperations);
@@ -141,7 +141,7 @@ public class OAtomicOperationsManager implements OAtomicOperationsMangerMXBean {
    *
    * @return Instance of active atomic operation.
    */
-  public OAtomicOperation startAtomicOperation(String lockName, boolean trackNonTxOperations) throws IOException {
+  public OAtomicOperation startAtomicOperation(final String lockName, final boolean trackNonTxOperations) throws IOException {
     OAtomicOperation operation = currentOperation.get();
     if (operation != null) {
       operation.incrementCounter();
@@ -178,7 +178,7 @@ public class OAtomicOperationsManager implements OAtomicOperationsMangerMXBean {
     final OOperationUnitId unitId = OOperationUnitId.generateId();
     final OLogSequenceNumber lsn = writeAheadLog.logAtomicOperationStartRecord(true, unitId);
 
-    operation = new OAtomicOperation(lsn, unitId, storage, readCache, writeCache, writeAheadLog);
+    operation = new OAtomicOperation(lsn, unitId, readCache, writeCache, writeAheadLog);
     currentOperation.set(operation);
 
     if (trackAtomicOperations) {
@@ -196,7 +196,7 @@ public class OAtomicOperationsManager implements OAtomicOperationsMangerMXBean {
 
     try {
       storage.checkReadOnlyConditions();
-    } catch (RuntimeException | Error e) {
+    } catch (final RuntimeException | Error e) {
       final Iterator<String> lockedObjectIterator = operation.lockedObjects().iterator();
 
       while (lockedObjectIterator.hasNext()) {
@@ -220,7 +220,7 @@ public class OAtomicOperationsManager implements OAtomicOperationsMangerMXBean {
     }
   }
 
-  private void addThreadInWaitingList(Thread thread) {
+  private void addThreadInWaitingList(final Thread thread) {
     final WaitingListNode node = new WaitingListNode(thread);
 
     while (true) {
@@ -277,7 +277,7 @@ public class OAtomicOperationsManager implements OAtomicOperationsMangerMXBean {
     }
   }
 
-  public long freezeAtomicOperations(Class<? extends OException> exceptionClass, String message) {
+  public long freezeAtomicOperations(final Class<? extends OException> exceptionClass, final String message) {
 
     final long id = freezeIdGen.incrementAndGet();
 
@@ -295,7 +295,7 @@ public class OAtomicOperationsManager implements OAtomicOperationsMangerMXBean {
     return freezeRequests.get() > 0;
   }
 
-  public void releaseAtomicOperations(long id) {
+  public void releaseAtomicOperations(final long id) {
     if (id >= 0) {
       final FreezeParameters freezeParameters = freezeParametersIdMap.remove(id);
       if (freezeParameters == null) {
@@ -307,7 +307,7 @@ public class OAtomicOperationsManager implements OAtomicOperationsMangerMXBean {
     final long requests = freezeRequests.decrementAndGet();
 
     if (requests == 0) {
-      for (Long freezeId : freezeParametersMap.keySet()) {
+      for (final Long freezeId : freezeParametersMap.keySet()) {
         freezeParametersIdMap.remove(freezeId);
       }
 
@@ -321,13 +321,13 @@ public class OAtomicOperationsManager implements OAtomicOperationsMangerMXBean {
   }
 
   private void throwFreezeExceptionIfNeeded() {
-    for (FreezeParameters freezeParameters : this.freezeParametersIdMap.values()) {
+    for (final FreezeParameters freezeParameters : this.freezeParametersIdMap.values()) {
       if (freezeParameters.exceptionClass != null) {
         if (freezeParameters.message != null) {
           try {
             final Constructor<? extends OException> mConstructor = freezeParameters.exceptionClass.getConstructor(String.class);
             throw mConstructor.newInstance(freezeParameters.message);
-          } catch (InstantiationException | IllegalAccessException | NoSuchMethodException | SecurityException | InvocationTargetException ie) {
+          } catch (final InstantiationException | IllegalAccessException | NoSuchMethodException | SecurityException | InvocationTargetException ie) {
             OLogManager.instance().error(this, "Can not create instance of exception " + freezeParameters.exceptionClass
                 + " with message will try empty constructor instead", ie);
             throwFreezeExceptionWithoutMessage(freezeParameters);
@@ -340,10 +340,10 @@ public class OAtomicOperationsManager implements OAtomicOperationsMangerMXBean {
     }
   }
 
-  private void throwFreezeExceptionWithoutMessage(FreezeParameters freezeParameters) {
+  private void throwFreezeExceptionWithoutMessage(final FreezeParameters freezeParameters) {
     try {
       throw freezeParameters.exceptionClass.newInstance();
-    } catch (InstantiationException | IllegalAccessException ie) {
+    } catch (final InstantiationException | IllegalAccessException ie) {
       OLogManager.instance().error(this, "Can not create instance of exception " + freezeParameters.exceptionClass
           + " will park thread instead of throwing of exception", ie);
     }
@@ -358,7 +358,7 @@ public class OAtomicOperationsManager implements OAtomicOperationsMangerMXBean {
    *
    * @param rollback {@code true} to indicate a rollback, {@code false} for successful commit.
    */
-  public void endAtomicOperation(boolean rollback) throws IOException {
+  public void endAtomicOperation(final boolean rollback) throws IOException {
     final OAtomicOperation operation = currentOperation.get();
 
     if (operation == null) {
@@ -401,7 +401,7 @@ public class OAtomicOperationsManager implements OAtomicOperationsMangerMXBean {
           currentOperation.set(null);
         }
       }
-    } catch (Error e) {
+    } catch (final Error e) {
       final OAbstractPaginatedStorage st = storage;
       if (st != null) {
         st.handleJVMError(e);
@@ -436,7 +436,7 @@ public class OAtomicOperationsManager implements OAtomicOperationsMangerMXBean {
    * @param operation the atomic operation to acquire the lock in.
    * @param lockName  the lock name to acquire.
    */
-  public void acquireExclusiveLockTillOperationComplete(OAtomicOperation operation, String lockName) {
+  public void acquireExclusiveLockTillOperationComplete(final OAtomicOperation operation, final String lockName) {
     if (operation.containsInLockedObjects(lockName)) {
       return;
     }
@@ -448,19 +448,19 @@ public class OAtomicOperationsManager implements OAtomicOperationsMangerMXBean {
   /**
    * Acquires exclusive lock in the active atomic operation running on the current thread for the {@code durableComponent}.
    */
-  public void acquireExclusiveLockTillOperationComplete(ODurableComponent durableComponent) {
+  public void acquireExclusiveLockTillOperationComplete(final ODurableComponent durableComponent) {
     final OAtomicOperation operation = currentOperation.get();
     assert operation != null;
     acquireExclusiveLockTillOperationComplete(operation, durableComponent.getLockName());
   }
 
-  public void acquireReadLock(ODurableComponent durableComponent) {
+  public void acquireReadLock(final ODurableComponent durableComponent) {
     assert durableComponent.getLockName() != null;
 
     lockManager.acquireLock(durableComponent.getLockName(), OOneEntryPerKeyLockManager.LOCK.SHARED);
   }
 
-  public void releaseReadLock(ODurableComponent durableComponent) {
+  public void releaseReadLock(final ODurableComponent durableComponent) {
     assert durableComponent.getName() != null;
     assert durableComponent.getLockName() != null;
 
@@ -489,12 +489,12 @@ public class OAtomicOperationsManager implements OAtomicOperationsMangerMXBean {
     final StringWriter writer = new StringWriter();
     writer.append("List of active atomic operations: \r\n");
     writer.append("------------------------------------------------------------------------------------------------\r\n");
-    for (Map.Entry<OOperationUnitId, OPair<String, StackTraceElement[]>> entry : activeAtomicOperations.entrySet()) {
+    for (final Map.Entry<OOperationUnitId, OPair<String, StackTraceElement[]>> entry : activeAtomicOperations.entrySet()) {
       writer.append("Operation unit id :").append(entry.getKey().toString()).append("\r\n");
       writer.append("Started at thread : ").append(entry.getValue().getKey()).append("\r\n");
       writer.append("Stack trace of method which started this operation : \r\n");
 
-      StackTraceElement[] stackTraceElements = entry.getValue().getValue();
+      final StackTraceElement[] stackTraceElements = entry.getValue().getValue();
       for (int i = 1; i < stackTraceElements.length; i++) {
         writer.append("\tat ").append(stackTraceElements[i].toString()).append("\r\n");
       }
@@ -509,7 +509,7 @@ public class OAtomicOperationsManager implements OAtomicOperationsMangerMXBean {
     private final String                      message;
     private final Class<? extends OException> exceptionClass;
 
-    FreezeParameters(String message, Class<? extends OException> exceptionClass) {
+    FreezeParameters(final String message, final Class<? extends OException> exceptionClass) {
       this.message = message;
       this.exceptionClass = exceptionClass;
     }
@@ -524,14 +524,14 @@ public class OAtomicOperationsManager implements OAtomicOperationsMangerMXBean {
     private final    Thread          item;
     private volatile WaitingListNode next;
 
-    WaitingListNode(Thread item) {
+    WaitingListNode(final Thread item) {
       this.item = item;
     }
 
     void waitTillAllLinksWillBeCreated() {
       try {
         linkLatch.await();
-      } catch (InterruptedException e) {
+      } catch (final InterruptedException e) {
         throw OException.wrapException(
             new OInterruptedException("Thread was interrupted while was waiting for completion of 'waiting linked list' operation"),
             e);

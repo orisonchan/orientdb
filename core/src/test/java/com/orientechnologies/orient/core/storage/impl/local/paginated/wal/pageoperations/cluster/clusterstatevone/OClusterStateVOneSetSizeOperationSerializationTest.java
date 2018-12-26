@@ -14,10 +14,9 @@ public class OClusterStateVOneSetSizeOperationSerializationTest {
     final int pageIndex = 43;
     final OOperationUnitId operationUnitId = OOperationUnitId.generateId();
 
-    final int size = 345;
     final int oldSize = 543;
 
-    OClusterStateVOneSetSizeOperation operation = new OClusterStateVOneSetSizeOperation(size, oldSize);
+    OClusterStateVOneSetSizeOperation operation = new OClusterStateVOneSetSizeOperation(oldSize);
     operation.setFileId(fileId);
     operation.setPageIndex(pageIndex);
     operation.setOperationUnitId(operationUnitId);
@@ -35,7 +34,6 @@ public class OClusterStateVOneSetSizeOperationSerializationTest {
     Assert.assertEquals(fileId, restoredOperation.getFileId());
     Assert.assertEquals(pageIndex, restoredOperation.getPageIndex());
     Assert.assertEquals(operationUnitId, restoredOperation.getOperationUnitId());
-    Assert.assertEquals(size, restoredOperation.getSize());
     Assert.assertEquals(oldSize, restoredOperation.getOldSize());
   }
 
@@ -45,10 +43,9 @@ public class OClusterStateVOneSetSizeOperationSerializationTest {
     final int pageIndex = 43;
     final OOperationUnitId operationUnitId = OOperationUnitId.generateId();
 
-    final int size = 345;
     final int oldSize = 543;
 
-    OClusterStateVOneSetSizeOperation operation = new OClusterStateVOneSetSizeOperation(size, oldSize);
+    OClusterStateVOneSetSizeOperation operation = new OClusterStateVOneSetSizeOperation(oldSize);
     operation.setFileId(fileId);
     operation.setPageIndex(pageIndex);
     operation.setOperationUnitId(operationUnitId);
@@ -67,7 +64,6 @@ public class OClusterStateVOneSetSizeOperationSerializationTest {
     Assert.assertEquals(fileId, restoredOperation.getFileId());
     Assert.assertEquals(pageIndex, restoredOperation.getPageIndex());
     Assert.assertEquals(operationUnitId, restoredOperation.getOperationUnitId());
-    Assert.assertEquals(size, restoredOperation.getSize());
     Assert.assertEquals(oldSize, restoredOperation.getOldSize());
   }
 }

@@ -9,10 +9,8 @@ import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRec
 
 import java.nio.ByteBuffer;
 
-public class OClusterPositionMapSetOperation extends OPageOperationRecord<OClusterPositionMapBucket> {
+public final class OClusterPositionMapSetOperation extends OPageOperationRecord<OClusterPositionMapBucket> {
   private int index;
-  private int recordPosition;
-  private int recordPageIndex;
 
   private int oldRecordPageIndex;
   private int oldRecordPosition;
@@ -22,12 +20,10 @@ public class OClusterPositionMapSetOperation extends OPageOperationRecord<OClust
   public OClusterPositionMapSetOperation() {
   }
 
-  public OClusterPositionMapSetOperation(int index, int recordPosition, int recordPageIndex, int oldRecordPageIndex,
-      int oldRecordPosition, byte oldFlag) {
+  public OClusterPositionMapSetOperation(final int index, final int oldRecordPageIndex, final int oldRecordPosition,
+      final byte oldFlag) {
     super();
     this.index = index;
-    this.recordPosition = recordPosition;
-    this.recordPageIndex = recordPageIndex;
 
     this.oldRecordPageIndex = oldRecordPageIndex;
     this.oldRecordPosition = oldRecordPosition;
@@ -35,38 +31,25 @@ public class OClusterPositionMapSetOperation extends OPageOperationRecord<OClust
     this.oldFlag = oldFlag;
   }
 
-  public int getIndex() {
+  public final int getIndex() {
     return index;
   }
 
-  public int getRecordPosition() {
-    return recordPosition;
-  }
-
-  public int getRecordPageIndex() {
-    return recordPageIndex;
-  }
-
-  int getOldRecordPageIndex() {
+  final int getOldRecordPageIndex() {
     return oldRecordPageIndex;
   }
 
-  public int getOldRecordPosition() {
+  public final int getOldRecordPosition() {
     return oldRecordPosition;
   }
 
-  byte getOldFlag() {
+  final byte getOldFlag() {
     return oldFlag;
   }
 
   @Override
-  protected OClusterPositionMapBucket createPageInstance(OCacheEntry cacheEntry) {
+  protected OClusterPositionMapBucket createPageInstance(final OCacheEntry cacheEntry) {
     return new OClusterPositionMapBucket(cacheEntry, false);
-  }
-
-  @Override
-  protected void doRedo(final OClusterPositionMapBucket bucket) {
-    bucket.set(index, new OClusterPositionMapBucket.PositionEntry(recordPageIndex, recordPosition));
   }
 
   @Override
@@ -75,26 +58,20 @@ public class OClusterPositionMapSetOperation extends OPageOperationRecord<OClust
   }
 
   @Override
-  public boolean isUpdateMasterRecord() {
+  public final boolean isUpdateMasterRecord() {
     return false;
   }
 
   @Override
-  public byte getId() {
+  public final byte getId() {
     return WALRecordTypes.CLUSTER_POSITION_MAP_SET;
   }
 
   @Override
-  public int toStream(byte[] content, int offset) {
+  public final int toStream(final byte[] content, int offset) {
     offset = super.toStream(content, offset);
 
     OIntegerSerializer.INSTANCE.serializeNative(index, content, offset);
-    offset += OIntegerSerializer.INT_SIZE;
-
-    OIntegerSerializer.INSTANCE.serializeNative(recordPosition, content, offset);
-    offset += OIntegerSerializer.INT_SIZE;
-
-    OIntegerSerializer.INSTANCE.serializeNative(recordPageIndex, content, offset);
     offset += OIntegerSerializer.INT_SIZE;
 
     OIntegerSerializer.INSTANCE.serializeNative(oldRecordPageIndex, content, offset);
@@ -110,28 +87,20 @@ public class OClusterPositionMapSetOperation extends OPageOperationRecord<OClust
   }
 
   @Override
-  public void toStream(ByteBuffer buffer) {
+  public final void toStream(final ByteBuffer buffer) {
     super.toStream(buffer);
 
     buffer.putInt(index);
-    buffer.putInt(recordPosition);
-    buffer.putInt(recordPageIndex);
     buffer.putInt(oldRecordPageIndex);
     buffer.putInt(oldRecordPosition);
     buffer.put(oldFlag);
   }
 
   @Override
-  public int fromStream(byte[] content, int offset) {
+  public final int fromStream(final byte[] content, int offset) {
     offset = super.fromStream(content, offset);
 
     index = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
-    offset += OIntegerSerializer.INT_SIZE;
-
-    recordPosition = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
-    offset += OIntegerSerializer.INT_SIZE;
-
-    recordPageIndex = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
     offset += OIntegerSerializer.INT_SIZE;
 
     oldRecordPageIndex = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
@@ -147,7 +116,7 @@ public class OClusterPositionMapSetOperation extends OPageOperationRecord<OClust
   }
 
   @Override
-  public int serializedSize() {
-    return super.serializedSize() + 5 * OIntegerSerializer.INT_SIZE + OByteSerializer.BYTE_SIZE;
+  public final int serializedSize() {
+    return super.serializedSize() + 3 * OIntegerSerializer.INT_SIZE + OByteSerializer.BYTE_SIZE;
   }
 }

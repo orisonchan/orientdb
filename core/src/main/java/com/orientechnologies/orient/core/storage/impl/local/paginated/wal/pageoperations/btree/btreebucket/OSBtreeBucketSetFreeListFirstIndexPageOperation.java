@@ -9,19 +9,13 @@ import com.orientechnologies.orient.core.storage.index.sbtree.local.OSBTreeBucke
 import java.nio.ByteBuffer;
 
 public final class OSBtreeBucketSetFreeListFirstIndexPageOperation extends OPageOperationRecord<OSBTreeBucket> {
-  private int pageIndex;
   private int oldPageIndex;
 
   public OSBtreeBucketSetFreeListFirstIndexPageOperation() {
   }
 
-  public OSBtreeBucketSetFreeListFirstIndexPageOperation(int pageIndex, int oldPageIndex) {
-    this.pageIndex = pageIndex;
+  public OSBtreeBucketSetFreeListFirstIndexPageOperation(final int oldPageIndex) {
     this.oldPageIndex = oldPageIndex;
-  }
-
-  public int getFreeListPageIndex() {
-    return pageIndex;
   }
 
   public int getPrevPageIndex() {
@@ -29,17 +23,12 @@ public final class OSBtreeBucketSetFreeListFirstIndexPageOperation extends OPage
   }
 
   @Override
-  protected OSBTreeBucket createPageInstance(OCacheEntry cacheEntry) {
+  protected OSBTreeBucket createPageInstance(final OCacheEntry cacheEntry) {
     return new OSBTreeBucket(cacheEntry);
   }
 
   @Override
-  protected void doRedo(OSBTreeBucket page) {
-    page.setValuesFreeListFirstIndex(pageIndex);
-  }
-
-  @Override
-  protected void doUndo(OSBTreeBucket page) {
+  protected void doUndo(final OSBTreeBucket page) {
     page.setValuesFreeListFirstIndex(oldPageIndex);
   }
 
@@ -54,11 +43,8 @@ public final class OSBtreeBucketSetFreeListFirstIndexPageOperation extends OPage
   }
 
   @Override
-  public int toStream(byte[] content, int offset) {
+  public int toStream(final byte[] content, int offset) {
     offset = super.toStream(content, offset);
-
-    OIntegerSerializer.INSTANCE.serializeNative(pageIndex, content, offset);
-    offset += OIntegerSerializer.INT_SIZE;
 
     OIntegerSerializer.INSTANCE.serializeNative(oldPageIndex, content, offset);
     offset += OIntegerSerializer.INT_SIZE;
@@ -67,19 +53,15 @@ public final class OSBtreeBucketSetFreeListFirstIndexPageOperation extends OPage
   }
 
   @Override
-  public void toStream(ByteBuffer buffer) {
+  public void toStream(final ByteBuffer buffer) {
     super.toStream(buffer);
 
-    buffer.putInt(pageIndex);
     buffer.putInt(oldPageIndex);
   }
 
   @Override
-  public int fromStream(byte[] content, int offset) {
+  public int fromStream(final byte[] content, int offset) {
     offset = super.fromStream(content, offset);
-
-    pageIndex = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
-    offset += OIntegerSerializer.INT_SIZE;
 
     oldPageIndex = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
     offset += OIntegerSerializer.INT_SIZE;
@@ -89,6 +71,6 @@ public final class OSBtreeBucketSetFreeListFirstIndexPageOperation extends OPage
 
   @Override
   public int serializedSize() {
-    return super.serializedSize() + 2 * OIntegerSerializer.INT_SIZE;
+    return super.serializedSize() + OIntegerSerializer.INT_SIZE;
   }
 }

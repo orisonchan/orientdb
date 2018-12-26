@@ -43,11 +43,6 @@ public final class OBonsaiBucketRemoveLeafEntryPageOperation extends OBonsaiBuck
   }
 
   @Override
-  protected void doRedo(final OSBTreeBonsaiBucket page) {
-    page.removeLeafEntry(index, prevKey, prevValue);
-  }
-
-  @Override
   protected void doUndo(final OSBTreeBonsaiBucket page) {
     page.insertLeafEntry(index, prevKey, prevValue);
   }

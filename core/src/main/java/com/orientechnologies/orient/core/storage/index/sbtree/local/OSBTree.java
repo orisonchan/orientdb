@@ -85,17 +85,17 @@ public final class OSBTree<K, V> extends ODurableComponent {
   private static final int MAX_PATH_LENGTH = OGlobalConfiguration.SBTREE_MAX_DEPTH.getValueAsInteger();
 
   private final static long                  ROOT_INDEX       = 0;
-  private final        Comparator<? super K> comparator       = ODefaultComparator.INSTANCE;
-  private final        String                nullFileExtension;
-  private              long                  fileId;
-  private              long                  nullBucketFileId = -1;
-  private              int                   keySize;
-  private              OBinarySerializer<K>  keySerializer;
-  private              OType[]               keyTypes;
-  private              OBinarySerializer<V>  valueSerializer;
-  private              boolean               nullPointerSupport;
-  private final        AtomicLong            bonsayFileId     = new AtomicLong(0);
-  private              OEncryption           encryption;
+  private final Comparator<? super K> comparator       = ODefaultComparator.INSTANCE;
+  private final String                nullFileExtension;
+  private       long                  fileId;
+  private       long                  nullBucketFileId = -1;
+  private       int                   keySize;
+  private       OBinarySerializer<K>  keySerializer;
+  private       OType[]               keyTypes;
+  private       OBinarySerializer<V>  valueSerializer;
+  private       boolean               nullPointerSupport;
+  private final AtomicLong            bonsaiFileId     = new AtomicLong(0);
+  private       OEncryption           encryption;
 
   public OSBTree(final String name, final String dataFileExtension, final String nullFileExtension,
       final OAbstractPaginatedStorage storage) {
@@ -228,7 +228,7 @@ public final class OSBTree<K, V> extends ODurableComponent {
   }
 
   private boolean put(final K key, final V value, final OIndexEngine.Validator<K, V> validator) throws IOException {
-    return update(key, (x, bonsayFileId) -> OIndexUpdateAction.changed(value), validator);
+    return update(key, (x, bonsaiFileId) -> OIndexUpdateAction.changed(value), validator);
   }
 
   @SuppressWarnings("unchecked")
@@ -277,7 +277,7 @@ public final class OSBTree<K, V> extends ODurableComponent {
             System.arraycopy(encryptedKey, 0, rawKey, OIntegerSerializer.INT_SIZE, encryptedKey.length);
           }
 
-          final OIndexUpdateAction<V> updatedValue = updater.update(oldValue, bonsayFileId);
+          final OIndexUpdateAction<V> updatedValue = updater.update(oldValue, bonsaiFileId);
           if (updatedValue.isChange()) {
             V value = updatedValue.getValue();
 
@@ -316,12 +316,12 @@ public final class OSBTree<K, V> extends ODurableComponent {
 
               assert oldRawValue != null;
               if (oldRawValue.length == serializeValue.length) {
-                keyBucket.updateValue(bucketSearchResult.itemIndex, serializeValue, oldRawValue, keySerializer, encryption != null);
+                keyBucket.updateValue(bucketSearchResult.itemIndex, serializeValue, keySerializer, encryption != null);
                 releasePageFromWrite(keyBucket, atomicOperation);
 
                 return true;
               } else {
-                keyBucket.removeLeafEntry(bucketSearchResult.itemIndex, rawKey, oldRawValue);
+                keyBucket.removeLeafEntry(bucketSearchResult.itemIndex, rawKey.length, oldRawValue.length);
                 insertionIndex = bucketSearchResult.itemIndex;
                 sizeDiff = 0;
               }
@@ -371,7 +371,7 @@ public final class OSBTree<K, V> extends ODurableComponent {
             nullBucket = new ONullBucket<>(cacheEntry, valueSerializer, isNew);
             final OSBTreeValue<V> oldValue = nullBucket.getValue();
             final V oldValueValue = oldValue == null ? null : readValue(oldValue);
-            final OIndexUpdateAction<V> updatedValue = updater.update(oldValueValue, bonsayFileId);
+            final OIndexUpdateAction<V> updatedValue = updater.update(oldValueValue, bonsaiFileId);
             if (updatedValue.isChange()) {
               final V value = updatedValue.getValue();
               final int valueSize = valueSerializer.getObjectSize(value);
@@ -415,7 +415,7 @@ public final class OSBTree<K, V> extends ODurableComponent {
       } finally {
         releaseExclusiveLock();
       }
-    } catch (final Exception e) {
+    } catch (final IOException e) {
       rollback = true;
       throw e;
     } finally {
@@ -643,7 +643,7 @@ public final class OSBTree<K, V> extends ODurableComponent {
       }
 
       removedValue = keyBucket.getRawValue(bucketSearchResult.itemIndex, keySerializer, valueSerializer, encryption);
-      keyBucket.removeLeafEntry(bucketSearchResult.itemIndex, rawKey, removedValue);
+      keyBucket.removeLeafEntry(bucketSearchResult.itemIndex, rawKey.length, removedValue.length);
       updateSize(-1, atomicOperation);
     } finally {
       releasePageFromWrite(keyBucket, atomicOperation);
@@ -1181,8 +1181,7 @@ public final class OSBTree<K, V> extends ODurableComponent {
   }
 
   private BucketSearchResult splitBucket(final List<Long> path, final int keyIndex, final K keyToInsert,
-      final OAtomicOperation atomicOperation)
-      throws IOException {
+      final OAtomicOperation atomicOperation) throws IOException {
     final long pageIndex = path.get(path.size() - 1);
 
     OSBTreeBucket<K, V> bucketToSplit = null;
@@ -1253,8 +1252,7 @@ public final class OSBTree<K, V> extends ODurableComponent {
       try {
         parentBucket = new OSBTreeBucket<>(parentCacheEntry);
         final OSBTreeBucket.SBTreeEntry<K, V> parentEntry = new OSBTreeBucket.SBTreeEntry<>(pageIndex,
-            rightBucketEntry.getPageIndex(),
-            separationKey, null);
+            rightBucketEntry.getPageIndex(), separationKey, null);
 
         int insertionIndex = parentBucket.find(separationKey, encryption, keySerializer);
         assert insertionIndex < 0;
@@ -1370,7 +1368,7 @@ public final class OSBTree<K, V> extends ODurableComponent {
 
   private BucketSearchResult findBucket(final K key) throws IOException {
     long pageIndex = ROOT_INDEX;
-    final ArrayList<Long> path = new ArrayList<>();
+    final ArrayList<Long> path = new ArrayList<>(8);
 
     while (true) {
       if (path.size() > MAX_PATH_LENGTH) {

@@ -9,19 +9,13 @@ import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRec
 import java.nio.ByteBuffer;
 
 public final class OClusterStateVOneSetSizeOperation extends OPageOperationRecord<OPaginatedClusterStateV1> {
-  private int size;
   private int oldSize;
 
   public OClusterStateVOneSetSizeOperation() {
   }
 
-  public OClusterStateVOneSetSizeOperation(int size, int oldSize) {
-    this.size = size;
+  public OClusterStateVOneSetSizeOperation(final int oldSize) {
     this.oldSize = oldSize;
-  }
-
-  public int getSize() {
-    return size;
   }
 
   int getOldSize() {
@@ -29,17 +23,12 @@ public final class OClusterStateVOneSetSizeOperation extends OPageOperationRecor
   }
 
   @Override
-  protected OPaginatedClusterStateV1 createPageInstance(OCacheEntry cacheEntry) {
-    return new OPaginatedClusterStateV1(cacheEntry, false);
+  protected OPaginatedClusterStateV1 createPageInstance(final OCacheEntry cacheEntry) {
+    return new OPaginatedClusterStateV1(cacheEntry);
   }
 
   @Override
-  protected void doRedo(OPaginatedClusterStateV1 clusterState) {
-    clusterState.setSize(size);
-  }
-
-  @Override
-  protected void doUndo(OPaginatedClusterStateV1 clusterState) {
+  protected void doUndo(final OPaginatedClusterStateV1 clusterState) {
     clusterState.setSize(oldSize);
   }
 
@@ -54,11 +43,8 @@ public final class OClusterStateVOneSetSizeOperation extends OPageOperationRecor
   }
 
   @Override
-  public int toStream(byte[] content, int offset) {
+  public int toStream(final byte[] content, int offset) {
     offset = super.toStream(content, offset);
-
-    OIntegerSerializer.INSTANCE.serializeNative(size, content, offset);
-    offset += OIntegerSerializer.INT_SIZE;
 
     OIntegerSerializer.INSTANCE.serializeNative(oldSize, content, offset);
     offset += OIntegerSerializer.INT_SIZE;
@@ -67,19 +53,15 @@ public final class OClusterStateVOneSetSizeOperation extends OPageOperationRecor
   }
 
   @Override
-  public void toStream(ByteBuffer buffer) {
+  public void toStream(final ByteBuffer buffer) {
     super.toStream(buffer);
 
-    buffer.putInt(size);
     buffer.putInt(oldSize);
   }
 
   @Override
-  public int fromStream(byte[] content, int offset) {
+  public int fromStream(final byte[] content, int offset) {
     offset = super.fromStream(content, offset);
-
-    size = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
-    offset += OIntegerSerializer.INT_SIZE;
 
     oldSize = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
     offset += OIntegerSerializer.INT_SIZE;
@@ -89,6 +71,6 @@ public final class OClusterStateVOneSetSizeOperation extends OPageOperationRecor
 
   @Override
   public int serializedSize() {
-    return super.serializedSize() + 2 * OIntegerSerializer.INT_SIZE;
+    return super.serializedSize() + OIntegerSerializer.INT_SIZE;
   }
 }

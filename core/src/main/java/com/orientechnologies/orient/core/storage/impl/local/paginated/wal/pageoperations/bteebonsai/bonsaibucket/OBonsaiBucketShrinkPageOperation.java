@@ -1,7 +1,6 @@
 package com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.bteebonsai.bonsaibucket;
 
 import com.orientechnologies.common.serialization.types.OIntegerSerializer;
-import com.orientechnologies.orient.core.serialization.serializer.binary.OBinarySerializerFactory;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes;
 import com.orientechnologies.orient.core.storage.index.sbtreebonsai.local.OSBTreeBonsaiBucket;
 
@@ -11,30 +10,18 @@ import java.util.List;
 
 public final class OBonsaiBucketShrinkPageOperation extends OBonsaiBucketPageOperation {
   private List<byte[]> removedEntries;
-  private int          newSize;
 
   public OBonsaiBucketShrinkPageOperation() {
   }
 
-  public OBonsaiBucketShrinkPageOperation(final int pageOffset, final List<byte[]> removedEntries, final int newSize) {
+  public OBonsaiBucketShrinkPageOperation(final int pageOffset, final List<byte[]> removedEntries) {
     super(pageOffset);
     this.removedEntries = removedEntries;
-    this.newSize = newSize;
   }
 
   @Override
   public final byte getId() {
     return WALRecordTypes.SBTREE_BONSAI_BUCKET_SHRINK;
-  }
-
-  @Override
-  protected final void doRedo(final OSBTreeBonsaiBucket page) {
-    final byte keySerializerId = page.getKeySerializerId();
-    final byte valueSerializerId = page.getValueSerializerId();
-    final OBinarySerializerFactory factory = OBinarySerializerFactory.getInstance();
-
-    //noinspection unchecked
-    page.shrink(newSize, factory.getObjectSerializer(keySerializerId), factory.getObjectSerializer(valueSerializerId));
   }
 
   @Override
@@ -44,7 +31,6 @@ public final class OBonsaiBucketShrinkPageOperation extends OBonsaiBucketPageOpe
 
   @Override
   protected void serializeToByteBuffer(final ByteBuffer buffer) {
-    buffer.putInt(newSize);
     buffer.putInt(removedEntries.size());
 
     for (final byte[] entry : removedEntries) {
@@ -54,8 +40,6 @@ public final class OBonsaiBucketShrinkPageOperation extends OBonsaiBucketPageOpe
 
   @Override
   protected void deserializeFromByteBuffer(final ByteBuffer buffer) {
-    newSize = buffer.getInt();
-
     final int removedLen = buffer.getInt();
     removedEntries = new ArrayList<>(removedLen);
 
@@ -67,7 +51,7 @@ public final class OBonsaiBucketShrinkPageOperation extends OBonsaiBucketPageOpe
 
   @Override
   public final int serializedSize() {
-    int totalSize = (removedEntries.size() + 2) * OIntegerSerializer.INT_SIZE;
+    int totalSize = (removedEntries.size() + 1) * OIntegerSerializer.INT_SIZE;
     for (final byte[] entry : removedEntries) {
       totalSize += entry.length;
     }

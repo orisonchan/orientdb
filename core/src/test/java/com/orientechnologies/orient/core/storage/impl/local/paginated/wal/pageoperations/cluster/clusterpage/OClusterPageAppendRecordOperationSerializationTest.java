@@ -11,8 +11,6 @@ import java.util.Random;
 public class OClusterPageAppendRecordOperationSerializationTest {
   @Test
   public void testSerializeStream() {
-    final int recordVersion = 12;
-
     final byte[] record = new byte[14];
     final Random random = new Random();
     random.nextBytes(record);
@@ -22,7 +20,7 @@ public class OClusterPageAppendRecordOperationSerializationTest {
     final int fileId = 12;
     final OOperationUnitId operationUnitId = OOperationUnitId.generateId();
 
-    final OClusterPageAppendRecordOperation operation = new OClusterPageAppendRecordOperation(recordVersion, record, index);
+    final OClusterPageAppendRecordOperation operation = new OClusterPageAppendRecordOperation(index);
 
     operation.setFileId(fileId);
     operation.setPageIndex(pageIndex);
@@ -42,14 +40,10 @@ public class OClusterPageAppendRecordOperationSerializationTest {
     Assert.assertEquals(fileId, restoredOperation.getFileId());
     Assert.assertEquals(index, restoredOperation.getIndex());
     Assert.assertEquals(operationUnitId, restoredOperation.getOperationUnitId());
-    Assert.assertEquals(recordVersion, restoredOperation.getRecordVersion());
-    Assert.assertArrayEquals(record, restoredOperation.getRecord());
   }
 
   @Test
   public void testSerializeByteBuffer() {
-    final int recordVersion = 12;
-
     final byte[] record = new byte[14];
     final Random random = new Random();
     random.nextBytes(record);
@@ -59,7 +53,7 @@ public class OClusterPageAppendRecordOperationSerializationTest {
     final int fileId = 12;
     final OOperationUnitId operationUnitId = OOperationUnitId.generateId();
 
-    final OClusterPageAppendRecordOperation operation = new OClusterPageAppendRecordOperation(recordVersion, record, index);
+    final OClusterPageAppendRecordOperation operation = new OClusterPageAppendRecordOperation(index);
 
     operation.setFileId(fileId);
     operation.setPageIndex(pageIndex);
@@ -80,7 +74,5 @@ public class OClusterPageAppendRecordOperationSerializationTest {
     Assert.assertEquals(fileId, restoredOperation.getFileId());
     Assert.assertEquals(index, restoredOperation.getIndex());
     Assert.assertEquals(operationUnitId, restoredOperation.getOperationUnitId());
-    Assert.assertEquals(recordVersion, restoredOperation.getRecordVersion());
-    Assert.assertArrayEquals(record, restoredOperation.getRecord());
   }
 }

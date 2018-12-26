@@ -15,11 +15,6 @@ public final class OSBTreeBucketConvertToNonLeafPageOperation extends OPageOpera
   }
 
   @Override
-  protected final void doRedo(final OSBTreeBucket page) {
-    page.convertToNonLeafPage();
-  }
-
-  @Override
   protected final void doUndo(final OSBTreeBucket page) {
     page.convertToLeafPage();
   }

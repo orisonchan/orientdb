@@ -23,11 +23,6 @@ public final class OBonsaiBucketSetDeletedPageOperation extends OBonsaiBucketPag
   }
 
   @Override
-  protected final void doRedo(final OSBTreeBonsaiBucket page) {
-    page.setDeleted();
-  }
-
-  @Override
   protected final void doUndo(final OSBTreeBonsaiBucket page) {
     page.init(isLeaf, keySerializerId, valueSerializerId);
   }

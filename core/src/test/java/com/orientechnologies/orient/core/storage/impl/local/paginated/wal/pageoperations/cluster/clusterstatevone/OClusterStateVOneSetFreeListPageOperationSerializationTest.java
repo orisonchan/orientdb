@@ -15,11 +15,9 @@ public class OClusterStateVOneSetFreeListPageOperationSerializationTest {
     final OOperationUnitId operationUnitId = OOperationUnitId.generateId();
 
     final int index = 54;
-    final int freeListPage = 23;
     final int oldFreeListPage = 12;
 
-    OClusterStateVOneSetFreeListPageOperation operation = new OClusterStateVOneSetFreeListPageOperation(index, freeListPage,
-        oldFreeListPage);
+    OClusterStateVOneSetFreeListPageOperation operation = new OClusterStateVOneSetFreeListPageOperation(index, oldFreeListPage);
 
     operation.setFileId(fileId);
     operation.setPageIndex(pageIndex);
@@ -39,7 +37,6 @@ public class OClusterStateVOneSetFreeListPageOperationSerializationTest {
     Assert.assertEquals(pageIndex, restoredOperation.getPageIndex());
     Assert.assertEquals(operationUnitId, restoredOperation.getOperationUnitId());
     Assert.assertEquals(index, restoredOperation.getIndex());
-    Assert.assertEquals(freeListPage, restoredOperation.getFreeListPage());
     Assert.assertEquals(oldFreeListPage, restoredOperation.getOldFreeListPage());
   }
 
@@ -50,11 +47,9 @@ public class OClusterStateVOneSetFreeListPageOperationSerializationTest {
     final OOperationUnitId operationUnitId = OOperationUnitId.generateId();
 
     final int index = 54;
-    final int freeListPage = 23;
     final int oldFreeListPage = 12;
 
-    OClusterStateVOneSetFreeListPageOperation operation = new OClusterStateVOneSetFreeListPageOperation(index, freeListPage,
-        oldFreeListPage);
+    OClusterStateVOneSetFreeListPageOperation operation = new OClusterStateVOneSetFreeListPageOperation(index, oldFreeListPage);
 
     operation.setFileId(fileId);
     operation.setPageIndex(pageIndex);
@@ -76,7 +71,6 @@ public class OClusterStateVOneSetFreeListPageOperationSerializationTest {
     Assert.assertEquals(pageIndex, restoredOperation.getPageIndex());
     Assert.assertEquals(operationUnitId, restoredOperation.getOperationUnitId());
     Assert.assertEquals(index, restoredOperation.getIndex());
-    Assert.assertEquals(freeListPage, restoredOperation.getFreeListPage());
     Assert.assertEquals(oldFreeListPage, restoredOperation.getOldFreeListPage());
   }
 }

@@ -15,10 +15,9 @@ public class OSBTreeBucketSetTreeSizePageOperationSerializationTest {
     final int pageIndex = 34;
     final OOperationUnitId operationUnitId = OOperationUnitId.generateId();
 
-    final int treeSize = 34;
     final int prevTreeSize = 54;
 
-    OSBTreeBucketSetTreeSizePageOperation operation = new OSBTreeBucketSetTreeSizePageOperation(treeSize, prevTreeSize);
+    OSBTreeBucketSetTreeSizePageOperation operation = new OSBTreeBucketSetTreeSizePageOperation(prevTreeSize);
     operation.setFileId(fileId);
     operation.setPageIndex(pageIndex);
     operation.setOperationUnitId(operationUnitId);
@@ -36,7 +35,6 @@ public class OSBTreeBucketSetTreeSizePageOperationSerializationTest {
     Assert.assertEquals(fileId, restoredOperation.getFileId());
     Assert.assertEquals(pageIndex, restoredOperation.getPageIndex());
     Assert.assertEquals(operationUnitId, restoredOperation.getOperationUnitId());
-    Assert.assertEquals(treeSize, restoredOperation.getTreeSize());
     Assert.assertEquals(prevTreeSize, restoredOperation.getPrevTreeSize());
   }
 
@@ -46,10 +44,9 @@ public class OSBTreeBucketSetTreeSizePageOperationSerializationTest {
     final int pageIndex = 34;
     final OOperationUnitId operationUnitId = OOperationUnitId.generateId();
 
-    final int treeSize = 34;
     final int prevTreeSize = 54;
 
-    OSBTreeBucketSetTreeSizePageOperation operation = new OSBTreeBucketSetTreeSizePageOperation(treeSize, prevTreeSize);
+    OSBTreeBucketSetTreeSizePageOperation operation = new OSBTreeBucketSetTreeSizePageOperation(prevTreeSize);
     operation.setFileId(fileId);
     operation.setPageIndex(pageIndex);
     operation.setOperationUnitId(operationUnitId);
@@ -68,7 +65,6 @@ public class OSBTreeBucketSetTreeSizePageOperationSerializationTest {
     Assert.assertEquals(fileId, restoredOperation.getFileId());
     Assert.assertEquals(pageIndex, restoredOperation.getPageIndex());
     Assert.assertEquals(operationUnitId, restoredOperation.getOperationUnitId());
-    Assert.assertEquals(treeSize, restoredOperation.getTreeSize());
     Assert.assertEquals(prevTreeSize, restoredOperation.getPrevTreeSize());
   }
 }
