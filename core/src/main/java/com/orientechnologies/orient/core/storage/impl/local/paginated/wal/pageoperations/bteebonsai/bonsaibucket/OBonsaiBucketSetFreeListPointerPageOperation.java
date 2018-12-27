@@ -20,6 +20,14 @@ public final class OBonsaiBucketSetFreeListPointerPageOperation extends OBonsaiB
     this.prevPageOffset = prevPageOffset;
   }
 
+  int getPrevPageIndex() {
+    return prevPageIndex;
+  }
+
+  int getPrevPageOffset() {
+    return prevPageOffset;
+  }
+
   @Override
   protected final void doUndo(final OSBTreeBonsaiBucket page) {
     page.setFreeListPointer(new OBonsaiBucketPointer(prevPageIndex, prevPageOffset));

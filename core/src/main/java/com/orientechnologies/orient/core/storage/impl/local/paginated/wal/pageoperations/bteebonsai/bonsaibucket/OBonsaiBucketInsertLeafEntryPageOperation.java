@@ -23,6 +23,18 @@ public final class OBonsaiBucketInsertLeafEntryPageOperation extends OBonsaiBuck
     this.valueSize = valueSize;
   }
 
+  public int getIndex() {
+    return index;
+  }
+
+  public int getKeySize() {
+    return keySize;
+  }
+
+  public int getValueSize() {
+    return valueSize;
+  }
+
   @Override
   public final byte getId() {
     return WALRecordTypes.SBTREE_BONSAI_BUCKET_INSERT_LEAF_ENTRY;

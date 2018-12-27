@@ -22,6 +22,18 @@ public final class OBonsaiBucketSetDeletedPageOperation extends OBonsaiBucketPag
     this.isLeaf = isLeaf;
   }
 
+  public byte getKeySerializerId() {
+    return keySerializerId;
+  }
+
+  public byte getValueSerializerId() {
+    return valueSerializerId;
+  }
+
+  public boolean isLeaf() {
+    return isLeaf;
+  }
+
   @Override
   protected final void doUndo(final OSBTreeBonsaiBucket page) {
     page.init(isLeaf, keySerializerId, valueSerializerId);

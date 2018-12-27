@@ -19,6 +19,14 @@ public final class OBonsaiSysBucketSetFreeListHeadPageOperation extends OBonsaiS
     this.prevFreeListPageOffset = prevFreeListPageOffset;
   }
 
+  int getPrevFreeListPageIndex() {
+    return prevFreeListPageIndex;
+  }
+
+  int getPrevFreeListPageOffset() {
+    return prevFreeListPageOffset;
+  }
+
   @Override
   protected final void doUndo(final OSysBucket page) {
     page.setFreeListHead(new OBonsaiBucketPointer(prevFreeListPageIndex, prevFreeListPageOffset));

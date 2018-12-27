@@ -18,6 +18,10 @@ public final class OBonsaiBucketSetTreeSizePageOperation extends OBonsaiBucketPa
     this.prevTreeSize = prevTreeSize;
   }
 
+  int getPrevTreeSize() {
+    return prevTreeSize;
+  }
+
   @Override
   public byte getId() {
     return WALRecordTypes.SBTREE_BONSAI_BUCKET_SET_TREE_SIZE;

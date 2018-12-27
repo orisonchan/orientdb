@@ -19,6 +19,10 @@ public final class OBonsaiBucketShrinkPageOperation extends OBonsaiBucketPageOpe
     this.removedEntries = removedEntries;
   }
 
+  List<byte[]> getRemovedEntries() {
+    return removedEntries;
+  }
+
   @Override
   public final byte getId() {
     return WALRecordTypes.SBTREE_BONSAI_BUCKET_SHRINK;

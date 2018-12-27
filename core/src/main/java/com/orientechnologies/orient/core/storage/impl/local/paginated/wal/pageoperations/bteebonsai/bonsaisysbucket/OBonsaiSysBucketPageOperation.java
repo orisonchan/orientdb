@@ -19,6 +19,16 @@ abstract class OBonsaiSysBucketPageOperation extends OPageOperationRecord<OSysBu
   }
 
   @Override
+  public final int toStream(final byte[] content, int offset) {
+    offset = super.toStream(content, offset);
+
+    final ByteBuffer buffer = createNativeByteBuffer(content, offset);
+    serializeToByteBuffer(buffer);
+
+    return buffer.position();
+  }
+
+  @Override
   public final void toStream(final ByteBuffer buffer) {
     super.toStream(buffer);
     serializeToByteBuffer(buffer);

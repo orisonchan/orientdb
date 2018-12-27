@@ -19,6 +19,14 @@ public final class OBonsaiSysBucketSetFreeSpacePointerPageOperation extends OBon
     this.prevPointerPageOffset = prevPointerPageOffset;
   }
 
+  int getPrevPointerPageIndex() {
+    return prevPointerPageIndex;
+  }
+
+  int getPrevPointerPageOffset() {
+    return prevPointerPageOffset;
+  }
+
   @Override
   protected final void doUndo(final OSysBucket page) {
     page.setFreeSpacePointer(new OBonsaiBucketPointer(prevPointerPageIndex, prevPointerPageOffset));

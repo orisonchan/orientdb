@@ -21,6 +21,14 @@ public final class OBonsaiBucketSetRightSiblingPageOperation extends OBonsaiBuck
     this.prevRightSiblingOffset = prevRightSiblingOffset;
   }
 
+  int getPrevRightSiblingPageIndex() {
+    return prevRightSiblingPageIndex;
+  }
+
+  int getPrevRightSiblingOffset() {
+    return prevRightSiblingOffset;
+  }
+
   @Override
   protected final void doUndo(final OSBTreeBonsaiBucket page) {
     page.setRightSibling(new OBonsaiBucketPointer(prevRightSiblingPageIndex, prevRightSiblingPageIndex));

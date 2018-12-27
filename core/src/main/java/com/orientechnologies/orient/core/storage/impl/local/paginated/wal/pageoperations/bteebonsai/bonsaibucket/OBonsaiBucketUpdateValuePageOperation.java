@@ -9,6 +9,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.nio.ByteBuffer;
 
+@SuppressFBWarnings("EI_EXPOSE_REP")
 public final class OBonsaiBucketUpdateValuePageOperation extends OBonsaiBucketPageOperation {
   private int    index;
   private byte[] prevValue;
@@ -23,11 +24,18 @@ public final class OBonsaiBucketUpdateValuePageOperation extends OBonsaiBucketPa
     this.prevValue = prevValue;
   }
 
+  public int getIndex() {
+    return index;
+  }
+
+  public byte[] getPrevValue() {
+    return prevValue;
+  }
+
   @Override
   public final byte getId() {
     return WALRecordTypes.SBTREE_BONSAI_BUCKET_UPDATE_VALUE;
   }
-
 
   @Override
   protected final void doUndo(final OSBTreeBonsaiBucket page) {

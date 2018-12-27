@@ -8,6 +8,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.nio.ByteBuffer;
 
+@SuppressFBWarnings("EI_EXPOSE_REP")
 public final class OBonsaiBucketRemoveNonLeafEntryPageOperation extends OBonsaiBucketPageOperation {
   private int    entryIndex;
   private byte[] key;
@@ -32,6 +33,30 @@ public final class OBonsaiBucketRemoveNonLeafEntryPageOperation extends OBonsaiB
     this.leftPageOffset = leftPageOffset;
     this.rightPageIndex = rightPageIndex;
     this.rightPageOffset = rightPageOffset;
+  }
+
+  public int getEntryIndex() {
+    return entryIndex;
+  }
+
+  public byte[] getKey() {
+    return key;
+  }
+
+  int getLeftPageIndex() {
+    return leftPageIndex;
+  }
+
+  int getLeftPageOffset() {
+    return leftPageOffset;
+  }
+
+  int getRightPageIndex() {
+    return rightPageIndex;
+  }
+
+  int getRightPageOffset() {
+    return rightPageOffset;
   }
 
   @Override

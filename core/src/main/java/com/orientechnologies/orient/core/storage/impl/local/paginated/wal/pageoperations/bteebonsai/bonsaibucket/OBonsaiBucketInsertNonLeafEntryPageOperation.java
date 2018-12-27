@@ -28,6 +28,22 @@ public final class OBonsaiBucketInsertNonLeafEntryPageOperation extends OBonsaiB
     this.prevChildPageOffset = prevChildPageOffset;
   }
 
+  public int getIndex() {
+    return index;
+  }
+
+  public int getKeySize() {
+    return keySize;
+  }
+
+  int getPrevChildPageIndex() {
+    return prevChildPageIndex;
+  }
+
+  int getPrevChildPageOffset() {
+    return prevChildPageOffset;
+  }
+
   @Override
   public final byte getId() {
     return WALRecordTypes.SBTREE_BONSAI_BUCKET_INSERT_NON_LEAF_ENTRY;

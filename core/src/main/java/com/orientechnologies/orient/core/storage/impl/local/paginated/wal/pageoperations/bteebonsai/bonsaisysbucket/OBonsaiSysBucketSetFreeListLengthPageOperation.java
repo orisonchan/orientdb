@@ -16,6 +16,10 @@ public final class OBonsaiSysBucketSetFreeListLengthPageOperation extends OBonsa
     this.prevLength = prevLength;
   }
 
+  int getPrevLength() {
+    return prevLength;
+  }
+
   @Override
   protected void serializeToByteBuffer(final ByteBuffer buffer) {
     buffer.putInt(prevLength);
