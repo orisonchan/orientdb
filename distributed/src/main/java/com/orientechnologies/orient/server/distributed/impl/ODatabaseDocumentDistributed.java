@@ -11,23 +11,12 @@ import com.orientechnologies.common.log.OLogManager;
 import com.orientechnologies.common.util.OPair;
 import com.orientechnologies.orient.core.Orient;
 import com.orientechnologies.orient.core.compression.impl.OZIPCompressionUtil;
-import com.orientechnologies.orient.core.db.ODatabaseDocumentInternal;
-import com.orientechnologies.orient.core.db.ODatabaseRecordThreadLocal;
-import com.orientechnologies.orient.core.db.OScenarioThreadLocal;
-import com.orientechnologies.orient.core.db.OSharedContext;
-import com.orientechnologies.orient.core.db.OrientDBConfig;
+import com.orientechnologies.orient.core.db.*;
 import com.orientechnologies.orient.core.db.document.ODatabaseDocumentEmbedded;
 import com.orientechnologies.orient.core.db.record.OIdentifiable;
 import com.orientechnologies.orient.core.db.record.ORecordOperation;
 import com.orientechnologies.orient.core.enterprise.OEnterpriseEndpoint;
-import com.orientechnologies.orient.core.exception.OCommandExecutionException;
-import com.orientechnologies.orient.core.exception.OConcurrentCreateException;
-import com.orientechnologies.orient.core.exception.OConcurrentModificationException;
-import com.orientechnologies.orient.core.exception.ODatabaseException;
-import com.orientechnologies.orient.core.exception.OLowDiskSpaceException;
-import com.orientechnologies.orient.core.exception.ORecordNotFoundException;
-import com.orientechnologies.orient.core.exception.OSchemaException;
-import com.orientechnologies.orient.core.exception.OValidationException;
+import com.orientechnologies.orient.core.exception.*;
 import com.orientechnologies.orient.core.id.ORID;
 import com.orientechnologies.orient.core.id.ORecordId;
 import com.orientechnologies.orient.core.index.OIndex;
@@ -51,15 +40,8 @@ import com.orientechnologies.orient.core.tx.OTransactionIndexChangesPerKey;
 import com.orientechnologies.orient.core.tx.OTransactionInternal;
 import com.orientechnologies.orient.core.tx.OTransactionOptimistic;
 import com.orientechnologies.orient.server.OServer;
-import com.orientechnologies.orient.server.distributed.ODistributedConfiguration;
-import com.orientechnologies.orient.server.distributed.ODistributedDatabase;
-import com.orientechnologies.orient.server.distributed.ODistributedException;
-import com.orientechnologies.orient.server.distributed.ODistributedRequest;
-import com.orientechnologies.orient.server.distributed.ODistributedRequestId;
-import com.orientechnologies.orient.server.distributed.ODistributedResponse;
-import com.orientechnologies.orient.server.distributed.ODistributedServerLog;
-import com.orientechnologies.orient.server.distributed.ODistributedServerManager;
-import com.orientechnologies.orient.server.distributed.ODistributedTxContext;
+import com.orientechnologies.orient.server.distributed.*;
+import com.orientechnologies.orient.server.distributed.impl.metadata.OClassDistributed;
 import com.orientechnologies.orient.server.distributed.impl.metadata.OSharedContextDistributed;
 import com.orientechnologies.orient.server.distributed.impl.task.OCopyDatabaseChunkTask;
 import com.orientechnologies.orient.server.distributed.impl.task.ORunQueryExecutionPlanTask;
@@ -72,21 +54,11 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeSet;
+import java.util.*;
 import java.util.concurrent.Callable;
 
 import static com.orientechnologies.orient.core.config.OGlobalConfiguration.DISTRIBUTED_CONCURRENT_TX_MAX_AUTORETRY;
-import static com.orientechnologies.orient.server.distributed.impl.ONewDistributedTxContextImpl.Status.FAILED;
-import static com.orientechnologies.orient.server.distributed.impl.ONewDistributedTxContextImpl.Status.SUCCESS;
-import static com.orientechnologies.orient.server.distributed.impl.ONewDistributedTxContextImpl.Status.TIMEDOUT;
+import static com.orientechnologies.orient.server.distributed.impl.ONewDistributedTxContextImpl.Status.*;
 
 /**
  * Created by tglman on 30/03/17.
@@ -488,7 +460,7 @@ public class ODatabaseDocumentDistributed extends ODatabaseDocumentEmbedded {
         if (schemaClass != null) {
           if (schemaClass.isAbstract())
             throw new OSchemaException("Document belongs to abstract class " + schemaClass.getName() + " and cannot be saved");
-          rid.setClusterId(schemaClass.getClusterForNewInstance((ODocument) record));
+          rid.setClusterId(((OClassDistributed) schemaClass).getClusterForNewInstance(this, (ODocument) record));
         } else
           throw new ODatabaseException("Cannot save (4) document " + record + ": no class or cluster defined");
       } else {
@@ -532,10 +504,16 @@ public class ODatabaseDocumentDistributed extends ODatabaseDocumentEmbedded {
         getStorageDistributed().checkNodeIsMaster(localNodeName, dbCfg, "Transaction Commit");
         ONewDistributedTransactionManager txManager = new ONewDistributedTransactionManager(getStorageDistributed(), dManager,
             getStorageDistributed().getLocalDistributedDatabase());
-        Set<String> otherNodesInQuorum = txManager
-            .getAvailableNodesButLocal(dbCfg, txManager.getInvolvedClusters(iTx.getRecordOperations()), getLocalNodeName());
-        List<String> online = dManager.getOnlineNodes(getName());
-        if (online.size() < ((otherNodesInQuorum.size() + 1) / 2) + 1) {
+        int quorum = 0;
+        for (String clusterName : txManager.getInvolvedClusters(iTx.getRecordOperations())) {
+          final List<String> clusterServers = dbCfg.getServers(clusterName, null);
+          final int writeQuorum = dbCfg.getWriteQuorum(clusterName, clusterServers.size(), localNodeName);
+          quorum = Math.max(quorum, writeQuorum);
+        }
+        final int availableNodes = dManager.getAvailableNodes(getName());
+
+        if (quorum > availableNodes) {
+          List<String> online = dManager.getOnlineNodes(getName());
           throw new ODistributedException("No enough nodes online to execute the operation, online nodes: " + online);
         }
 
@@ -760,13 +738,23 @@ public class ODatabaseDocumentDistributed extends ODatabaseDocumentEmbedded {
       OIndex<?> index = getSharedContext().getIndexManager().getRawIndex(change.getKey());
       if (OClass.INDEX_TYPE.UNIQUE.name().equals(index.getType()) || OClass.INDEX_TYPE.UNIQUE_HASH_INDEX.name()
           .equals(index.getType())) {
-        if (!change.getValue().nullKeyChanges.entries.isEmpty()) {
+        OTransactionIndexChangesPerKey nullKeyChanges = change.getValue().nullKeyChanges;
+        if (!nullKeyChanges.entries.isEmpty()) {
           OIdentifiable old = (OIdentifiable) index.get(null);
-          Object newValue = change.getValue().nullKeyChanges.entries.get(change.getValue().nullKeyChanges.entries.size() - 1).value;
+          Object newValue = nullKeyChanges.entries.get(nullKeyChanges.entries.size() - 1).value;
           if (old != null && !old.equals(newValue)) {
-            throw new ORecordDuplicatedException(String
-                .format("Cannot index record %s: found duplicated key '%s' in index '%s' previously assigned to the record %s",
-                    newValue, null, getName(), old.getIdentity()), getName(), old.getIdentity(), null);
+            boolean oldValueRemoved = false;
+            for (OTransactionIndexChangesPerKey.OTransactionIndexEntry entry : nullKeyChanges.entries) {
+              if (entry.value != null && entry.value.equals(old) && entry.operation == OTransactionIndexChanges.OPERATION.REMOVE) {
+                oldValueRemoved = true;
+                break;
+              }
+            }
+            if (!oldValueRemoved) {
+              throw new ORecordDuplicatedException(String
+                  .format("Cannot index record %s: found duplicated key '%s' in index '%s' previously assigned to the record %s",
+                      newValue, null, getName(), old.getIdentity()), getName(), old.getIdentity(), null);
+            }
           }
         }
 
@@ -775,9 +763,20 @@ public class ODatabaseDocumentDistributed extends ODatabaseDocumentEmbedded {
           if (!changesPerKey.entries.isEmpty()) {
             Object newValue = changesPerKey.entries.get(changesPerKey.entries.size() - 1).value;
             if (old != null && !old.equals(newValue)) {
-              throw new ORecordDuplicatedException(String
-                  .format("Cannot index record %s: found duplicated key '%s' in index '%s' previously assigned to the record %s",
-                      newValue, changesPerKey.key, getName(), old.getIdentity()), getName(), old.getIdentity(), changesPerKey.key);
+              boolean oldValueRemoved = false;
+              for (OTransactionIndexChangesPerKey.OTransactionIndexEntry entry : changesPerKey.entries) {
+                if (entry.value != null && entry.value.equals(old)
+                    && entry.operation == OTransactionIndexChanges.OPERATION.REMOVE) {
+                  oldValueRemoved = true;
+                  break;
+                }
+              }
+              if (!oldValueRemoved) {
+                throw new ORecordDuplicatedException(String
+                    .format("Cannot index record %s: found duplicated key '%s' in index '%s' previously assigned to the record %s",
+                        newValue, changesPerKey.key, getName(), old.getIdentity()), getName(), old.getIdentity(),
+                    changesPerKey.key);
+              }
             }
           }
         }
@@ -808,7 +807,7 @@ public class ODatabaseDocumentDistributed extends ODatabaseDocumentEmbedded {
   @Override
   public OEnterpriseEndpoint getEnterpriseEndpoint() {
     OServer server = ((ODistributedStorage) getStorage()).getDistributedManager().getServerInstance();
-    return server.getPlugins().stream().filter(OEnterpriseEndpoint.class::isInstance).findFirst()
+    return server.getPlugins().stream().map(x -> x.getInstance()).filter(OEnterpriseEndpoint.class::isInstance).findFirst()
         .map(OEnterpriseEndpoint.class::cast).orElse(null);
   }
 }

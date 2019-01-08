@@ -77,6 +77,7 @@ public class OBackgroundBackup implements Runnable {
 
           try {
             database.getStorage().incrementalBackup(finalBackupPath, (x) -> {
+              incremental.set(true);
               started.countDown();
               return null;
             });
@@ -87,7 +88,6 @@ public class OBackgroundBackup implements Runnable {
           File file = new File(finalBackupPath, dir.listFiles()[0].getName() + ".completed");
           file.createNewFile();
 
-          incremental.set(true);
           OLogManager.instance().info(this, "Sending Enterprise backup (" + database.getName() + ") for node sync");
 
         } catch (UnsupportedOperationException e) {

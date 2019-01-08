@@ -11,12 +11,14 @@ import com.orientechnologies.orient.core.record.impl.ODocument;
 import com.orientechnologies.orient.core.record.impl.OEdgeToVertexIterable;
 import com.orientechnologies.orient.core.record.impl.OEdgeToVertexIterator;
 import com.orientechnologies.orient.core.sql.executor.AggregationContext;
+import com.orientechnologies.orient.core.sql.executor.OInternalResultSet;
 import com.orientechnologies.orient.core.sql.executor.OResult;
 import com.orientechnologies.orient.core.sql.executor.OResultInternal;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class OProjectionItem extends SimpleNode {
 
@@ -129,6 +131,10 @@ public class OProjectionItem extends SimpleNode {
         result.add(((OEdgeToVertexIterator) value).next().getIdentity());
       }
       return result;
+    }
+    if (value instanceof OInternalResultSet) {
+      ((OInternalResultSet) value).reset();
+      value = ((OInternalResultSet) value).stream().collect(Collectors.toList());
     }
     return value;
   }
