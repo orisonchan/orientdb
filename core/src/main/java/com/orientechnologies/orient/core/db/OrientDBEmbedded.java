@@ -36,6 +36,7 @@ import com.orientechnologies.orient.core.sql.parser.OStatement;
 import com.orientechnologies.orient.core.storage.OStorage;
 import com.orientechnologies.orient.core.storage.disk.OLocalPaginatedStorage;
 import com.orientechnologies.orient.core.storage.impl.local.OAbstractPaginatedStorage;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.io.File;
 import java.io.IOException;
@@ -59,18 +60,18 @@ import java.util.stream.Collectors;
  */
 public class OrientDBEmbedded implements OrientDBInternal {
   protected final  Map<String, OAbstractPaginatedStorage> storages = new HashMap<>();
-  protected final  Set<ODatabasePoolInternal>             pools    = new HashSet<>();
-  protected final  OrientDBConfig                         configurations;
-  protected final  String                                 basePath;
-  protected final  OEngine                                memory;
+  private final    Set<ODatabasePoolInternal>             pools    = new HashSet<>();
+  private final    OrientDBConfig                         configurations;
+  private final    String                                 basePath;
+  private final    OEngine                                memory;
   protected final  OEngine                                disk;
-  protected final  Orient                                 orient;
+  private final    Orient                                 orient;
   private volatile boolean                                open     = true;
   private volatile OEmbeddedDatabaseInstanceFactory       factory  = new ODefaultEmbeddedDatabaseInstanceFactory();
 
-  protected final long maxWALSegmentSize;
+  final long maxWALSegmentSize;
 
-  public OrientDBEmbedded(String directoryPath, OrientDBConfig configurations, Orient orient) {
+  OrientDBEmbedded(String directoryPath, OrientDBConfig configurations, Orient orient) {
     super();
     this.orient = orient;
     orient.onEmbeddedFactoryInit(this);
@@ -261,7 +262,7 @@ public class OrientDBEmbedded implements OrientDBInternal {
     }
   }
 
-  protected OrientDBConfig solveConfig(OrientDBConfig config) {
+  private OrientDBConfig solveConfig(OrientDBConfig config) {
     if (config != null) {
       config.setParent(this.configurations);
       return config;
@@ -287,7 +288,7 @@ public class OrientDBEmbedded implements OrientDBInternal {
     return embedded;
   }
 
-  protected OAbstractPaginatedStorage getOrInitStorage(String name) {
+  private OAbstractPaginatedStorage getOrInitStorage(String name) {
     OAbstractPaginatedStorage storage = storages.get(name);
     if (storage == null) {
       storage = (OAbstractPaginatedStorage) disk.createStorage(buildName(name), new HashMap<>(), maxWALSegmentSize);
@@ -301,7 +302,7 @@ public class OrientDBEmbedded implements OrientDBInternal {
     return storages.get(name);
   }
 
-  protected String buildName(String name) {
+  String buildName(String name) {
     if (basePath == null) {
       throw new ODatabaseException("OrientDB instanced created without physical path, only memory databases are allowed");
     }
@@ -337,6 +338,7 @@ public class OrientDBEmbedded implements OrientDBInternal {
     ODatabaseRecordThreadLocal.instance().remove();
   }
 
+  @SuppressFBWarnings("DLS_DEAD_LOCAL_STORE")
   public void restore(String name, String user, String password, ODatabaseType type, String path, OrientDBConfig config) {
     final ODatabaseDocumentEmbedded embedded;
     OAbstractPaginatedStorage storage;
@@ -371,12 +373,8 @@ public class OrientDBEmbedded implements OrientDBInternal {
     }
   }
 
-  protected ODatabaseDocumentEmbedded internalCreate(OrientDBConfig config, OAbstractPaginatedStorage storage) {
-    try {
-      storage.create(config.getConfigurations());
-    } catch (IOException e) {
-      throw OException.wrapException(new ODatabaseException("Error on database creation"), e);
-    }
+  ODatabaseDocumentEmbedded internalCreate(OrientDBConfig config, OAbstractPaginatedStorage storage) {
+    storage.create(config.getConfigurations());
 
     ORecordSerializer serializer = ORecordSerializerFactory.instance().getDefaultRecordSerializer();
     if (serializer.toString().equals("ORecordDocument2csv"))
@@ -425,7 +423,7 @@ public class OrientDBEmbedded implements OrientDBInternal {
     }
   }
 
-  protected interface DatabaseFound {
+  interface DatabaseFound {
     void found(String name);
   }
 
@@ -436,7 +434,7 @@ public class OrientDBEmbedded implements OrientDBInternal {
     final Set<String> databases = new HashSet<>();
     // SEARCH IN DEFAULT DATABASE DIRECTORY
     if (basePath != null) {
-      scanDatabaseDirectory(new File(basePath), (name) -> databases.add(name));
+      scanDatabaseDirectory(new File(basePath), databases::add);
     }
     databases.addAll(this.storages.keySet());
     // TODO remove OSystemDatabase.SYSTEM_DB_NAME from the list
@@ -496,7 +494,7 @@ public class OrientDBEmbedded implements OrientDBInternal {
     open = false;
   }
 
-  public OrientDBConfig getConfigurations() {
+  private OrientDBConfig getConfigurations() {
     return configurations;
   }
 
@@ -504,11 +502,7 @@ public class OrientDBEmbedded implements OrientDBInternal {
     pools.remove(pool);
   }
 
-  public interface InstanceFactory<T> {
-    T create(OAbstractPaginatedStorage storage);
-  }
-
-  protected void scanDatabaseDirectory(final File directory, DatabaseFound found) {
+  private static void scanDatabaseDirectory(final File directory, DatabaseFound found) {
     if (directory.exists() && directory.isDirectory()) {
       final File[] files = directory.listFiles();
       if (files != null)
@@ -516,7 +510,7 @@ public class OrientDBEmbedded implements OrientDBInternal {
           if (db.isDirectory()) {
             final File plocalFile = new File(db.getAbsolutePath() + "/database.ocf");
             final String dbPath = db.getPath().replace('\\', '/');
-            final int lastBS = dbPath.lastIndexOf('/', dbPath.length() - 1) + 1;// -1 of dbPath may be ended with slash
+            final int lastBS = dbPath.lastIndexOf('/') + 1;// -1 of dbPath may be ended with slash
             if (plocalFile.exists()) {
               found.found(OIOUtils.getDatabaseNameFromPath(dbPath.substring(lastBS)));
             }
@@ -560,7 +554,7 @@ public class OrientDBEmbedded implements OrientDBInternal {
 
   public String getDatabasePath(String iDatabaseName) {
     OAbstractPaginatedStorage storage = storages.get(iDatabaseName);
-    if (storage != null && storage instanceof OLocalPaginatedStorage)
+    if (storage instanceof OLocalPaginatedStorage)
       return ((OLocalPaginatedStorage) storage).getStoragePath().toString();
     return null;
   }

@@ -42,7 +42,7 @@ public abstract class OPageOperationRecord<T extends ODurablePage> extends OOper
       final T page = createPageInstance(cacheEntry);
       doUndo(page);
 
-      final List<OPageOperationRecord> operations = page.getOperations();
+      final List<OPageOperationRecord> operations = page.getAndClearOperations();
 
       if (!operations.isEmpty()) {
         OLogSequenceNumber lsn = null;

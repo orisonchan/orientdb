@@ -145,12 +145,15 @@ public final class OSBTreeBonsaiBucket<K, V> extends OBonsaiBucketAbstract {
 
   public OSBTreeBonsaiBucket(final OCacheEntry cacheEntry, final int pageOffset) {
     super(cacheEntry);
+    assert cacheEntry.getPageIndex() > 0 || pageOffset >= MAX_BUCKET_SIZE_BYTES;
 
     this.offset = pageOffset;
     this.isLeaf = (getByteValue(offset + FLAGS_OFFSET) & LEAF) == LEAF;
   }
 
   public void init(final boolean isLeaf, final byte keySerializerId, final byte valueSerializerId) {
+    this.isLeaf = isLeaf;
+
     setIntValue(offset + FREE_POINTER_OFFSET, MAX_BUCKET_SIZE_BYTES);
     setIntValue(offset + SIZE_OFFSET, 0);
 
@@ -211,8 +214,8 @@ public final class OSBTreeBonsaiBucket<K, V> extends OBonsaiBucketAbstract {
 
     final int entryPosition = getIntValue(offset + POSITIONS_ARRAY_OFFSET + entryIndex * OIntegerSerializer.INT_SIZE);
     final int entrySize = keySize + valueSize;
-    final byte[] key = getBinaryValue(entryPosition, keySize);
-    final byte[] value = getBinaryValue(entryPosition, valueSize);
+    final byte[] key = getBinaryValue(entryPosition + offset, keySize);
+    final byte[] value = getBinaryValue(entryPosition + offset, valueSize);
 
     int size = size();
     if (entryIndex < size - 1) {
@@ -244,7 +247,7 @@ public final class OSBTreeBonsaiBucket<K, V> extends OBonsaiBucketAbstract {
 
   public void removeNonLeafEntry(final int entryIndex, final int keySize, final int prevChildPageIndex,
       final int prevChildPageOffset) {
-    assert isLeaf;
+    assert !isLeaf;
 
     final int entryPosition = getIntValue(offset + POSITIONS_ARRAY_OFFSET + entryIndex * OIntegerSerializer.INT_SIZE);
 
@@ -409,7 +412,7 @@ public final class OSBTreeBonsaiBucket<K, V> extends OBonsaiBucketAbstract {
     assert !isLeaf;
 
     isLeaf = true;
-    setByteValue(offset + FLAGS_OFFSET, (byte) 1);
+    setByteValue(offset + FLAGS_OFFSET, LEAF);
     addPageOperation(new OBonsaiBucketConvertToLeafPageOperation(offset));
   }
 
@@ -442,7 +445,7 @@ public final class OSBTreeBonsaiBucket<K, V> extends OBonsaiBucketAbstract {
     }
 
     for (int i = newSize; i < size; i++) {
-      removedEntries.add(getRawEntry(i + size, keySerializer, valueSerializer));
+      removedEntries.add(getRawEntry(i, keySerializer, valueSerializer));
     }
 
     setIntValue(offset + FREE_POINTER_OFFSET, MAX_BUCKET_SIZE_BYTES);

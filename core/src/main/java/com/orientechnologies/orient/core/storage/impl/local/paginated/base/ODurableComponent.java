@@ -159,10 +159,10 @@ public abstract class ODurableComponent extends OSharedResourceAdaptive {
     readCache.releaseFromWrite(cacheEntry, writeCache);
   }
 
-  protected final OCacheEntry logPageOperations(final ODurablePage page, final OAtomicOperation atomicOperation)
+  protected static OCacheEntry logPageOperations(final ODurablePage page, final OAtomicOperation atomicOperation)
       throws IOException {
     final OCacheEntry cacheEntry = page.getCacheEntry();
-    final List<OPageOperationRecord> operations = page.getOperations();
+    final List<OPageOperationRecord> operations = page.getAndClearOperations();
 
     if (!operations.isEmpty()) {
       OLogSequenceNumber lsn = null;

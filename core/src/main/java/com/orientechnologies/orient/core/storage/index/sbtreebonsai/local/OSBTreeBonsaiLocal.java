@@ -629,8 +629,7 @@ public final class OSBTreeBonsaiLocal<K, V> extends ODurableComponent implements
 
   @Override
   public final Collection<V> getValuesBetween(final K keyFrom, final boolean fromInclusive, final K keyTo,
-      final boolean toInclusive,
-      final int maxValuesToFetch) {
+      final boolean toInclusive, final int maxValuesToFetch) {
     final List<V> result = new ArrayList<>(100);
     loadEntriesBetween(keyFrom, fromInclusive, keyTo, toInclusive, entry -> {
       result.add(entry.getValue());
@@ -956,8 +955,7 @@ public final class OSBTreeBonsaiLocal<K, V> extends ODurableComponent implements
               releasePageFromWrite(parentBucket, atomicOperation);
 
               final BucketSearchResult bucketSearchResult = splitBucket(path.subList(0, path.size() - 1), insertionIndex,
-                  separationKey,
-                  atomicOperation);
+                  separationKey, atomicOperation);
 
               parentBucketPointer = bucketSearchResult.getLastPathItem();
               parentCacheEntry = loadPageForWrite(fileId, parentBucketPointer.getPageIndex(), false);
@@ -1020,7 +1018,7 @@ public final class OSBTreeBonsaiLocal<K, V> extends ODurableComponent implements
         OSBTreeBonsaiBucket<K, V> newRightBucket = null;
         try {
           newRightBucket = new OSBTreeBonsaiBucket<>(rightBucketEntry, rightBucketPointer.getPageOffset());
-          newLeftBucket.init(splitLeaf, keySerializer.getId(), valueSerializer.getId());
+          newRightBucket.init(splitLeaf, keySerializer.getId(), valueSerializer.getId());
           newRightBucket.addAll(rightEntries);
 
           if (splitLeaf) {
@@ -1031,10 +1029,11 @@ public final class OSBTreeBonsaiLocal<K, V> extends ODurableComponent implements
         }
 
         bucketToSplit = new OSBTreeBonsaiBucket<>(bucketEntry, bucketPointer.getPageOffset());
+        bucketToSplit.shrink(0, keySerializer, valueSerializer);
+
         if (bucketToSplit.isLeaf()) {
           bucketToSplit.convertToNonLeaf();
         }
-        bucketToSplit.shrink(0, keySerializer, valueSerializer);
 
         bucketToSplit.setTreeSize(treeSize);
 
@@ -1270,8 +1269,7 @@ public final class OSBTreeBonsaiLocal<K, V> extends ODurableComponent implements
 
   @SuppressWarnings({ "resource", "StringConcatenationInsideStringBufferAppend" })
   private void debugPrintBucket(final OBonsaiBucketPointer bucketPointer, final PrintStream writer,
-      final ArrayList<OBonsaiBucketPointer> path)
-      throws IOException {
+      final ArrayList<OBonsaiBucketPointer> path) throws IOException {
 
     final OCacheEntry bucketEntry = loadPageForRead(fileId, bucketPointer.getPageIndex(), false);
     OSBTreeBonsaiBucket.SBTreeEntry<K, V> entry;

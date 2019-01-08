@@ -20,6 +20,7 @@ import com.orientechnologies.orient.core.record.impl.ODocument;
 import com.orientechnologies.orient.core.sql.executor.OResult;
 import com.orientechnologies.orient.core.sql.executor.OResultSet;
 import com.orientechnologies.orient.core.storage.OTXApprover;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -37,6 +38,7 @@ import java.util.Random;
 import java.util.Set;
 import java.util.TreeMap;
 
+@SuppressFBWarnings({ "ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD", "VA_FORMAT_STRING_USES_NEWLINE" })
 public class SBTreeRollbackTestIT {
   private static final String           DB_NAME     = "TestDB";
   private static final String           VALUE_INDEX = "ValueIndex";
@@ -85,7 +87,7 @@ public class SBTreeRollbackTestIT {
 
   }
 
-  private void createSchema() {
+  private static void createSchema() {
     final OMetadata metadata = session.getMetadata();
     final OSchema schema = metadata.getSchema();
     OClass clz = schema.createClass(CLASS_NAME);
@@ -100,7 +102,7 @@ public class SBTreeRollbackTestIT {
     session.close();
   }
 
-  private void dropSchema() {
+  private static void dropSchema() {
     txApprover.approve = true;
     final OMetadata metadata = session.getMetadata();
     final OSchema schema = metadata.getSchema();
@@ -383,8 +385,6 @@ public class SBTreeRollbackTestIT {
             session.commit();
           } catch (NotApprovedException e) {
             //continue
-          } catch (Exception e) {
-            session.rollback();
           }
 
           if (i > 0 && i % 20_000 == 0) {
@@ -1515,7 +1515,7 @@ public class SBTreeRollbackTestIT {
     }
   }
 
-  private void ensureValueIsUnique(Random random, byte[] value) {
+  private static void ensureValueIsUnique(Random random, byte[] value) {
     while (true) {
       try (OResultSet resultSet = session.query("select count(*) from " + CLASS_NAME + " where value = ?", (Object) value)) {
         final OResult result = resultSet.next();
@@ -1528,7 +1528,7 @@ public class SBTreeRollbackTestIT {
     }
   }
 
-  private void iterateOverAllRecords(Map<ORID, byte[]> values) {
+  private static void iterateOverAllRecords(Map<ORID, byte[]> values) {
     OIndex index = session.getMetadata().getIndexManager().getIndex(VALUE_INDEX);
     OIndexCursor cursor = index.cursor();
 

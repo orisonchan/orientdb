@@ -1004,7 +1004,7 @@ public class ClusterPageTest {
         .loadForWrite(anyLong(), anyLong(), anyBoolean(), anyObject(), anyInt(), anyBoolean(), (OLogSequenceNumber) isNull()))
         .thenReturn(revertedCacheEntry);
 
-    final List<OPageOperationRecord> operations = new ArrayList<>(localPage.getOperations());
+    final List<OPageOperationRecord> operations = new ArrayList<>(localPage.getAndClearOperations());
     Collections.reverse(operations);
 
     for (OPageOperationRecord operation : operations) {

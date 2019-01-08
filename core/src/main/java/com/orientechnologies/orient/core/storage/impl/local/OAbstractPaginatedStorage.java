@@ -259,7 +259,7 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
   private volatile ORecordConflictStrategy recordConflictStrategy = Orient.instance().getRecordConflictStrategy()
       .getDefaultImplementation();
 
-  private volatile   int                      defaultClusterId                           = -1;
+  private volatile   int                      defaultClusterId = -1;
   protected volatile OAtomicOperationsManager atomicOperationsManager;
   private volatile   boolean                  wereNonTxOperationsPerformedInPreviousOpen;
   private volatile   OLowDiskSpaceInformation lowDiskSpace;
@@ -267,15 +267,14 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
   /**
    * Set of pages which were detected as broken and need to be repaired.
    */
-  private final      Set<OPair<String, Long>> brokenPages                                = Collections
-      .newSetFromMap(new ConcurrentHashMap<>(2));
+  private final      Set<OPair<String, Long>> brokenPages      = Collections.newSetFromMap(new ConcurrentHashMap<>(2));
 
   private volatile Throwable dataFlushException;
 
   private final int id;
 
-  private final Map<String, OIndexEngine> indexEngineNameMap        = new HashMap<>();
-  private final List<OIndexEngine>        indexEngines              = new ArrayList<>();
+  private final Map<String, OIndexEngine> indexEngineNameMap = new HashMap<>();
+  private final List<OIndexEngine>        indexEngines       = new ArrayList<>();
   private       boolean                   wereDataRestoredAfterOpen;
 
   private final LongAdder fullCheckpointCount = new LongAdder();
@@ -519,7 +518,7 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
   }
 
   @Override
-  public void create(final OContextConfiguration contextConfiguration) throws IOException {
+  public void create(final OContextConfiguration contextConfiguration) {
     checkPageSizeAndRelatedParametersInGlobalConfiguration();
 
     try {
@@ -947,11 +946,11 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
     return sbTreeCollectionManager;
   }
 
-  public OReadCache getReadCache() {
+  public final OReadCache getReadCache() {
     return readCache;
   }
 
-  public OWriteCache getWriteCache() {
+  public final OWriteCache getWriteCache() {
     return writeCache;
   }
 
@@ -1073,8 +1072,7 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
   public OLogSequenceNumber recordsChangedAfterLSN(final OLogSequenceNumber lsn, final OutputStream stream,
       final OCommandOutputListener outputListener) {
     try {
-      if (!configuration.getContextConfiguration()
-          .getValueAsBoolean(OGlobalConfiguration.STORAGE_TRACK_CHANGED_RECORDS_IN_WAL)) {
+      if (!configuration.getContextConfiguration().getValueAsBoolean(OGlobalConfiguration.STORAGE_TRACK_CHANGED_RECORDS_IN_WAL)) {
         throw new IllegalStateException(
             "Cannot find records which were changed starting from provided LSN because tracking of rids of changed records in WAL is switched off, "
                 + "to switch it on please set property " + OGlobalConfiguration.STORAGE_TRACK_CHANGED_RECORDS_IN_WAL.getKey()
@@ -1700,7 +1698,7 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
     return transaction.get();
   }
 
-  public OAtomicOperationsManager getAtomicOperationsManager() {
+  public final OAtomicOperationsManager getAtomicOperationsManager() {
     return atomicOperationsManager;
   }
 
@@ -2264,7 +2262,7 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
     return new TreeMap<>(clientTx.getIndexOperations());
   }
 
-  public int loadIndexEngine(final String name) {
+  public final int loadIndexEngine(final String name) {
     try {
       checkOpenness();
 
@@ -2293,7 +2291,7 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
     }
   }
 
-  public int loadExternalIndexEngine(final String engineName, final String algorithm, final String indexType,
+  public final int loadExternalIndexEngine(final String engineName, final String algorithm, final String indexType,
       final OIndexDefinition indexDefinition, final OBinarySerializer valueSerializer, final boolean isAutomatic,
       final Boolean durableInNonTxMode, final int version, final Map<String, String> engineProperties) {
     try {
@@ -2349,7 +2347,7 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
     }
   }
 
-  public int addIndexEngine(final String engineName, final String algorithm, final String indexType,
+  public final int addIndexEngine(final String engineName, final String algorithm, final String indexType,
       final OIndexDefinition indexDefinition, final OBinarySerializer valueSerializer, final boolean isAutomatic,
       final Boolean durableInNonTxMode, final int version, final Map<String, String> engineProperties,
       final Set<String> clustersToIndex, final ODocument metadata) {
@@ -2470,7 +2468,7 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
     return keySerializer;
   }
 
-  public void deleteIndexEngine(final int indexId) throws OInvalidIndexEngineIdException {
+  public final void deleteIndexEngine(final int indexId) throws OInvalidIndexEngineIdException {
     try {
       checkOpenness();
 
@@ -2514,7 +2512,7 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
     }
   }
 
-  public boolean indexContainsKey(final int indexId, final Object key) throws OInvalidIndexEngineIdException {
+  public final boolean indexContainsKey(final int indexId, final Object key) throws OInvalidIndexEngineIdException {
     try {
       if (transaction.get() != null) {
         return doIndexContainsKey(indexId, key);
@@ -2549,7 +2547,7 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
     return engine.contains(key);
   }
 
-  public boolean removeKeyFromIndex(final int indexId, final Object key) throws OInvalidIndexEngineIdException {
+  public final boolean removeKeyFromIndex(final int indexId, final Object key) throws OInvalidIndexEngineIdException {
     try {
       if (transaction.get() != null) {
         return doRemoveKeyFromIndex(indexId, key);
@@ -2591,7 +2589,7 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
     }
   }
 
-  public void clearIndex(final int indexId) throws OInvalidIndexEngineIdException {
+  public final void clearIndex(final int indexId) throws OInvalidIndexEngineIdException {
     try {
       if (transaction.get() != null) {
         doClearIndex(indexId);
@@ -2669,7 +2667,7 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
     return engine.get(key);
   }
 
-  public OIndexEngine getIndexEngine(final int indexId) throws OInvalidIndexEngineIdException {
+  public final OIndexEngine getIndexEngine(final int indexId) throws OInvalidIndexEngineIdException {
     try {
       checkIndexId(indexId);
       return indexEngines.get(indexId);
@@ -2714,9 +2712,8 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
     }
   }
 
-  public <T> T callIndexEngine(final boolean atomicOperation, final boolean readOperation, final int indexId,
-      final OIndexEngineCallback<T> callback)
-      throws OInvalidIndexEngineIdException {
+  public final <T> T callIndexEngine(final boolean atomicOperation, final boolean readOperation, final int indexId,
+      final OIndexEngineCallback<T> callback) throws OInvalidIndexEngineIdException {
     try {
       if (transaction.get() != null) {
         return doCallIndexEngine(atomicOperation, readOperation, indexId, callback);
@@ -2742,8 +2739,7 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
   }
 
   private <T> T doCallIndexEngine(final boolean atomicOperation, final boolean readOperation, final int indexId,
-      final OIndexEngineCallback<T> callback)
-      throws OInvalidIndexEngineIdException, IOException {
+      final OIndexEngineCallback<T> callback) throws OInvalidIndexEngineIdException, IOException {
     checkIndexId(indexId);
     boolean rollback = false;
     if (atomicOperation) {
@@ -2887,7 +2883,7 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
     }
   }
 
-  public Object getIndexFirstKey(final int indexId) throws OInvalidIndexEngineIdException {
+  public final Object getIndexFirstKey(final int indexId) throws OInvalidIndexEngineIdException {
     try {
       if (transaction.get() != null) {
         return doGetIndexFirstKey(indexId);
@@ -2921,7 +2917,7 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
     return engine.getFirstKey();
   }
 
-  public Object getIndexLastKey(final int indexId) throws OInvalidIndexEngineIdException {
+  public final Object getIndexLastKey(final int indexId) throws OInvalidIndexEngineIdException {
     try {
       if (transaction.get() != null) {
         return doGetIndexFirstKey(indexId);
@@ -3137,7 +3133,7 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
     return engine.descCursor(valuesTransformer);
   }
 
-  public OIndexKeyCursor getIndexKeyCursor(final int indexId) throws OInvalidIndexEngineIdException {
+  public final OIndexKeyCursor getIndexKeyCursor(final int indexId) throws OInvalidIndexEngineIdException {
     try {
       if (transaction.get() != null) {
         return doGetIndexKeyCursor(indexId);
@@ -3207,7 +3203,7 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
     return engine.size(transformer);
   }
 
-  public boolean hasIndexRangeQuerySupport(final int indexId) throws OInvalidIndexEngineIdException {
+  public final boolean hasIndexRangeQuerySupport(final int indexId) throws OInvalidIndexEngineIdException {
     try {
       if (transaction.get() != null) {
         return doHasRangeQuerySupport(indexId);
@@ -4091,7 +4087,7 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
     }
   }
 
-  protected void makeFuzzyCheckpoint() {
+  protected final void makeFuzzyCheckpoint() {
     if (writeAheadLog == null) {
       return;
     }
