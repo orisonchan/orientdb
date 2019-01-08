@@ -35,8 +35,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+import java.util.TreeMap;
 
-@SuppressFBWarnings({ "ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD", "VA_FORMAT_STRING_USES_NEWLINE" })
+@SuppressFBWarnings({ "ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD" })
 public class OSBTreeBonsaiLocalRollbackTestIT {
   private static final String           DB_NAME     = "TestDB";
   private static final String           VALUE_INDEX = "ValueIndex";
@@ -127,7 +128,7 @@ public class OSBTreeBonsaiLocalRollbackTestIT {
   @Test
   public void testAdditionRollbackOne() {
     for (int k = 0; k < iterationsCount; k++) {
-      System.out.printf("Iteration %d out of %d\n", k + 1, iterationsCount);
+      System.out.printf("Iteration %d out of %d%n", k + 1, iterationsCount);
       long seed = -1;
 
       try {
@@ -158,7 +159,7 @@ public class OSBTreeBonsaiLocalRollbackTestIT {
           values.put(document.getIdentity(), value);
 
           if (i > 0 && i % 20_000 == 0) {
-            System.out.printf("%d records are loaded out of %d\n", i, initialAmountOfRecords);
+            System.out.printf("%d records are loaded out of %d%n", i, initialAmountOfRecords);
           }
         }
 
@@ -177,7 +178,7 @@ public class OSBTreeBonsaiLocalRollbackTestIT {
               document.save();
 
               if (i > 0 && (i * 10 + n) % 20_000 == 0) {
-                System.out.printf("%d records are tested out of %d\n", i * 10 + n, testedAmountOfRecords);
+                System.out.printf("%d records are tested out of %d%n", i * 10 + n, testedAmountOfRecords);
               }
             }
 
@@ -208,7 +209,7 @@ public class OSBTreeBonsaiLocalRollbackTestIT {
           values.put(document.getIdentity(), value);
 
           if (i > 0 && i % 20_000 == 0) {
-            System.out.printf("%d records are loaded out of %d\n", i, additionalAmountOfRecords);
+            System.out.printf("%d records are loaded out of %d%n", i, additionalAmountOfRecords);
           }
         }
 
@@ -225,7 +226,7 @@ public class OSBTreeBonsaiLocalRollbackTestIT {
           createSchema();
         }
       } catch (Exception | Error e) {
-        System.out.printf("testAdditionRollbackOne seed: %d\n", seed);
+        System.out.printf("testAdditionRollbackOne seed: %d%n", seed);
         throw e;
       }
     }
@@ -234,7 +235,7 @@ public class OSBTreeBonsaiLocalRollbackTestIT {
   @Test
   public void testAddRollbackTwo() {
     for (int k = 0; k < iterationsCount; k++) {
-      System.out.printf("Iteration %d out of %d\n", k + 1, iterationsCount);
+      System.out.printf("Iteration %d out of %d%n", k + 1, iterationsCount);
       long seed = -1;
 
       try {
@@ -283,7 +284,7 @@ public class OSBTreeBonsaiLocalRollbackTestIT {
           }
 
           if (i > 0 && i % 20_000 == 0) {
-            System.out.printf("%d records are loaded out of %d\n", i / 2, initialAmountOfRecords);
+            System.out.printf("%d records are loaded out of %d%n", i / 2, initialAmountOfRecords);
           }
         }
 
@@ -308,7 +309,7 @@ public class OSBTreeBonsaiLocalRollbackTestIT {
           values.put(document.getIdentity(), value);
 
           if (i > 0 && i % 20_000 == 0) {
-            System.out.printf("%d records are loaded out of %d\n", i, additionalAmountOfRecords);
+            System.out.printf("%d records are loaded out of %d%n", i, additionalAmountOfRecords);
           }
         }
 
@@ -325,7 +326,7 @@ public class OSBTreeBonsaiLocalRollbackTestIT {
           createSchema();
         }
       } catch (Exception | Error e) {
-        System.out.printf("testAddRollbackTwo seed : %d\n", seed);
+        System.out.printf("testAddRollbackTwo seed : %d%n", seed);
         throw e;
       }
     }
@@ -336,7 +337,7 @@ public class OSBTreeBonsaiLocalRollbackTestIT {
     long seed = -1;
 
     for (int k = 0; k < iterationsCount; k++) {
-      System.out.printf("Iteration %d out of %d\n", k + 1, iterationsCount);
+      System.out.printf("Iteration %d out of %d%n", k + 1, iterationsCount);
       try {
         seed = System.nanoTime();
         Random random = new Random(seed);
@@ -367,7 +368,7 @@ public class OSBTreeBonsaiLocalRollbackTestIT {
           values.put(document.getIdentity(), value);
 
           if (i > 0 && i % 20_000 == 0) {
-            System.out.printf("%d records are loaded out of %d\n", i, initialAmountOfRecords);
+            System.out.printf("%d records are loaded out of %d%n", i, initialAmountOfRecords);
           }
         }
 
@@ -405,7 +406,7 @@ public class OSBTreeBonsaiLocalRollbackTestIT {
           }
 
           if (i > 0 && i % 20_000 == 0) {
-            System.out.printf("%d iterations are tested out of %d\n", i, testedAmountOfRecords);
+            System.out.printf("%d iterations are tested out of %d%n", i, testedAmountOfRecords);
           }
         }
 
@@ -429,7 +430,7 @@ public class OSBTreeBonsaiLocalRollbackTestIT {
           values.put(document.getIdentity(), value);
 
           if (i > 0 && i % 20_000 == 0) {
-            System.out.printf("%d records are loaded out of %d\n", i, additionalAmountOfRecords);
+            System.out.printf("%d records are loaded out of %d%n", i, additionalAmountOfRecords);
           }
         }
 
@@ -446,7 +447,125 @@ public class OSBTreeBonsaiLocalRollbackTestIT {
           createSchema();
         }
       } catch (Error | Exception e) {
-        System.out.printf("testUpdateRollbackOne seed: %d\n", seed);
+        System.out.printf("testUpdateRollbackOne seed: %d%n", seed);
+        throw e;
+      }
+    }
+  }
+
+  @Test
+  public void testUpdateRollbackTwo() {
+    long seed = -1;
+    for (int k = 0; k < iterationsCount; k++) {
+      System.out.printf("Iteration %d out of %d%n", k + 1, iterationsCount);
+      try {
+        seed = System.nanoTime();
+        Random random = new Random(seed);
+
+        List<ORID> rids = new ArrayList<>();
+        Map<ORID, byte[]> values = new HashMap<>();
+
+        System.out.println("Loading initial set of records");
+        final byte[][] randomValues = new byte[10][];
+
+        for (int n = 0; n < randomValues.length; n++) {
+          final int recordSize = random.nextInt(200) + 100;
+          final byte[] value = new byte[recordSize];
+          random.nextBytes(value);
+
+          randomValues[n] = value;
+        }
+
+        for (int i = 0; i < initialAmountOfRecords; i++) {
+          final ODocument document = new ODocument(CLASS_NAME);
+          final byte[] value = randomValues[random.nextInt(randomValues.length)];
+
+          document.field("value", value);
+          document.save();
+
+          rids.add(document.getIdentity());
+          values.put(document.getIdentity(), value);
+
+          if (i > 0 && i % 20_000 == 0) {
+            System.out.printf("%d records are loaded out of %d%n", i, initialAmountOfRecords);
+          }
+        }
+
+        System.out.println("Testing rollback of update");
+
+        for (int i = 0; i < testedAmountOfRecords; i++) {
+          txApprover.approve = true;
+
+          int indexToUpdate = random.nextInt(rids.size());
+          ORID ridToUpdate = rids.get(indexToUpdate);
+          ODocument doc = session.load(ridToUpdate);
+          byte[] val = randomValues[random.nextInt(randomValues.length)];
+
+          doc.field("value", val);
+          doc.save();
+          values.put(doc.getIdentity(), val);
+
+          txApprover.approve = false;
+
+          session.begin();
+          try {
+            for (int n = 0; n < 10; n++) {
+              ridToUpdate = rids.get(indexToUpdate);
+              doc = session.load(ridToUpdate);
+              val = randomValues[random.nextInt(randomValues.length)];
+
+              doc.field("value", val);
+              doc.save();
+            }
+
+            session.commit();
+          } catch (NotApprovedException e) {
+            //continue
+          }
+
+          if (i > 0 && i % 20_000 == 0) {
+            System.out.printf("%d iterations are tested out of %d%n", i, testedAmountOfRecords);
+          }
+        }
+
+        session.close();
+        session = orient.open("TestDB", "admin", "admin");
+
+        txApprover.approve = true;
+        System.out.println("Testing all loaded records");
+        OIndex index = session.getMetadata().getIndexManager().getIndex(VALUE_INDEX);
+        Assert.assertEquals(initialAmountOfRecords, index.getSize());
+        iterateOverAllRecords(values);
+
+        System.out.println("Loading additional set of records");
+        for (int i = 0; i < additionalAmountOfRecords; i++) {
+          final ODocument document = new ODocument(CLASS_NAME);
+          final byte[] value = randomValues[random.nextInt(randomValues.length)];
+
+          document.field("value", value);
+          document.save();
+
+          values.put(document.getIdentity(), value);
+
+          if (i > 0 && i % 20_000 == 0) {
+            System.out.printf("%d records are loaded out of %d%n", i, additionalAmountOfRecords);
+          }
+        }
+
+        session.close();
+        session = orient.open("TestDB", "admin", "admin");
+
+        System.out.println("Testing all loaded records");
+        index = session.getMetadata().getIndexManager().getIndex(VALUE_INDEX);
+        Assert.assertEquals(initialAmountOfRecords + additionalAmountOfRecords, index.getSize());
+        iterateOverAllRecords(values);
+
+        if (k < iterationsCount - 1) {
+          dropSchema();
+          createSchema();
+        }
+      } catch (Error | Exception e) {
+        System.out.printf("testUpdateRollbackTwo seed: %d%n", seed);
         throw e;
       }
     }
@@ -456,7 +575,7 @@ public class OSBTreeBonsaiLocalRollbackTestIT {
   public void testDeletionRollbackOne() {
     long seed = -1;
     for (int k = 0; k < iterationsCount; k++) {
-      System.out.printf("Iteration %d out of %d\n", k + 1, iterationsCount);
+      System.out.printf("Iteration %d out of %d%n", k + 1, iterationsCount);
       try {
         seed = System.nanoTime();
         Random random = new Random(seed);
@@ -475,15 +594,9 @@ public class OSBTreeBonsaiLocalRollbackTestIT {
           randomValues[n] = value;
         }
 
-        int randomCounter = 0;
         for (int i = 0; i < initialAmountOfRecords; i++) {
           final ODocument document = new ODocument(CLASS_NAME);
-
-          final byte[] value = randomValues[randomCounter];
-          randomCounter++;
-          if (randomCounter == randomValues.length) {
-            randomCounter = 0;
-          }
+          final byte[] value = randomValues[random.nextInt(randomValues.length)];
 
           document.field("value", value);
           document.save();
@@ -492,7 +605,7 @@ public class OSBTreeBonsaiLocalRollbackTestIT {
           values.put(document.getIdentity(), value);
 
           if (i > 0 && i % 20_000 == 0) {
-            System.out.printf("%d records are loaded out of %d\n", i, initialAmountOfRecords);
+            System.out.printf("%d records are loaded out of %d%n", i, initialAmountOfRecords);
           }
         }
 
@@ -501,11 +614,7 @@ public class OSBTreeBonsaiLocalRollbackTestIT {
           txApprover.approve = true;
 
           final ODocument document = new ODocument(CLASS_NAME);
-          final byte[] value = randomValues[randomCounter];
-          randomCounter++;
-          if (randomCounter == randomValues.length) {
-            randomCounter = 0;
-          }
+          final byte[] value = randomValues[random.nextInt(randomValues.length)];
 
           document.field("value", value);
           document.save();
@@ -535,7 +644,7 @@ public class OSBTreeBonsaiLocalRollbackTestIT {
           }
 
           if (i > 0 && i % 10_000 == 0) {
-            System.out.printf("%d iterations are tested out of %d\n", i, testedAmountOfRecords);
+            System.out.printf("%d iterations are tested out of %d%n", i, testedAmountOfRecords);
           }
         }
 
@@ -551,18 +660,15 @@ public class OSBTreeBonsaiLocalRollbackTestIT {
         System.out.println("Loading additional set of records");
         for (int i = 0; i < additionalAmountOfRecords; i++) {
           final ODocument document = new ODocument(CLASS_NAME);
-          final byte[] value = randomValues[randomCounter];
-          randomCounter++;
-          if (randomCounter == randomValues.length) {
-            randomCounter = 0;
-          }
+          final byte[] value = randomValues[random.nextInt(randomValues.length)];
+
           document.field("value", value);
           document.save();
 
           values.put(document.getIdentity(), value);
 
           if (i > 0 && i % 20_000 == 0) {
-            System.out.printf("%d records are loaded out of %d\n", i, additionalAmountOfRecords);
+            System.out.printf("%d records are loaded out of %d%n", i, additionalAmountOfRecords);
           }
         }
 
@@ -579,7 +685,821 @@ public class OSBTreeBonsaiLocalRollbackTestIT {
           createSchema();
         }
       } catch (Error | Exception e) {
-        System.out.printf("testDeletionRollbackOne seed : %d\n", seed);
+        System.out.printf("testDeletionRollbackOne seed : %d%n", seed);
+        throw e;
+      }
+    }
+  }
+
+  @Test
+  public void testDeletionRollbackTwo() {
+    long seed = -1;
+    for (int k = 0; k < iterationsCount; k++) {
+      System.out.printf("Iteration %d out of %d%n", k + 1, iterationsCount);
+      try {
+        seed = System.nanoTime();
+        Random random = new Random(seed);
+
+        TreeMap<Integer, ORID> rids = new TreeMap<>();
+        Map<ORID, byte[]> values = new HashMap<>();
+
+        System.out.println("Loading initial set of records");
+
+        final byte[][] randomValues = new byte[10][];
+
+        for (int n = 0; n < randomValues.length; n++) {
+          final int recordSize = random.nextInt(200) + 100;
+          final byte[] value = new byte[recordSize];
+          random.nextBytes(value);
+
+          randomValues[n] = value;
+        }
+
+        for (int i = 0; i < initialAmountOfRecords; i++) {
+          final ODocument document = new ODocument(CLASS_NAME);
+          final byte[] value = randomValues[random.nextInt(randomValues.length)];
+
+          document.field("value", value);
+          document.save();
+
+          rids.put(i, document.getIdentity());
+          values.put(document.getIdentity(), value);
+
+          if (i > 0 && i % 20_000 == 0) {
+            System.out.printf("%d records are loaded out of %d%n", i, initialAmountOfRecords);
+          }
+        }
+
+        System.out.println("Testing rollback of delete");
+        for (int i = 0; i < testedAmountOfRecords; i++) {
+          txApprover.approve = true;
+
+          ODocument document = new ODocument(CLASS_NAME);
+          final byte[] value = randomValues[random.nextInt(randomValues.length)];
+
+          document.field("value", value);
+          document.save();
+
+          rids.put(initialAmountOfRecords + i, document.getIdentity());
+          values.put(document.getIdentity(), value);
+
+          txApprover.approve = false;
+
+          session.begin();
+          try {
+            Set<ORID> ridsToDelete = new HashSet<>();
+            while (ridsToDelete.size() < 10) {
+              Integer ridToDelete = rids.ceilingKey(random.nextInt(rids.lastKey()));
+              if (ridToDelete == null) {
+                ridToDelete = rids.firstKey();
+              }
+
+              ridsToDelete.add(rids.get(ridToDelete));
+            }
+
+            for (ORID orid : ridsToDelete) {
+              final ODocument doc = session.load(orid);
+              Assert.assertNotNull(doc);
+              doc.delete();
+            }
+
+            session.commit();
+          } catch (NotApprovedException e) {
+            //continue
+          }
+
+          txApprover.approve = true;
+
+          Integer ridToDelete = rids.ceilingKey(random.nextInt(rids.lastKey()));
+          if (ridToDelete == null) {
+            ridToDelete = rids.firstKey();
+          }
+          document = session.load(rids.get(ridToDelete));
+          Assert.assertNotNull(document);
+          document.delete();
+
+          rids.remove(ridToDelete);
+          values.remove(document.getIdentity());
+
+          if (i > 0 && i % 10_000 == 0) {
+            System.out.printf("%d iterations are tested out of %d%n", i, testedAmountOfRecords);
+          }
+        }
+
+        session.close();
+        session = orient.open(DB_NAME, "admin", "admin");
+
+        txApprover.approve = true;
+        System.out.println("Testing all loaded records");
+        OIndex index = session.getMetadata().getIndexManager().getIndex(VALUE_INDEX);
+        Assert.assertEquals(initialAmountOfRecords, index.getSize());
+        iterateOverAllRecords(values);
+
+        System.out.println("Loading additional set of records");
+        for (int i = 0; i < additionalAmountOfRecords; i++) {
+          final ODocument document = new ODocument(CLASS_NAME);
+          final byte[] value = randomValues[random.nextInt(randomValues.length)];
+
+          document.field("value", value);
+          document.save();
+
+          values.put(document.getIdentity(), value);
+
+          if (i > 0 && i % 20_000 == 0) {
+            System.out.printf("%d records are loaded out of %d%n", i, additionalAmountOfRecords);
+          }
+        }
+
+        session.close();
+        session = orient.open("TestDB", "admin", "admin");
+
+        System.out.println("Testing all loaded records");
+        index = session.getMetadata().getIndexManager().getIndex(VALUE_INDEX);
+        Assert.assertEquals(initialAmountOfRecords + additionalAmountOfRecords, index.getSize());
+        iterateOverAllRecords(values);
+
+        if (k < iterationsCount - 1) {
+          dropSchema();
+          createSchema();
+        }
+      } catch (Error | Exception e) {
+        System.out.printf("testDeletionRollbackTwo seed %d%n", seed);
+        throw e;
+      }
+    }
+  }
+
+  @Test
+  public void testDeletionRollbackThree() {
+    long seed = -1;
+    for (int k = 0; k < iterationsCount; k++) {
+      System.out.printf("Iteration %d out of %d%n", k + 1, iterationsCount);
+      try {
+        seed = System.nanoTime();
+        Random random = new Random(seed);
+
+        TreeMap<Integer, ORID> rids = new TreeMap<>();
+        Map<ORID, byte[]> values = new HashMap<>();
+
+        System.out.println("Loading initial set of records");
+        final byte[][] randomValues = new byte[10][];
+
+        for (int n = 0; n < randomValues.length; n++) {
+          final int recordSize = random.nextInt(200) + 100;
+          final byte[] value = new byte[recordSize];
+          random.nextBytes(value);
+
+          randomValues[n] = value;
+        }
+
+        for (int i = 0; i < initialAmountOfRecords; i++) {
+          final ODocument document = new ODocument(CLASS_NAME);
+          final byte[] value = randomValues[random.nextInt(randomValues.length)];
+
+          document.field("value", value);
+          document.save();
+
+          rids.put(i, document.getIdentity());
+          values.put(document.getIdentity(), value);
+
+          if (i > 0 && i % 20_000 == 0) {
+            System.out.printf("%d records are loaded out of %d%n", i, initialAmountOfRecords);
+          }
+        }
+
+        System.out.println("Testing rollback of delete");
+        for (int i = 0; i < testedAmountOfRecords; i++) {
+          txApprover.approve = true;
+
+          ODocument document = new ODocument(CLASS_NAME);
+          final byte[] value = randomValues[random.nextInt(randomValues.length)];
+
+          document.field("value", value);
+          document.save();
+
+          rids.put(initialAmountOfRecords + i, document.getIdentity());
+          values.put(document.getIdentity(), value);
+
+          txApprover.approve = false;
+
+          session.begin();
+          try {
+            Set<ORID> ridsToDelete = new HashSet<>();
+            while (ridsToDelete.size() < 10) {
+              Integer ridToDelete = rids.ceilingKey(random.nextInt(rids.lastKey()));
+              if (ridToDelete == null) {
+                ridToDelete = rids.firstKey();
+              }
+
+              ridsToDelete.add(rids.get(ridToDelete));
+            }
+
+            for (ORID orid : ridsToDelete) {
+              final ODocument doc = session.load(orid);
+              Assert.assertNotNull(doc);
+              doc.delete();
+            }
+
+            session.commit();
+          } catch (NotApprovedException e) {
+            //continue
+          }
+
+          txApprover.approve = true;
+
+          Integer ridToDelete = rids.ceilingKey(random.nextInt(rids.lastKey()));
+          if (ridToDelete == null) {
+            ridToDelete = rids.firstKey();
+          }
+          document = session.load(rids.get(ridToDelete));
+          Assert.assertNotNull(document);
+          document.delete();
+
+          rids.remove(ridToDelete);
+          values.remove(document.getIdentity());
+
+          Integer ridToUpdate = rids.ceilingKey(random.nextInt(rids.lastKey()));
+          if (ridToUpdate == null) {
+            ridToUpdate = rids.firstKey();
+          }
+
+          final byte[] val = randomValues[random.nextInt(randomValues.length)];
+
+          document = session.load(rids.get(ridToUpdate));
+          document.field("value", val);
+          document.save();
+          values.put(document.getIdentity(), val);
+
+          if (i > 0 && i % 10_000 == 0) {
+            System.out.printf("%d iterations are tested out of %d%n", i, testedAmountOfRecords);
+          }
+        }
+
+        session.close();
+        session = orient.open(DB_NAME, "admin", "admin");
+
+        txApprover.approve = true;
+        System.out.println("Testing all loaded records");
+        OIndex index = session.getMetadata().getIndexManager().getIndex(VALUE_INDEX);
+        Assert.assertEquals(initialAmountOfRecords, index.getSize());
+        iterateOverAllRecords(values);
+
+        System.out.println("Loading additional set of records");
+        for (int i = 0; i < additionalAmountOfRecords; i++) {
+          final ODocument document = new ODocument(CLASS_NAME);
+          final byte[] value = randomValues[random.nextInt(randomValues.length)];
+
+          document.field("value", value);
+          document.save();
+
+          values.put(document.getIdentity(), value);
+
+          if (i > 0 && i % 20_000 == 0) {
+            System.out.printf("%d records are loaded out of %d%n", i, additionalAmountOfRecords);
+          }
+        }
+
+        session.close();
+        session = orient.open(DB_NAME, "admin", "admin");
+
+        System.out.println("Testing all loaded records");
+        index = session.getMetadata().getIndexManager().getIndex(VALUE_INDEX);
+        Assert.assertEquals(initialAmountOfRecords + additionalAmountOfRecords, index.getSize());
+        iterateOverAllRecords(values);
+
+        if (k < iterationsCount - 1) {
+          dropSchema();
+          createSchema();
+        }
+      } catch (Exception | Error e) {
+        System.out.printf("testDeletionRollbackThree seed: %d%n", seed);
+        throw e;
+      }
+    }
+  }
+
+  @Test
+  public void testRollbackMixOne() {
+    long seed = -1;
+    for (int k = 0; k < iterationsCount; k++) {
+      System.out.printf("Iteration %d out of %d%n", k + 1, iterationsCount);
+      try {
+        seed = System.nanoTime();
+        Random random = new Random(seed);
+
+        TreeMap<Integer, ORID> rids = new TreeMap<>();
+        Map<ORID, byte[]> values = new HashMap<>();
+
+        System.out.println("Loading initial set of records");
+        final byte[][] randomValues = new byte[10][];
+
+        for (int n = 0; n < randomValues.length; n++) {
+          final int recordSize = random.nextInt(200) + 100;
+          final byte[] value = new byte[recordSize];
+          random.nextBytes(value);
+
+          randomValues[n] = value;
+        }
+
+        for (int i = 0; i < initialAmountOfRecords; i++) {
+          final ODocument document = new ODocument(CLASS_NAME);
+          final byte[] value = randomValues[random.nextInt(randomValues.length)];
+
+          document.field("value", value);
+          document.save();
+
+          rids.put(i, document.getIdentity());
+          values.put(document.getIdentity(), value);
+
+          if (i > 0 && i % 20_000 == 0) {
+            System.out.printf("%d records are loaded out of %d%n", i, initialAmountOfRecords);
+          }
+        }
+
+        System.out.println("Testing rollback of mix of operations");
+        for (int i = 0; i < testedAmountOfRecords; i++) {
+          txApprover.approve = true;
+
+          ODocument document = new ODocument(CLASS_NAME);
+          final byte[] value = randomValues[random.nextInt(randomValues.length)];
+
+          document.field("value", value);
+          document.save();
+
+          rids.put(initialAmountOfRecords + i, document.getIdentity());
+          values.put(document.getIdentity(), value);
+
+          txApprover.approve = false;
+
+          session.begin();
+          try {
+            Set<ORID> ridsToDelete = new HashSet<>();
+            while (ridsToDelete.size() < 3) {
+              Integer ridToDelete = rids.ceilingKey(random.nextInt(rids.lastKey()));
+              if (ridToDelete == null) {
+                ridToDelete = rids.firstKey();
+              }
+
+              ridsToDelete.add(rids.get(ridToDelete));
+            }
+
+            for (ORID orid : ridsToDelete) {
+              final ODocument doc = session.load(orid);
+              Assert.assertNotNull(doc);
+              doc.delete();
+            }
+
+            Set<ORID> ridsToUpdate = new HashSet<>();
+            while (ridsToUpdate.size() < 3) {
+              Integer ridToUpdate = rids.ceilingKey(random.nextInt(rids.lastKey()));
+              if (ridToUpdate == null) {
+                ridToUpdate = rids.firstKey();
+              }
+
+              if (!ridsToDelete.contains(rids.get(ridToUpdate))) {
+                ridsToUpdate.add(rids.get(ridToUpdate));
+              }
+            }
+
+            for (ORID orid : ridsToUpdate) {
+              final ODocument doc = session.load(orid);
+              final byte[] val = randomValues[random.nextInt(randomValues.length)];
+
+              doc.field("value", val);
+              doc.save();
+            }
+
+            for (int n = 0; n < 3; n++) {
+              final ODocument doc = new ODocument(CLASS_NAME);
+              final byte[] val = randomValues[random.nextInt(randomValues.length)];
+
+              doc.field("value", val);
+              doc.save();
+            }
+            session.commit();
+          } catch (NotApprovedException e) {
+            //continue
+          }
+
+          txApprover.approve = true;
+
+          Integer ridToDelete = rids.ceilingKey(random.nextInt(rids.lastKey()));
+          if (ridToDelete == null) {
+            ridToDelete = rids.firstKey();
+          }
+          document = session.load(rids.get(ridToDelete));
+          Assert.assertNotNull(document);
+          document.delete();
+
+          rids.remove(ridToDelete);
+          values.remove(document.getIdentity());
+
+          Integer ridToUpdate = rids.ceilingKey(random.nextInt(rids.lastKey()));
+          if (ridToUpdate == null) {
+            ridToUpdate = rids.firstKey();
+          }
+
+          final byte[] val = randomValues[random.nextInt(randomValues.length)];
+
+          document = session.load(rids.get(ridToUpdate));
+          document.field("value", val);
+          document.save();
+          values.put(document.getIdentity(), val);
+
+          if (i > 0 && i % 10_000 == 0) {
+            System.out.printf("%d iterations are tested out of %d%n", i, testedAmountOfRecords);
+          }
+        }
+
+        session.close();
+        session = orient.open(DB_NAME, "admin", "admin");
+
+        txApprover.approve = true;
+        System.out.println("Testing all loaded records");
+        OIndex index = session.getMetadata().getIndexManager().getIndex(VALUE_INDEX);
+        Assert.assertEquals(initialAmountOfRecords, index.getSize());
+        iterateOverAllRecords(values);
+
+        System.out.println("Loading additional set of records");
+        for (int i = 0; i < additionalAmountOfRecords; i++) {
+          final ODocument document = new ODocument(CLASS_NAME);
+          final byte[] value = randomValues[random.nextInt(randomValues.length)];
+
+          document.field("value", value);
+          document.save();
+
+          values.put(document.getIdentity(), value);
+
+          if (i > 0 && i % 20_000 == 0) {
+            System.out.printf("%d records are loaded out of %d%n", i, additionalAmountOfRecords);
+          }
+        }
+
+        session.close();
+        session = orient.open(DB_NAME, "admin", "admin");
+
+        System.out.println("Testing all loaded records");
+        index = session.getMetadata().getIndexManager().getIndex(VALUE_INDEX);
+        Assert.assertEquals(initialAmountOfRecords + additionalAmountOfRecords, index.getSize());
+        iterateOverAllRecords(values);
+
+        if (k < iterationsCount - 1) {
+          dropSchema();
+          createSchema();
+        }
+      } catch (Exception | Error e) {
+        System.out.printf("testRollbackMixOne seed: %d%n", seed);
+        throw e;
+      }
+    }
+  }
+
+  @Test
+  public void testRollbackMixTwo() {
+    long seed = -1;
+    for (int k = 0; k < iterationsCount; k++) {
+      System.out.printf("Iteration %d out of %d%n", k + 1, iterationsCount);
+      try {
+        seed = System.nanoTime();
+        Random random = new Random(seed);
+
+        TreeMap<Integer, ORID> rids = new TreeMap<>();
+        Map<ORID, byte[]> values = new HashMap<>();
+
+        System.out.println("Loading initial set of records");
+        final byte[][] randomValues = new byte[10][];
+
+        for (int n = 0; n < randomValues.length; n++) {
+          final int recordSize = random.nextInt(200) + 100;
+          final byte[] value = new byte[recordSize];
+          random.nextBytes(value);
+
+          randomValues[n] = value;
+        }
+
+        for (int i = 0; i < initialAmountOfRecords; i++) {
+          final ODocument document = new ODocument(CLASS_NAME);
+          final byte[] value = randomValues[random.nextInt(randomValues.length)];
+
+          document.field("value", value);
+          document.save();
+
+          rids.put(i, document.getIdentity());
+          values.put(document.getIdentity(), value);
+
+          if (i > 0 && i % 20_000 == 0) {
+            System.out.printf("%d records are loaded out of %d%n", i, initialAmountOfRecords);
+          }
+        }
+
+        System.out.println("Testing rollback of mix of operations");
+        for (int i = 0; i < testedAmountOfRecords; i++) {
+          txApprover.approve = true;
+
+          ODocument document = new ODocument(CLASS_NAME);
+          final byte[] value = randomValues[random.nextInt(randomValues.length)];
+
+          document.field("value", value);
+          document.save();
+
+          rids.put(initialAmountOfRecords + i, document.getIdentity());
+          values.put(document.getIdentity(), value);
+
+          txApprover.approve = false;
+
+          session.begin();
+          try {
+            Set<ORID> ridsToUpdate = new HashSet<>();
+            while (ridsToUpdate.size() < 3) {
+              Integer ridToUpdate = rids.ceilingKey(random.nextInt(rids.lastKey()));
+              if (ridToUpdate == null) {
+                ridToUpdate = rids.firstKey();
+              }
+
+              ridsToUpdate.add(rids.get(ridToUpdate));
+            }
+
+            for (ORID orid : ridsToUpdate) {
+              final ODocument doc = session.load(orid);
+              final byte[] val = randomValues[random.nextInt(randomValues.length)];
+
+              doc.field("value", val);
+              doc.save();
+            }
+
+            Set<ORID> ridsToDelete = new HashSet<>();
+            while (ridsToDelete.size() < 3) {
+              Integer ridToDelete = rids.ceilingKey(random.nextInt(rids.lastKey()));
+              if (ridToDelete == null) {
+                ridToDelete = rids.firstKey();
+              }
+
+              ridsToDelete.add(rids.get(ridToDelete));
+            }
+
+            for (ORID orid : ridsToDelete) {
+              final ODocument doc = session.load(orid);
+              Assert.assertNotNull(doc);
+              doc.delete();
+            }
+
+            for (int n = 0; n < 3; n++) {
+              final ODocument doc = new ODocument(CLASS_NAME);
+              final byte[] val = randomValues[random.nextInt(randomValues.length)];
+
+              doc.field("value", val);
+              doc.save();
+            }
+            session.commit();
+          } catch (NotApprovedException e) {
+            //continue
+          }
+
+          txApprover.approve = true;
+
+          Integer ridToDelete = rids.ceilingKey(random.nextInt(rids.lastKey()));
+          if (ridToDelete == null) {
+            ridToDelete = rids.firstKey();
+          }
+          document = session.load(rids.get(ridToDelete));
+          Assert.assertNotNull(document);
+          document.delete();
+
+          rids.remove(ridToDelete);
+          values.remove(document.getIdentity());
+
+          Integer ridToUpdate = rids.ceilingKey(random.nextInt(rids.lastKey()));
+          if (ridToUpdate == null) {
+            ridToUpdate = rids.firstKey();
+          }
+
+          final byte[] val = randomValues[random.nextInt(randomValues.length)];
+
+          document = session.load(rids.get(ridToUpdate));
+          document.field("value", val);
+          document.save();
+          values.put(document.getIdentity(), val);
+
+          if (i > 0 && i % 10_000 == 0) {
+            System.out.printf("%d iterations are tested out of %d%n", i, testedAmountOfRecords);
+          }
+        }
+
+        session.close();
+        session = orient.open("TestDB", "admin", "admin");
+
+        txApprover.approve = true;
+        System.out.println("Testing all loaded records");
+        OIndex index = session.getMetadata().getIndexManager().getIndex(VALUE_INDEX);
+        Assert.assertEquals(initialAmountOfRecords, index.getSize());
+        iterateOverAllRecords(values);
+
+        System.out.println("Loading additional set of records");
+        for (int i = 0; i < additionalAmountOfRecords; i++) {
+          final ODocument document = new ODocument(CLASS_NAME);
+          final byte[] value = randomValues[random.nextInt(randomValues.length)];
+
+          document.field("value", value);
+          document.save();
+
+          values.put(document.getIdentity(), value);
+
+          if (i > 0 && i % 20_000 == 0) {
+            System.out.printf("%d records are loaded out of %d%n", i, additionalAmountOfRecords);
+          }
+        }
+
+        session.close();
+        session = orient.open(DB_NAME, "admin", "admin");
+
+        System.out.println("Testing all loaded records");
+        index = session.getMetadata().getIndexManager().getIndex(VALUE_INDEX);
+        Assert.assertEquals(initialAmountOfRecords + additionalAmountOfRecords, index.getSize());
+        iterateOverAllRecords(values);
+
+        if (k < iterationsCount - 1) {
+          dropSchema();
+          createSchema();
+        }
+      } catch (Exception | Error e) {
+        System.out.printf("testRollbackMixTwo seed : %d%n", seed);
+        throw e;
+      }
+    }
+  }
+
+  @Test
+  public void testRollbackMixThree() {
+    long seed = -1;
+    for (int k = 0; k < iterationsCount; k++) {
+      System.out.printf("Iteration %d out of %d%n", k + 1, iterationsCount);
+      try {
+        seed = System.nanoTime();
+        Random random = new Random(seed);
+
+        TreeMap<Integer, ORID> rids = new TreeMap<>();
+        Map<ORID, byte[]> values = new HashMap<>();
+
+        System.out.println("Loading initial set of records");
+        final byte[][] randomValues = new byte[10][];
+
+        for (int n = 0; n < randomValues.length; n++) {
+          final int recordSize = random.nextInt(200) + 100;
+          final byte[] value = new byte[recordSize];
+          random.nextBytes(value);
+
+          randomValues[n] = value;
+        }
+
+        for (int i = 0; i < initialAmountOfRecords; i++) {
+          final ODocument document = new ODocument(CLASS_NAME);
+          final byte[] value = randomValues[random.nextInt(randomValues.length)];
+
+          document.field("value", value);
+          document.save();
+
+          rids.put(i, document.getIdentity());
+          values.put(document.getIdentity(), value);
+
+          if (i > 0 && i % 20_000 == 0) {
+            System.out.printf("%d records are loaded out of %d%n", i, initialAmountOfRecords);
+          }
+        }
+
+        System.out.println("Testing rollback of mix of operations");
+        for (int i = 0; i < testedAmountOfRecords; i++) {
+          txApprover.approve = true;
+
+          ODocument document = new ODocument(CLASS_NAME);
+          final byte[] value = randomValues[random.nextInt(randomValues.length)];
+
+          document.field("value", value);
+          document.save();
+
+          rids.put(initialAmountOfRecords + i, document.getIdentity());
+          values.put(document.getIdentity(), value);
+
+          txApprover.approve = false;
+
+          session.begin();
+          try {
+            for (int n = 0; n < 3; n++) {
+              final ODocument doc = new ODocument(CLASS_NAME);
+
+              final byte[] val = randomValues[random.nextInt(randomValues.length)];
+
+              doc.field("value", val);
+              doc.save();
+            }
+
+            Set<ORID> ridsToUpdate = new HashSet<>();
+            while (ridsToUpdate.size() < 3) {
+              Integer ridToUpdate = rids.ceilingKey(random.nextInt(rids.lastKey()));
+              if (ridToUpdate == null) {
+                ridToUpdate = rids.firstKey();
+              }
+
+              ridsToUpdate.add(rids.get(ridToUpdate));
+            }
+
+            for (ORID orid : ridsToUpdate) {
+              final ODocument doc = session.load(orid);
+              final byte[] val = randomValues[random.nextInt(randomValues.length)];
+
+              doc.field("value", val);
+              doc.save();
+            }
+
+            Set<ORID> ridsToDelete = new HashSet<>();
+            while (ridsToDelete.size() < 3) {
+              Integer ridToDelete = rids.ceilingKey(random.nextInt(rids.lastKey()));
+              if (ridToDelete == null) {
+                ridToDelete = rids.firstKey();
+              }
+
+              ridsToDelete.add(rids.get(ridToDelete));
+            }
+
+            for (ORID orid : ridsToDelete) {
+              final ODocument doc = session.load(orid);
+              Assert.assertNotNull(doc);
+              doc.delete();
+            }
+
+            session.commit();
+          } catch (NotApprovedException e) {
+            //continue
+          }
+
+          txApprover.approve = true;
+
+          Integer ridToDelete = rids.ceilingKey(random.nextInt(rids.lastKey()));
+          if (ridToDelete == null) {
+            ridToDelete = rids.firstKey();
+          }
+          document = session.load(rids.get(ridToDelete));
+          Assert.assertNotNull(document);
+          document.delete();
+
+          rids.remove(ridToDelete);
+          values.remove(document.getIdentity());
+
+          Integer ridToUpdate = rids.ceilingKey(random.nextInt(rids.lastKey()));
+          if (ridToUpdate == null) {
+            ridToUpdate = rids.firstKey();
+          }
+
+          final byte[] val = randomValues[random.nextInt(randomValues.length)];
+
+          document = session.load(rids.get(ridToUpdate));
+          document.field("value", val);
+          document.save();
+          values.put(document.getIdentity(), val);
+
+          if (i > 0 && i % 10_000 == 0) {
+            System.out.printf("%d iterations are tested out of %d%n", i, testedAmountOfRecords);
+          }
+        }
+
+        session.close();
+        session = orient.open(DB_NAME, "admin", "admin");
+
+        txApprover.approve = true;
+        System.out.println("Testing all loaded records");
+        OIndex index = session.getMetadata().getIndexManager().getIndex(VALUE_INDEX);
+        Assert.assertEquals(initialAmountOfRecords, index.getSize());
+        iterateOverAllRecords(values);
+
+        System.out.println("Loading additional set of records");
+        for (int i = 0; i < additionalAmountOfRecords; i++) {
+          final ODocument document = new ODocument(CLASS_NAME);
+          final byte[] value = randomValues[random.nextInt(randomValues.length)];
+
+          document.field("value", value);
+          document.save();
+
+          values.put(document.getIdentity(), value);
+
+          if (i > 0 && i % 20_000 == 0) {
+            System.out.printf("%d records are loaded out of %d%n", i, additionalAmountOfRecords);
+          }
+        }
+
+        session.close();
+        session = orient.open(DB_NAME, "admin", "admin");
+
+        System.out.println("Testing all loaded records");
+        index = session.getMetadata().getIndexManager().getIndex(VALUE_INDEX);
+        Assert.assertEquals(initialAmountOfRecords + additionalAmountOfRecords, index.getSize());
+        iterateOverAllRecords(values);
+
+        if (k < iterationsCount - 1) {
+          dropSchema();
+          createSchema();
+        }
+
+      } catch (Exception | Error e) {
+        System.out.printf("testRollbackMixThree seed : %d%n", seed);
         throw e;
       }
     }
