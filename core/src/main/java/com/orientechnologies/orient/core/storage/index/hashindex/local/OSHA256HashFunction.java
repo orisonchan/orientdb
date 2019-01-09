@@ -18,4 +18,10 @@ public final class OSHA256HashFunction<V> implements OHashFunction<V> {
     final byte[] digest = MessageDigestHolder.instance().get().digest(serializedValue);
     return OLongSerializer.INSTANCE.deserializeNative(digest, 0);
   }
+
+  @Override
+  public long hashCode(final byte[] value) {
+    final byte[] digest = MessageDigestHolder.instance().get().digest(value);
+    return OLongSerializer.INSTANCE.deserializeNative(digest, 0);
+  }
 }

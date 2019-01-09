@@ -44,4 +44,9 @@ public final class OMurmurHash3HashFunction<V> implements OHashFunction<V> {
 
     return OMurmurHash3.murmurHash3_x64_64(serializedValue, SEED);
   }
+
+  @Override
+  public long hashCode(final byte[] value) {
+    return OMurmurHash3.murmurHash3_x64_64(value, SEED);
+  }
 }

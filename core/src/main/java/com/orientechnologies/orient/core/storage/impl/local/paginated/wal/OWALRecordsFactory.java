@@ -76,6 +76,10 @@ import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageop
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.cluster.clusterstatevone.OClusterStateVOneSetFreeListPageOperation;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.cluster.clusterstatevone.OClusterStateVOneSetSizeOperation;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.cluster.mapentrypoint.OMapEntryPointSetFileSizeOperation;
+import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.extendiblehashing.hashindexbucket.OHashIndexBucketAddEntryPageOperation;
+import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.extendiblehashing.hashindexbucket.OHashIndexBucketDeleteEntryPageOperation;
+import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.extendiblehashing.hashindexbucket.OHashIndexBucketSetDepthPageOperation;
+import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.extendiblehashing.hashindexbucket.OHashIndexBucketUpdateEntryPageOperation;
 import com.sun.jna.Native;
 import com.sun.jna.Pointer;
 import net.jpountz.lz4.LZ4Compressor;
@@ -116,6 +120,10 @@ import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal
 import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.FULL_CHECKPOINT_START_RECORD;
 import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.FUZZY_CHECKPOINT_END_RECORD;
 import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.FUZZY_CHECKPOINT_START_RECORD;
+import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.HASH_INDEX_BUCKET_ADD_ENTRY;
+import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.HASH_INDEX_BUCKET_DELETE_ENTRY;
+import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.HASH_INDEX_BUCKET_SET_DEPTH;
+import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.HASH_INDEX_BUCKET_UPDATE_ENTRY;
 import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.MAP_ENTRY_POINT_SET_FILE_SIZE;
 import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.NON_TX_OPERATION_PERFORMED_WAL_RECORD;
 import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.SBTREE_BONSAI_BUCKET_ADD_ALL;
@@ -412,6 +420,18 @@ public final class OWALRecordsFactory {
       break;
     case SBTREE_BONSAI_SYS_BUCKET_SET_FREE_LIST_HEAD:
       walRecord = new OBonsaiSysBucketSetFreeListHeadPageOperation();
+      break;
+    case HASH_INDEX_BUCKET_UPDATE_ENTRY:
+      walRecord = new OHashIndexBucketUpdateEntryPageOperation();
+      break;
+    case HASH_INDEX_BUCKET_DELETE_ENTRY:
+      walRecord = new OHashIndexBucketDeleteEntryPageOperation();
+      break;
+    case HASH_INDEX_BUCKET_ADD_ENTRY:
+      walRecord = new OHashIndexBucketAddEntryPageOperation();
+      break;
+    case HASH_INDEX_BUCKET_SET_DEPTH:
+      walRecord = new OHashIndexBucketSetDepthPageOperation();
       break;
     default:
       if (idToTypeMap.containsKey(content[0])) {

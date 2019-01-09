@@ -15,7 +15,6 @@ public final class WALRecordTypes {
   public static final byte FILE_TRUNCATED_WAL_RECORD             = 13;
   public static final byte EMPTY_WAL_RECORD                      = 14;
 
-  public static final byte CLUSTER_POSITION_MAP_NEW_PAGE       = 15;
   public static final byte CLUSTER_POSITION_MAP_ADD            = 16;
   public static final byte CLUSTER_POSITION_MAP_ALLOCATE       = 17;
   public static final byte CLUSTER_POSITION_MAP_SET            = 18;
@@ -27,7 +26,6 @@ public final class WALRecordTypes {
   public static final byte CLUSTER_POSITION_MAP_UNDO_RESURRECT = 24;
   public static final byte CLUSTER_POSITION_MAP_UNDO_REMOVE    = 25;
 
-  public static final byte CLUSTER_PAGE_NEW              = 26;
   public static final byte CLUSTER_PAGE_APPEND_RECORD    = 27;
   public static final byte CLUSTER_PAGE_REPLACE_RECORD   = 28;
   public static final byte CLUSTER_PAGE_DELETE_RECORD    = 29;
@@ -36,14 +34,11 @@ public final class WALRecordTypes {
   public static final byte CLUSTER_PAGE_SET_PREV_PAGE    = 32;
 
   public static final byte MAP_ENTRY_POINT_SET_FILE_SIZE = 33;
-  public static final byte MAP_ENTRY_POINT_NEW_PAGE      = 34;
 
-  public static final byte CLUSTER_STATE_V_ONE_NEW_PAGE           = 35;
   public static final byte CLUSTER_STATE_V_ONE_SET_SIZE           = 36;
   public static final byte CLUSTER_STATE_V_ONE_SET_FILE_SIZE      = 37;
   public static final byte CLUSTER_STATE_V_ONE_SET_FREE_LIST_PAGE = 38;
 
-  public static final byte SBTREE_BUCKET_NEW_PAGE                       = 39;
   public static final byte SBTREE_BUCKET_SET_TREE_SIZE                  = 40;
   public static final byte SBTREE_BUCKET_SET_FREE_LIST_FIRST_INDEX      = 41;
   public static final byte SBTREE_BUCKET_REMOVE_LEAF_ENTRY              = 42;
@@ -61,7 +56,6 @@ public final class WALRecordTypes {
   public static final byte SBTREE_NULL_BUCKET_SET_VALUE    = 53;
   public static final byte SBTREE_NULL_BUCKET_REMOVE_VALUE = 54;
 
-  public static final byte SBTREE_BONSAI_BUCKET_INIT                  = 55;
   public static final byte SBTREE_BONSAI_BUCKET_SET_TREE_SIZE         = 56;
   public static final byte SBTREE_BONSAI_BUCKET_REMOVE_LEAF_ENTRY     = 57;
   public static final byte SBTREE_BONSAI_BUCKET_CONVERT_TO_LEAF       = 58;
@@ -77,8 +71,12 @@ public final class WALRecordTypes {
   public static final byte SBTREE_BONSAI_BUCKET_SET_LEFT_SIBLING      = 68;
   public static final byte SBTREE_BONSAI_BUCKET_SET_RIGHT_SIBLING     = 69;
 
-  public static final byte SBTREE_BONSAI_SYS_BUCKET_INIT                   = 70;
   public static final byte SBTREE_BONSAI_SYS_BUCKET_SET_FREE_LIST_LENGTH   = 71;
   public static final byte SBTREE_BONSAI_SYS_BUCKET_SET_FREE_SPACE_POINTER = 72;
   public static final byte SBTREE_BONSAI_SYS_BUCKET_SET_FREE_LIST_HEAD     = 73;
+
+  public static final byte HASH_INDEX_BUCKET_UPDATE_ENTRY = 74;
+  public static final byte HASH_INDEX_BUCKET_DELETE_ENTRY = 75;
+  public static final byte HASH_INDEX_BUCKET_ADD_ENTRY    = 76;
+  public static final byte HASH_INDEX_BUCKET_SET_DEPTH    = 77;
 }

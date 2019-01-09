@@ -25,6 +25,7 @@ import java.util.TreeSet;
 public class LocalHashTableIterationTestIT {
   private static final int KEYS_COUNT = 500000;
 
+  @SuppressWarnings("deprecation")
   private ODatabaseDocumentTx databaseDocumentTx;
 
   private OLocalHashTable<Integer, String> localHashTable;
@@ -35,6 +36,7 @@ public class LocalHashTableIterationTestIT {
     if (buildDirectory == null)
       buildDirectory = ".";
 
+    //noinspection deprecation
     databaseDocumentTx = new ODatabaseDocumentTx("plocal:" + buildDirectory + "/localHashTableIterationTest");
     if (databaseDocumentTx.exists()) {
       databaseDocumentTx.open("admin", "admin");
@@ -48,13 +50,18 @@ public class LocalHashTableIterationTestIT {
       public long hashCode(Integer value) {
         return Long.MAX_VALUE / 2 + value;
       }
+
+      @Override
+      public long hashCode(final byte[] value) {
+        return Long.MAX_VALUE / 2 + OIntegerSerializer.INSTANCE.deserializeNative(value, 0);
+      }
     };
 
-    localHashTable = new OLocalHashTable<Integer, String>("localHashTableIterationTest", ".imc", ".tsc", ".obf", ".nbh",
+    localHashTable = new OLocalHashTable<>("localHashTableIterationTest", ".imc", ".tsc", ".obf", ".nbh",
         (OAbstractPaginatedStorage) databaseDocumentTx.getStorage());
 
     localHashTable
-        .create(OIntegerSerializer.INSTANCE, OBinarySerializerFactory.getInstance().<String>getObjectSerializer(OType.STRING), null,
+        .create(OIntegerSerializer.INSTANCE, OBinarySerializerFactory.getInstance().getObjectSerializer(OType.STRING), null,
             null, hashFunction, true);
   }
 
@@ -72,7 +79,7 @@ public class LocalHashTableIterationTestIT {
 
   @Test
   public void testNextHaveRightOrder() throws Exception {
-    SortedSet<Integer> keys = new TreeSet<Integer>();
+    SortedSet<Integer> keys = new TreeSet<>();
     keys.clear();
     final Random random = new Random();
 
@@ -101,7 +108,7 @@ public class LocalHashTableIterationTestIT {
   }
 
   public void testNextSkipsRecordValid() throws Exception {
-    List<Integer> keys = new ArrayList<Integer>();
+    List<Integer> keys = new ArrayList<>();
     keys.clear();
 
     final Random random = new Random();
@@ -137,7 +144,7 @@ public class LocalHashTableIterationTestIT {
   @Test
   @Ignore
   public void testNextHaveRightOrderUsingNextMethod() throws Exception {
-    List<Integer> keys = new ArrayList<Integer>();
+    List<Integer> keys = new ArrayList<>();
     keys.clear();
     Random random = new Random();
 
@@ -155,13 +162,13 @@ public class LocalHashTableIterationTestIT {
 
     for (int key : keys) {
       OHashIndexBucket.Entry<Integer, String>[] entries = localHashTable.ceilingEntries(key);
-      Assert.assertTrue(key == entries[0].key);
+      Assert.assertEquals(key, (int) entries[0].key);
     }
 
     for (int j = 0, keysSize = keys.size() - 1; j < keysSize; j++) {
       int key = keys.get(j);
       int sKey = localHashTable.higherEntries(key)[0].key;
-      Assert.assertTrue(sKey == keys.get(j + 1));
+      Assert.assertEquals(sKey, (int) keys.get(j + 1));
     }
   }
 
