@@ -29,9 +29,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.util.Comparator;
 
-/**
- * Created by lomak_000 on 15.04.2015.
- */
 public interface OHashTable<K, V> {
   void create(OBinarySerializer<K> keySerializer, OBinarySerializer<V> valueSerializer, OType[] keyTypes, OEncryption encryption,
       OHashFunction<K> keyHashFunction, boolean nullKeyIsSupported) throws IOException;
@@ -100,15 +97,16 @@ public interface OHashTable<K, V> {
 
   String getName();
 
-  public static final class BucketPath {
-    public final BucketPath parent;
-    public final int        hashMapOffset;
-    public final int        itemIndex;
-    public final int        nodeIndex;
-    public final int        nodeGlobalDepth;
-    public final int        nodeLocalDepth;
+  final class BucketPath {
+    final BucketPath parent;
+    final int        hashMapOffset;
+    final int        itemIndex;
+    final int        nodeIndex;
+    final int        nodeGlobalDepth;
+    final int        nodeLocalDepth;
 
-    public BucketPath(BucketPath parent, int hashMapOffset, int itemIndex, int nodeIndex, int nodeLocalDepth, int nodeGlobalDepth) {
+    BucketPath(final BucketPath parent, final int hashMapOffset, final int itemIndex, final int nodeIndex, final int nodeLocalDepth,
+        final int nodeGlobalDepth) {
       this.parent = parent;
       this.hashMapOffset = hashMapOffset;
       this.itemIndex = itemIndex;
@@ -118,25 +116,25 @@ public interface OHashTable<K, V> {
     }
   }
 
-  public static final class BucketSplitResult {
-    public final long updatedBucketPointer;
-    public final long newBucketPointer;
-    public final int  newDepth;
+  final class BucketSplitResult {
+    final long updatedBucketPointer;
+    final long newBucketPointer;
+    final int  newDepth;
 
-    public BucketSplitResult(long updatedBucketPointer, long newBucketPointer, int newDepth) {
+    BucketSplitResult(final long updatedBucketPointer, final long newBucketPointer, final int newDepth) {
       this.updatedBucketPointer = updatedBucketPointer;
       this.newBucketPointer = newBucketPointer;
       this.newDepth = newDepth;
     }
   }
 
-  public static final class NodeSplitResult {
-    public final long[]  newNode;
-    public final boolean allLeftHashMapsEqual;
-    public final boolean allRightHashMapsEqual;
+  final class NodeSplitResult {
+    final long[]  newNode;
+    final boolean allLeftHashMapsEqual;
+    final boolean allRightHashMapsEqual;
 
     @SuppressFBWarnings("EI_EXPOSE_REP2")
-    public NodeSplitResult(long[] newNode, boolean allLeftHashMapsEqual, boolean allRightHashMapsEqual) {
+    NodeSplitResult(final long[] newNode, final boolean allLeftHashMapsEqual, final boolean allRightHashMapsEqual) {
       this.newNode = newNode;
       this.allLeftHashMapsEqual = allLeftHashMapsEqual;
       this.allRightHashMapsEqual = allRightHashMapsEqual;
@@ -149,12 +147,12 @@ public interface OHashTable<K, V> {
 
     private final OHashFunction<K> keyHashFunction;
 
-    public KeyHashCodeComparator(OHashFunction<K> keyHashFunction) {
+    KeyHashCodeComparator(final OHashFunction<K> keyHashFunction) {
       this.keyHashFunction = keyHashFunction;
     }
 
     @Override
-    public int compare(K keyOne, K keyTwo) {
+    public int compare(final K keyOne, final K keyTwo) {
       final long hashCodeOne = keyHashFunction.hashCode(keyOne);
       final long hashCodeTwo = keyHashFunction.hashCode(keyTwo);
 
@@ -166,11 +164,11 @@ public interface OHashTable<K, V> {
       return comparator.compare(keyOne, keyTwo);
     }
 
-    private static boolean lessThanUnsigned(long longOne, long longTwo) {
+    private static boolean lessThanUnsigned(final long longOne, final long longTwo) {
       return (longOne + Long.MIN_VALUE) < (longTwo + Long.MIN_VALUE);
     }
 
-    private static boolean greaterThanUnsigned(long longOne, long longTwo) {
+    private static boolean greaterThanUnsigned(final long longOne, final long longTwo) {
       return (longOne + Long.MIN_VALUE) > (longTwo + Long.MIN_VALUE);
     }
   }

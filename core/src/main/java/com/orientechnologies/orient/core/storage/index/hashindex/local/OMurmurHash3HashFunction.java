@@ -28,12 +28,12 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * @since 12.03.13
  */
 @SuppressFBWarnings("UWF_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR")
-public class OMurmurHash3HashFunction<V> implements OHashFunction<V> {
+public final class OMurmurHash3HashFunction<V> implements OHashFunction<V> {
   private static final int SEED = 362498820;
 
   private final OBinarySerializer<V> valueSerializer;
 
-  public OMurmurHash3HashFunction(OBinarySerializer<V> valueSerializer) {
+  public OMurmurHash3HashFunction(final OBinarySerializer<V> valueSerializer) {
     this.valueSerializer = valueSerializer;
   }
 

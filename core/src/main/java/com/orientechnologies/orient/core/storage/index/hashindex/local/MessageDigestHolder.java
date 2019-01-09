@@ -3,7 +3,7 @@ package com.orientechnologies.orient.core.storage.index.hashindex.local;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
-public class MessageDigestHolder {
+public final class MessageDigestHolder {
   private static final MessageDigestHolder INSTANCE = new MessageDigestHolder();
 
   private final ThreadLocal<MessageDigest> messageDigest = ThreadLocal.withInitial(() -> {
@@ -18,7 +18,7 @@ public class MessageDigestHolder {
     return INSTANCE;
   }
 
-  public MessageDigest get() {
+  public final MessageDigest get() {
     return messageDigest.get();
   }
 }
