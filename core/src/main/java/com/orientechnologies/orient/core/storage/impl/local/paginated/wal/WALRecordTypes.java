@@ -79,4 +79,9 @@ public final class WALRecordTypes {
   public static final byte HASH_INDEX_BUCKET_DELETE_ENTRY = 75;
   public static final byte HASH_INDEX_BUCKET_ADD_ENTRY    = 76;
   public static final byte HASH_INDEX_BUCKET_SET_DEPTH    = 77;
+
+  public static final byte DIRECTORY_PAGE_SET_MAX_LEFT_CHILD_DEPTH  = 78;
+  public static final byte DIRECTORY_PAGE_SET_MAX_RIGHT_CHILD_DEPTH = 79;
+  public static final byte DIRECTORY_PAGE_SET_NODE_LOCAL_DEPTH      = 80;
+  public static final byte DIRECTORY_PAGE_SET_POINTER               = 81;
 }

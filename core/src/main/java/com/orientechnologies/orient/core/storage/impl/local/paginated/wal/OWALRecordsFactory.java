@@ -76,6 +76,10 @@ import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageop
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.cluster.clusterstatevone.OClusterStateVOneSetFreeListPageOperation;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.cluster.clusterstatevone.OClusterStateVOneSetSizeOperation;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.cluster.mapentrypoint.OMapEntryPointSetFileSizeOperation;
+import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.extendiblehashing.directorypage.ODirectoryPageSetMaxLeftChildDepthPageOperation;
+import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.extendiblehashing.directorypage.ODirectoryPageSetMaxRightChildDepthPageOperation;
+import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.extendiblehashing.directorypage.ODirectoryPageSetNodeLocalDepthPageOperation;
+import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.extendiblehashing.directorypage.ODirectoryPageSetPointerPageOperation;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.extendiblehashing.hashindexbucket.OHashIndexBucketAddEntryPageOperation;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.extendiblehashing.hashindexbucket.OHashIndexBucketDeleteEntryPageOperation;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.extendiblehashing.hashindexbucket.OHashIndexBucketSetDepthPageOperation;
@@ -113,6 +117,10 @@ import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal
 import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.CLUSTER_STATE_V_ONE_SET_FILE_SIZE;
 import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.CLUSTER_STATE_V_ONE_SET_FREE_LIST_PAGE;
 import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.CLUSTER_STATE_V_ONE_SET_SIZE;
+import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.DIRECTORY_PAGE_SET_MAX_LEFT_CHILD_DEPTH;
+import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.DIRECTORY_PAGE_SET_MAX_RIGHT_CHILD_DEPTH;
+import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.DIRECTORY_PAGE_SET_NODE_LOCAL_DEPTH;
+import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.DIRECTORY_PAGE_SET_POINTER;
 import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.EMPTY_WAL_RECORD;
 import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.FILE_CREATED_WAL_RECORD;
 import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.FILE_DELETED_WAL_RECORD;
@@ -432,6 +440,18 @@ public final class OWALRecordsFactory {
       break;
     case HASH_INDEX_BUCKET_SET_DEPTH:
       walRecord = new OHashIndexBucketSetDepthPageOperation();
+      break;
+    case DIRECTORY_PAGE_SET_MAX_LEFT_CHILD_DEPTH:
+      walRecord = new ODirectoryPageSetMaxLeftChildDepthPageOperation();
+      break;
+    case DIRECTORY_PAGE_SET_MAX_RIGHT_CHILD_DEPTH:
+      walRecord = new ODirectoryPageSetMaxRightChildDepthPageOperation();
+      break;
+    case DIRECTORY_PAGE_SET_NODE_LOCAL_DEPTH:
+      walRecord = new ODirectoryPageSetNodeLocalDepthPageOperation();
+      break;
+    case DIRECTORY_PAGE_SET_POINTER:
+      walRecord = new ODirectoryPageSetPointerPageOperation();
       break;
     default:
       if (idToTypeMap.containsKey(content[0])) {
