@@ -8,7 +8,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.nio.ByteBuffer;
 
-@SuppressFBWarnings("EI_EXPOSE_REP2")
+@SuppressFBWarnings({ "EI_EXPOSE_REP2", "EI_EXPOSE_REP" })
 public final class OHashIndexBucketDeleteEntryPageOperation extends OHashIndexBucketPageOperation {
   private int    index;
   private long   hashCode;
@@ -23,6 +23,22 @@ public final class OHashIndexBucketDeleteEntryPageOperation extends OHashIndexBu
     this.hashCode = hashCode;
     this.key = key;
     this.value = value;
+  }
+
+  public int getIndex() {
+    return index;
+  }
+
+  public long getHashCode() {
+    return hashCode;
+  }
+
+  public byte[] getKey() {
+    return key;
+  }
+
+  public byte[] getValue() {
+    return value;
   }
 
   @Override

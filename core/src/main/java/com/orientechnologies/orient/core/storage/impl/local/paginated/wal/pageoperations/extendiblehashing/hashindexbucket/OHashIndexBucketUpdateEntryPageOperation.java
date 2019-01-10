@@ -7,7 +7,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.nio.ByteBuffer;
 
-@SuppressFBWarnings("EI_EXPOSE_REP2")
+@SuppressFBWarnings({ "EI_EXPOSE_REP2", "EI_EXPOSE_REP" })
 public final class OHashIndexBucketUpdateEntryPageOperation extends OHashIndexBucketPageOperation {
   private int    index;
   private int    valueSize;
@@ -22,6 +22,22 @@ public final class OHashIndexBucketUpdateEntryPageOperation extends OHashIndexBu
     this.keySize = keySize;
     this.valueSize = valueSize;
     this.oldValue = oldValue;
+  }
+
+  public int getIndex() {
+    return index;
+  }
+
+  public int getValueSize() {
+    return valueSize;
+  }
+
+  public int getKeySize() {
+    return keySize;
+  }
+
+  public byte[] getOldValue() {
+    return oldValue;
   }
 
   @Override

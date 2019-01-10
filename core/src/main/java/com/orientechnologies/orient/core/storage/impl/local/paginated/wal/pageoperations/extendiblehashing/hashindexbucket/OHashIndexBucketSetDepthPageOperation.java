@@ -12,6 +12,10 @@ public final class OHashIndexBucketSetDepthPageOperation extends OHashIndexBucke
   public OHashIndexBucketSetDepthPageOperation() {
   }
 
+  byte getOldDepth() {
+    return oldDepth;
+  }
+
   public OHashIndexBucketSetDepthPageOperation(final byte oldDepth) {
     this.oldDepth = oldDepth;
   }

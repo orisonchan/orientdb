@@ -153,7 +153,7 @@ public final class OHashTableDirectory extends ODurableComponent {
 
         ODirectoryPage page = null;
         try {
-          page = new ODirectoryPage(cacheEntry, cacheEntry);
+          page = new ODirectoryPage(cacheEntry);
 
           page.setMaxLeftChildDepth(localLevel, maxLeftChildDepth);
           page.setMaxRightChildDepth(localLevel, maxRightChildDepth);
@@ -194,7 +194,7 @@ public final class OHashTableDirectory extends ODurableComponent {
         ODirectoryPage page = null;
         final OCacheEntry cacheEntry = loadPageForWrite(fileId, pageIndex, true);
         try {
-          page = new ODirectoryPage(cacheEntry, cacheEntry);
+          page = new ODirectoryPage(cacheEntry);
 
           page.setPointer(localNodeIndex, 0, firstPage.getTombstone());
           firstPage.setTombstone(nodeIndex);
@@ -345,12 +345,12 @@ public final class OHashTableDirectory extends ODurableComponent {
       cacheEntry = loadPageForRead(fileId, pageIndex, true);
     }
 
-    return new ODirectoryPage(cacheEntry, cacheEntry);
+    return new ODirectoryPage(cacheEntry);
   }
 
   private void releasePage(final ODirectoryPage page, final boolean exclusiveLock, final OAtomicOperation atomicOperation)
       throws IOException {
-    final OCacheEntry cacheEntry = page.getEntry();
+    final OCacheEntry cacheEntry = page.getCacheEntry();
 
     if (exclusiveLock) {
       releasePageFromWrite(page, atomicOperation);

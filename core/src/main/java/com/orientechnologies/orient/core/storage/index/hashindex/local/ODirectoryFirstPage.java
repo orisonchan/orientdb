@@ -38,7 +38,7 @@ public final class ODirectoryFirstPage extends ODirectoryPage {
                                                 / OHashTableDirectory.BINARY_LEVEL_SIZE;
 
   ODirectoryFirstPage(final OCacheEntry cacheEntry, final OCacheEntry entry) {
-    super(cacheEntry, entry);
+    super(cacheEntry);
   }
 
   public final void setTreeSize(final int treeSize) {

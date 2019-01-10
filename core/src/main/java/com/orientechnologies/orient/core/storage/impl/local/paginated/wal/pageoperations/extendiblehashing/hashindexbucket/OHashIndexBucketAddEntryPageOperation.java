@@ -20,6 +20,18 @@ public final class OHashIndexBucketAddEntryPageOperation extends OHashIndexBucke
     this.valueSize = valueSize;
   }
 
+  public int getIndex() {
+    return index;
+  }
+
+  public int getKeySize() {
+    return keySize;
+  }
+
+  public int getValueSize() {
+    return valueSize;
+  }
+
   @Override
   protected final void doUndo(final OHashIndexBucket page) {
     page.deleteEntry(index, keySize, valueSize);
