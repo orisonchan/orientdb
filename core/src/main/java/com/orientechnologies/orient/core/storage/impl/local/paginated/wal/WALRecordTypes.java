@@ -84,4 +84,5 @@ public final class WALRecordTypes {
   public static final byte DIRECTORY_PAGE_SET_MAX_RIGHT_CHILD_DEPTH = 79;
   public static final byte DIRECTORY_PAGE_SET_NODE_LOCAL_DEPTH      = 80;
   public static final byte DIRECTORY_PAGE_SET_POINTER               = 81;
+  public static final byte FILE_LEVEL_METADATA_SET_RECORDS_COUNT    = 82;
 }
