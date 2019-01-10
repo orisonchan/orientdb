@@ -200,8 +200,8 @@ public final class OLocalHashTable<K, V> extends ODurableComponent {
           V result;
           final OCacheEntry cacheEntry = loadPageForRead(nullBucketFileId, 0, false);
           try {
-            final ONullBucket<V> nullBucket = new ONullBucket<>(cacheEntry, valueSerializer, false);
-            result = nullBucket.getValue();
+            final ONullBucket<V> nullBucket = new ONullBucket<>(cacheEntry);
+            result = nullBucket.getValue(valueSerializer);
           } finally {
             releasePageFromRead(cacheEntry);
           }
@@ -334,11 +334,12 @@ public final class OLocalHashTable<K, V> extends ODurableComponent {
 
           ONullBucket<V> nullBucket = null;
           try {
-            nullBucket = new ONullBucket<>(cacheEntry, valueSerializer, false);
+            nullBucket = new ONullBucket<>(cacheEntry);
 
-            removed = nullBucket.getValue();
+            final byte[] rawOldValue = nullBucket.geRawValue(valueSerializer);
+            removed = rawOldValue != null ? valueSerializer.deserializeNativeObject(rawOldValue, 0) : null;
             if (removed != null) {
-              nullBucket.removeValue();
+              nullBucket.removeValue(rawOldValue.length);
               sizeDiff--;
             }
           } finally {
@@ -1159,7 +1160,13 @@ public final class OLocalHashTable<K, V> extends ODurableComponent {
         key = keySerializer.preprocess(key, (Object[]) keyTypes);
 
         final byte[] rawKey;
-        final byte[] rawValue = valueSerializer.serializeNativeAsWhole(value);
+        final byte[] rawValue;
+        if (validator == null) {
+          rawValue = valueSerializer.serializeNativeAsWhole(value);
+        } else {
+          rawValue = null;//will deserialize later when validator will return updated value
+        }
+
         if (key == null) {
           rawKey = null;
         } else if (encryption == null) {
@@ -1170,6 +1177,7 @@ public final class OLocalHashTable<K, V> extends ODurableComponent {
           OIntegerSerializer.INSTANCE.serializeNative(serializedKey.length, rawKey, 0);
           System.arraycopy(serializedKey, 0, rawKey, OIntegerSerializer.INT_SIZE, serializedKey.length);
         }
+
 
         return doPut(key, value, rawKey, rawValue, validator, atomicOperation);
       } finally {
@@ -1184,7 +1192,7 @@ public final class OLocalHashTable<K, V> extends ODurableComponent {
   }
 
   @SuppressWarnings("unchecked")
-  private boolean doPut(final K key, V value, final byte[] rawKey, final byte[] rawValue,
+  private boolean doPut(final K key, V value, final byte[] rawKey, byte[] rawValue,
       final OIndexEngine.Validator<K, V> validator, final OAtomicOperation atomicOperation) throws IOException {
     int sizeDiff = 0;
 
@@ -1202,10 +1210,14 @@ public final class OLocalHashTable<K, V> extends ODurableComponent {
 
       ONullBucket<V> nullBucket = null;
       try {
-        nullBucket = new ONullBucket<>(cacheEntry, valueSerializer, isNew);
+        nullBucket = new ONullBucket<>(cacheEntry);
+        if (isNew) {
+          nullBucket.init();
+        }
 
-        final V oldValue = nullBucket.getValue();
+        rawOldValue = nullBucket.geRawValue(valueSerializer);
 
+        final V oldValue = rawOldValue != null ? valueSerializer.deserializeNativeObject(rawOldValue, 0) : null;
         if (validator != null) {
           final Object result = validator.validate(null, oldValue, value);
           if (result == OIndexEngine.Validator.IGNORE) {
@@ -1213,13 +1225,14 @@ public final class OLocalHashTable<K, V> extends ODurableComponent {
           }
 
           value = (V) result;
+          rawValue = valueSerializer.serializeNativeAsWhole(value);
         }
 
         if (oldValue != null) {
           sizeDiff--;
         }
 
-        nullBucket.setValue(value);
+        nullBucket.setValue(rawValue, rawOldValue != null ? rawOldValue.length : -1);
         sizeDiff++;
       } finally {
         releasePageFromWrite(nullBucket, atomicOperation);
@@ -1259,6 +1272,7 @@ public final class OLocalHashTable<K, V> extends ODurableComponent {
           }
 
           value = (V) result;
+          rawValue = valueSerializer.serializeNativeAsWhole(value);
         }
 
         if (index > -1) {

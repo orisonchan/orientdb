@@ -85,4 +85,7 @@ public final class WALRecordTypes {
   public static final byte DIRECTORY_PAGE_SET_NODE_LOCAL_DEPTH      = 80;
   public static final byte DIRECTORY_PAGE_SET_POINTER               = 81;
   public static final byte FILE_LEVEL_METADATA_SET_RECORDS_COUNT    = 82;
+
+  public static final byte HASH_INDEX_NULL_BUCKET_SET_VALUE    = 83;
+  public static final byte HASH_INDEX_NULL_BUCKET_REMOVE_VALUE = 84;
 }
