@@ -23,6 +23,10 @@ package com.orientechnologies.orient.core.storage.index.hashindex.local;
 import com.orientechnologies.common.serialization.types.OIntegerSerializer;
 import com.orientechnologies.orient.core.config.OGlobalConfiguration;
 import com.orientechnologies.orient.core.storage.cache.OCacheEntry;
+import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.extendiblehashing.directoryfirstpage.ODirectoryFirstPageSetMaxLeftChildDepthPageOperation;
+import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.extendiblehashing.directoryfirstpage.ODirectoryFirstPageSetMaxRightChildDepthPageOperation;
+import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.extendiblehashing.directoryfirstpage.ODirectoryFirstPageSetNodeLocalDepthPageOperation;
+import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.extendiblehashing.directoryfirstpage.ODirectoryFirstPageSetPointerPageOperation;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.extendiblehashing.directoryfirstpage.ODirectoryFirstPageSetTombstonePageOperation;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.extendiblehashing.directoryfirstpage.ODirectoryFirstPageSetTreeSizePageOperation;
 
@@ -68,5 +72,25 @@ public final class ODirectoryFirstPage extends ODirectoryPage {
   @Override
   protected int getItemsOffset() {
     return ITEMS_OFFSET;
+  }
+
+  @Override
+  void logSetMaxLeftChildDepth(final int localNodeIndex, final byte oldDepth) {
+    addPageOperation(new ODirectoryFirstPageSetMaxLeftChildDepthPageOperation(localNodeIndex, oldDepth));
+  }
+
+  @Override
+  void logSetMaxRightChildDepth(final int localNodeIndex, final byte oldDepth) {
+    addPageOperation(new ODirectoryFirstPageSetMaxRightChildDepthPageOperation(localNodeIndex, oldDepth));
+  }
+
+  @Override
+  void logSetNodeLocalDepth(final int localNodeIndex, final byte oldDepth) {
+    addPageOperation(new ODirectoryFirstPageSetNodeLocalDepthPageOperation(localNodeIndex, oldDepth));
+  }
+
+  @Override
+  void logSetPointer(final int localNodeIndex, final int index, final long oldPointer) {
+    addPageOperation(new ODirectoryFirstPageSetPointerPageOperation(localNodeIndex, index, oldPointer));
   }
 }

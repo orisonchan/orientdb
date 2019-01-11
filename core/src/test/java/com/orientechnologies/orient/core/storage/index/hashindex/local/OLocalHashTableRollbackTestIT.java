@@ -62,7 +62,7 @@ public class OLocalHashTableRollbackTestIT {
     orient.create(DB_NAME, ODatabaseType.PLOCAL);
 
     initialAmountOfRecords = Integer.parseInt(System.getProperty("initialAmountOfRecords", "1000000"));
-    testedAmountOfRecords = Integer.parseInt(System.getProperty("testedAmountOfRecords", "10"));
+    testedAmountOfRecords = Integer.parseInt(System.getProperty("testedAmountOfRecords", "100000"));
     additionalAmountOfRecords = Integer.parseInt(System.getProperty("additionalAmountOfRecords", initialAmountOfRecords + ""));
     iterationsCount = Integer.parseInt(System.getProperty("iterationsCount", "1"));
   }
@@ -113,7 +113,7 @@ public class OLocalHashTableRollbackTestIT {
       long seed = -1;
 
       try {
-        seed = 132007942695224L;//System.nanoTime();
+        seed = System.nanoTime();
 
         final Random random = new Random(seed);
 
@@ -146,8 +146,7 @@ public class OLocalHashTableRollbackTestIT {
           try {
             session.begin();
 
-            for (int n = 0; n < 1; n++) {
-
+            for (int n = 0; n < 10; n++) {
               final ODocument document = new ODocument(CLASS_NAME);
               final int recordSize = random.nextInt(200) + 100;
               final byte[] value = new byte[recordSize];
@@ -215,6 +214,106 @@ public class OLocalHashTableRollbackTestIT {
       }
     }
   }
+
+  @Test
+  public void testAddRollbackTwo() {
+    for (int k = 0; k < iterationsCount; k++) {
+      System.out.printf("Iteration %d out of %d%n", k + 1, iterationsCount);
+      long seed = -1;
+
+      try {
+        seed = System.nanoTime();
+
+        final Random random = new Random(seed);
+
+        final Map<ORID, byte[]> values = new HashMap<>();
+
+        for (int i = 0; i < 2 * initialAmountOfRecords; i++) {
+          if (i % 2 == 0) {
+            txApprover.approve = true;
+            final ODocument document = new ODocument(CLASS_NAME);
+            final int recordSize = random.nextInt(200) + 100;
+            final byte[] value = new byte[recordSize];
+            random.nextBytes(value);
+            ensureValueIsUnique(random, value);
+
+            document.field("value", value);
+            document.save();
+
+            values.put(document.getIdentity(), value);
+          } else {
+            txApprover.approve = false;
+            try {
+              session.begin();
+              for (int n = 0; n < 10; n++) {
+                final ODocument document = new ODocument(CLASS_NAME);
+                final int recordSize = random.nextInt(200) + 100;
+                final byte[] value = new byte[recordSize];
+                random.nextBytes(value);
+                ensureValueIsUnique(random, value);
+
+                document.field("value", value);
+                document.save();
+              }
+
+              session.commit();
+            } catch (NotApprovedException e) {
+              //continue
+            }
+          }
+
+          if (i > 0 && i % 20_000 == 0) {
+            System.out.printf("%d records are loaded out of %d%n", i / 2, initialAmountOfRecords);
+          }
+        }
+
+        session.close();
+        session = orient.open("TestDB", "admin", "admin");
+
+        txApprover.approve = true;
+        System.out.println("Testing initially loaded records");
+        OIndex index = session.getMetadata().getIndexManager().getIndex(VALUE_INDEX);
+        Assert.assertEquals(initialAmountOfRecords, index.getSize());
+
+        iterateOverAllRecords(values);
+
+        System.out.println("Loading additional set of records");
+        for (int i = 0; i < additionalAmountOfRecords; i++) {
+          final ODocument document = new ODocument(CLASS_NAME);
+          final int recordSize = random.nextInt(200) + 100;
+          final byte[] value = new byte[recordSize];
+          random.nextBytes(value);
+          ensureValueIsUnique(random, value);
+
+          document.field("value", value);
+          document.save();
+
+          values.put(document.getIdentity(), value);
+
+          if (i > 0 && i % 20_000 == 0) {
+            System.out.printf("%d records are loaded out of %d%n", i, additionalAmountOfRecords);
+          }
+        }
+
+        session.close();
+        session = orient.open("TestDB", "admin", "admin");
+
+        System.out.println("Testing all loaded records");
+        index = session.getMetadata().getIndexManager().getIndex(VALUE_INDEX);
+        Assert.assertEquals(initialAmountOfRecords + additionalAmountOfRecords, index.getSize());
+
+        iterateOverAllRecords(values);
+        if (k < iterationsCount - 1) {
+          dropSchema();
+          createSchema();
+        }
+      } catch (Exception | Error e) {
+        System.out.printf("testAddRollbackTwo seed : %d%n", seed);
+        throw e;
+      }
+    }
+  }
+
 
   private static void iterateOverAllRecords(Map<ORID, byte[]> values) {
     OIndex index = session.getMetadata().getIndexManager().getIndex(VALUE_INDEX);

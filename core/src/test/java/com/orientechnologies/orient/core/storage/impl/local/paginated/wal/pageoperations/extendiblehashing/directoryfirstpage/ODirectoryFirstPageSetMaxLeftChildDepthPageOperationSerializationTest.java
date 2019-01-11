@@ -1,23 +1,23 @@
-package com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.directoryfirstpage;
+package com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.extendiblehashing.directoryfirstpage;
 
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OOperationUnitId;
-import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.extendiblehashing.directoryfirstpage.ODirectoryFirstPageSetTreeSizePageOperation;
 import org.junit.Assert;
 import org.junit.Test;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
-public class ODirectoryFirstPageSetTreeSizePageOperationSerializationTest {
+public class ODirectoryFirstPageSetMaxLeftChildDepthPageOperationSerializationTest {
   @Test
   public void testStreamSerialization() {
-    final long fileId = 546;
-    final int pageIndex = 67;
+    final int pageIndex = 34;
+    final long fileId = 456;
     final OOperationUnitId operationUnitId = OOperationUnitId.generateId();
+    final int localNodeIndex = 56;
+    final byte depth = 7;
 
-    final int oldTreeSize = 34;
-
-    ODirectoryFirstPageSetTreeSizePageOperation operation = new ODirectoryFirstPageSetTreeSizePageOperation(oldTreeSize);
+    ODirectoryFirstPageSetMaxLeftChildDepthPageOperation operation = new ODirectoryFirstPageSetMaxLeftChildDepthPageOperation(
+        localNodeIndex, depth);
     operation.setFileId(fileId);
     operation.setPageIndex(pageIndex);
     operation.setOperationUnitId(operationUnitId);
@@ -27,26 +27,28 @@ public class ODirectoryFirstPageSetTreeSizePageOperationSerializationTest {
     int offset = operation.toStream(stream, 1);
 
     Assert.assertEquals(serializedSize + 1, offset);
-
-    ODirectoryFirstPageSetTreeSizePageOperation restoredOperation = new ODirectoryFirstPageSetTreeSizePageOperation();
+    ODirectoryFirstPageSetMaxLeftChildDepthPageOperation restoredOperation = new ODirectoryFirstPageSetMaxLeftChildDepthPageOperation();
     offset = restoredOperation.fromStream(stream, 1);
-    Assert.assertEquals(serializedSize + 1, offset);
 
+    Assert.assertEquals(serializedSize + 1, offset);
+    Assert.assertEquals(pageIndex, restoredOperation.getPageIndex());
     Assert.assertEquals(fileId, restoredOperation.getFileId());
     Assert.assertEquals(pageIndex, restoredOperation.getPageIndex());
     Assert.assertEquals(operationUnitId, restoredOperation.getOperationUnitId());
-    Assert.assertEquals(oldTreeSize, restoredOperation.getOldTreeSize());
+    Assert.assertEquals(localNodeIndex, restoredOperation.getLocalNodeIndex());
+    Assert.assertEquals(depth, restoredOperation.getOldDepth());
   }
 
   @Test
   public void testBufferSerialization() {
-    final long fileId = 546;
-    final int pageIndex = 67;
+    final int pageIndex = 34;
+    final long fileId = 456;
     final OOperationUnitId operationUnitId = OOperationUnitId.generateId();
+    final int localNodeIndex = 56;
+    final byte depth = 7;
 
-    final int oldTreeSize = 34;
-
-    ODirectoryFirstPageSetTreeSizePageOperation operation = new ODirectoryFirstPageSetTreeSizePageOperation(oldTreeSize);
+    ODirectoryFirstPageSetMaxLeftChildDepthPageOperation operation = new ODirectoryFirstPageSetMaxLeftChildDepthPageOperation(
+        localNodeIndex, depth);
     operation.setFileId(fileId);
     operation.setPageIndex(pageIndex);
     operation.setOperationUnitId(operationUnitId);
@@ -54,18 +56,18 @@ public class ODirectoryFirstPageSetTreeSizePageOperationSerializationTest {
     final int serializedSize = operation.serializedSize();
     final ByteBuffer buffer = ByteBuffer.allocate(serializedSize + 1).order(ByteOrder.nativeOrder());
     buffer.position(1);
-
     operation.toStream(buffer);
 
     Assert.assertEquals(serializedSize + 1, buffer.position());
-
-    ODirectoryFirstPageSetTreeSizePageOperation restoredOperation = new ODirectoryFirstPageSetTreeSizePageOperation();
+    ODirectoryFirstPageSetMaxLeftChildDepthPageOperation restoredOperation = new ODirectoryFirstPageSetMaxLeftChildDepthPageOperation();
     int offset = restoredOperation.fromStream(buffer.array(), 1);
-    Assert.assertEquals(serializedSize + 1, offset);
 
+    Assert.assertEquals(serializedSize + 1, offset);
+    Assert.assertEquals(pageIndex, restoredOperation.getPageIndex());
     Assert.assertEquals(fileId, restoredOperation.getFileId());
     Assert.assertEquals(pageIndex, restoredOperation.getPageIndex());
     Assert.assertEquals(operationUnitId, restoredOperation.getOperationUnitId());
-    Assert.assertEquals(oldTreeSize, restoredOperation.getOldTreeSize());
+    Assert.assertEquals(localNodeIndex, restoredOperation.getLocalNodeIndex());
+    Assert.assertEquals(depth, restoredOperation.getOldDepth());
   }
 }

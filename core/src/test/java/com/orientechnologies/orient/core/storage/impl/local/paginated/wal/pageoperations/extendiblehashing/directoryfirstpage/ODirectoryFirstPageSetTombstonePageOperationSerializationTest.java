@@ -1,7 +1,6 @@
-package com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.directoryfirstpage;
+package com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.extendiblehashing.directoryfirstpage;
 
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OOperationUnitId;
-import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.extendiblehashing.directoryfirstpage.ODirectoryFirstPageSetTombstonePageOperation;
 import org.junit.Assert;
 import org.junit.Test;
 

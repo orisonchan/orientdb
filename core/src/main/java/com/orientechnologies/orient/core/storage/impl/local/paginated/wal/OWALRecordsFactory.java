@@ -76,6 +76,10 @@ import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageop
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.cluster.clusterstatevone.OClusterStateVOneSetFreeListPageOperation;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.cluster.clusterstatevone.OClusterStateVOneSetSizeOperation;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.cluster.mapentrypoint.OMapEntryPointSetFileSizeOperation;
+import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.extendiblehashing.directoryfirstpage.ODirectoryFirstPageSetMaxLeftChildDepthPageOperation;
+import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.extendiblehashing.directoryfirstpage.ODirectoryFirstPageSetMaxRightChildDepthPageOperation;
+import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.extendiblehashing.directoryfirstpage.ODirectoryFirstPageSetNodeLocalDepthPageOperation;
+import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.extendiblehashing.directoryfirstpage.ODirectoryFirstPageSetPointerPageOperation;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.extendiblehashing.directoryfirstpage.ODirectoryFirstPageSetTombstonePageOperation;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.extendiblehashing.directoryfirstpage.ODirectoryFirstPageSetTreeSizePageOperation;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.extendiblehashing.directorypage.ODirectoryPageSetMaxLeftChildDepthPageOperation;
@@ -122,6 +126,10 @@ import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal
 import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.CLUSTER_STATE_V_ONE_SET_FILE_SIZE;
 import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.CLUSTER_STATE_V_ONE_SET_FREE_LIST_PAGE;
 import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.CLUSTER_STATE_V_ONE_SET_SIZE;
+import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.DIRECTORY_FIRST_PAGE_SET_MAX_LEFT_CHILD_DEPTH;
+import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.DIRECTORY_FIRST_PAGE_SET_MAX_RIGHT_CHILD_DEPTH;
+import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.DIRECTORY_FIRST_PAGE_SET_NODE_LOCAL_DEPTH;
+import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.DIRECTORY_FIRST_PAGE_SET_POINTER;
 import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.DIRECTORY_FIRST_PAGE_SET_TOMBSTONE;
 import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.DIRECTORY_FIRST_PAGE_SET_TREE_SIZE;
 import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.DIRECTORY_PAGE_SET_MAX_LEFT_CHILD_DEPTH;
@@ -478,6 +486,19 @@ public final class OWALRecordsFactory {
     case DIRECTORY_FIRST_PAGE_SET_TREE_SIZE:
       walRecord = new ODirectoryFirstPageSetTreeSizePageOperation();
       break;
+    case DIRECTORY_FIRST_PAGE_SET_MAX_LEFT_CHILD_DEPTH:
+      walRecord = new ODirectoryFirstPageSetMaxLeftChildDepthPageOperation();
+      break;
+    case DIRECTORY_FIRST_PAGE_SET_MAX_RIGHT_CHILD_DEPTH:
+      walRecord = new ODirectoryFirstPageSetMaxRightChildDepthPageOperation();
+      break;
+    case DIRECTORY_FIRST_PAGE_SET_NODE_LOCAL_DEPTH:
+      walRecord = new ODirectoryFirstPageSetNodeLocalDepthPageOperation();
+      break;
+    case DIRECTORY_FIRST_PAGE_SET_POINTER:
+      walRecord = new ODirectoryFirstPageSetPointerPageOperation();
+      break;
+
     default:
       if (idToTypeMap.containsKey(content[0])) {
         try {

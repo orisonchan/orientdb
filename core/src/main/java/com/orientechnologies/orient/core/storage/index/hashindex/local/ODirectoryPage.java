@@ -34,10 +34,10 @@ import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageop
  * @since 5/14/14
  */
 public class ODirectoryPage extends ODurablePage {
-  private static final int  ITEMS_OFFSET   = NEXT_FREE_POSITION;
+  private static final int ITEMS_OFFSET = NEXT_FREE_POSITION;
 
-  static final int NODES_PER_PAGE = (OGlobalConfiguration.DISK_CACHE_PAGE_SIZE.getValueAsInteger() * 1024 - ITEMS_OFFSET)
-                                               / OHashTableDirectory.BINARY_LEVEL_SIZE;
+  static final int NODES_PER_PAGE =
+      (OGlobalConfiguration.DISK_CACHE_PAGE_SIZE.getValueAsInteger() * 1024 - ITEMS_OFFSET) / OHashTableDirectory.BINARY_LEVEL_SIZE;
 
   public ODirectoryPage(final OCacheEntry cacheEntry) {
     super(cacheEntry);
@@ -48,6 +48,10 @@ public class ODirectoryPage extends ODurablePage {
     final byte oldDepth = getByteValue(offset);
 
     setByteValue(offset, maxLeftChildDepth);
+    logSetMaxLeftChildDepth(localNodeIndex, oldDepth);
+  }
+
+  void logSetMaxLeftChildDepth(final int localNodeIndex, final byte oldDepth) {
     addPageOperation(new ODirectoryPageSetMaxLeftChildDepthPageOperation(localNodeIndex, oldDepth));
   }
 
@@ -61,6 +65,10 @@ public class ODirectoryPage extends ODurablePage {
     final byte oldDepth = getByteValue(offset);
 
     setByteValue(offset, maxRightChildDepth);
+    logSetMaxRightChildDepth(localNodeIndex, oldDepth);
+  }
+
+  void logSetMaxRightChildDepth(final int localNodeIndex, final byte oldDepth) {
     addPageOperation(new ODirectoryPageSetMaxRightChildDepthPageOperation(localNodeIndex, oldDepth));
   }
 
@@ -74,6 +82,10 @@ public class ODirectoryPage extends ODurablePage {
     final byte oldDepth = getByteValue(offset);
 
     setByteValue(offset, nodeLocalDepth);
+    logSetNodeLocalDepth(localNodeIndex, oldDepth);
+  }
+
+  void logSetNodeLocalDepth(final int localNodeIndex, final byte oldDepth) {
     addPageOperation(new ODirectoryPageSetNodeLocalDepthPageOperation(localNodeIndex, oldDepth));
   }
 
@@ -89,6 +101,10 @@ public class ODirectoryPage extends ODurablePage {
     final long oldPointer = getLongValue(offset);
     setLongValue(offset, pointer);
 
+    logSetPointer(localNodeIndex, index, oldPointer);
+  }
+
+  void logSetPointer(final int localNodeIndex, final int index, final long oldPointer) {
     addPageOperation(new ODirectoryPageSetPointerPageOperation(localNodeIndex, index, oldPointer));
   }
 
