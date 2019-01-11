@@ -35,6 +35,8 @@ public final class OBonsaiBucketShrinkPageOperation extends OBonsaiBucketPageOpe
 
   @Override
   protected void serializeToByteBuffer(final ByteBuffer buffer) {
+    super.serializeToByteBuffer(buffer);
+
     buffer.putInt(removedEntries.size());
 
     for (final byte[] entry : removedEntries) {
@@ -44,6 +46,8 @@ public final class OBonsaiBucketShrinkPageOperation extends OBonsaiBucketPageOpe
 
   @Override
   protected void deserializeFromByteBuffer(final ByteBuffer buffer) {
+    super.deserializeFromByteBuffer(buffer);
+
     final int removedLen = buffer.getInt();
     removedEntries = new ArrayList<>(removedLen);
 

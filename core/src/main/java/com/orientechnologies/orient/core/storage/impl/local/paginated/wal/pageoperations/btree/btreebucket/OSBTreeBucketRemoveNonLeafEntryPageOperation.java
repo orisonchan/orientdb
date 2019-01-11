@@ -53,11 +53,6 @@ public final class OSBTreeBucketRemoveNonLeafEntryPageOperation extends OPageOpe
   }
 
   @Override
-  public boolean isUpdateMasterRecord() {
-    return false;
-  }
-
-  @Override
   public byte getId() {
     return WALRecordTypes.SBTREE_BUCKET_REMOVE_NON_LEAF_ENTRY;
   }
@@ -75,66 +70,24 @@ public final class OSBTreeBucketRemoveNonLeafEntryPageOperation extends OPageOpe
   }
 
   @Override
-  public int toStream(final byte[] content, int offset) {
-    offset = super.toStream(content, offset);
-
-    OIntegerSerializer.INSTANCE.serializeNative(index, content, offset);
-    offset += OIntegerSerializer.INT_SIZE;
-
-    OIntegerSerializer.INSTANCE.serializeNative(key.length, content, offset);
-    offset += OIntegerSerializer.INT_SIZE;
-
-    System.arraycopy(key, 0, content, offset, key.length);
-    offset += key.length;
-
-    OIntegerSerializer.INSTANCE.serializeNative(leftNeighbour, content, offset);
-    offset += OIntegerSerializer.INT_SIZE;
-
-    OIntegerSerializer.INSTANCE.serializeNative(rightNeighbour, content, offset);
-    offset += OIntegerSerializer.INT_SIZE;
-
-    OIntegerSerializer.INSTANCE.serializeNative(prevChildPointer, content, offset);
-    offset += OIntegerSerializer.INT_SIZE;
-
-    return offset;
-  }
-
-  @Override
-  public void toStream(final ByteBuffer buffer) {
-    super.toStream(buffer);
-
+  protected void serializeToByteBuffer(final ByteBuffer buffer) {
     buffer.putInt(index);
-    buffer.putInt(key.length);
-    buffer.put(key);
+
+    serializeByteArray(key, buffer);
+
     buffer.putInt(leftNeighbour);
     buffer.putInt(rightNeighbour);
     buffer.putInt(prevChildPointer);
   }
 
   @Override
-  public int fromStream(final byte[] content, int offset) {
-    offset = super.fromStream(content, offset);
+  protected void deserializeFromByteBuffer(final ByteBuffer buffer) {
+    index = buffer.getInt();
+    key = deserializeByteArray(buffer);
 
-    index = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
-    offset += OIntegerSerializer.INT_SIZE;
-
-    final int keyLen = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
-    offset += OIntegerSerializer.INT_SIZE;
-
-    key = new byte[keyLen];
-    System.arraycopy(content, offset, key, 0, keyLen);
-    offset += keyLen;
-
-    leftNeighbour = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
-    offset += OIntegerSerializer.INT_SIZE;
-
-    rightNeighbour = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
-    offset += OIntegerSerializer.INT_SIZE;
-
-    prevChildPointer = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
-    offset += OIntegerSerializer.INT_SIZE;
-
-    return offset;
+    leftNeighbour = buffer.getInt();
+    rightNeighbour = buffer.getInt();
+    prevChildPointer = buffer.getInt();
   }
 
   @Override

@@ -56,11 +56,12 @@ public final class OClusterPositionMapBucket extends ODurablePage {
 
   public static final int MAX_ENTRIES = (MAX_PAGE_SIZE_BYTES - POSITIONS_OFFSET) / ENTRY_SIZE;
 
-  public OClusterPositionMapBucket(final OCacheEntry cacheEntry, final boolean clear) {
+  public OClusterPositionMapBucket(final OCacheEntry cacheEntry) {
     super(cacheEntry);
-    if (clear) {
-      setIntValue(SIZE_OFFSET, 0);
-    }
+  }
+
+  public void init() {
+    setIntValue(SIZE_OFFSET, 0);
   }
 
   public int add(final long pageIndex, final int recordPosition) {
@@ -180,8 +181,7 @@ public final class OClusterPositionMapBucket extends ODurablePage {
 
     updateEntry(position, entry);
 
-    addPageOperation(new OClusterPositionMapUndoSetOperation(index, (int) pageIndex,
-            recordPosition, oldFlag));
+    addPageOperation(new OClusterPositionMapUndoSetOperation(index, (int) pageIndex, recordPosition, oldFlag));
   }
 
   public void undoResurrect(final int index, final PositionEntry entry) {

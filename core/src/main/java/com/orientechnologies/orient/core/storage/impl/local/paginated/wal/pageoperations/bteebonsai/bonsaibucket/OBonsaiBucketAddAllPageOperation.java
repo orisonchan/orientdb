@@ -40,11 +40,15 @@ public final class OBonsaiBucketAddAllPageOperation extends OBonsaiBucketPageOpe
 
   @Override
   protected void deserializeFromByteBuffer(final ByteBuffer buffer) {
+    super.deserializeFromByteBuffer(buffer);
+
     entriesSize = buffer.getInt();
   }
 
   @Override
   protected void serializeToByteBuffer(final ByteBuffer buffer) {
+    super.serializeToByteBuffer(buffer);
+
     buffer.putInt(entriesSize);
   }
 

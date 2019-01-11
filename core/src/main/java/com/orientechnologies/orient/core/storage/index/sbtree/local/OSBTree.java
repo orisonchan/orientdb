@@ -85,17 +85,17 @@ public final class OSBTree<K, V> extends ODurableComponent {
   private static final int MAX_PATH_LENGTH = OGlobalConfiguration.SBTREE_MAX_DEPTH.getValueAsInteger();
 
   private final static long                  ROOT_INDEX       = 0;
-  private final Comparator<? super K> comparator       = ODefaultComparator.INSTANCE;
-  private final String                nullFileExtension;
-  private       long                  fileId;
-  private       long                  nullBucketFileId = -1;
-  private       int                   keySize;
-  private       OBinarySerializer<K>  keySerializer;
-  private       OType[]               keyTypes;
-  private       OBinarySerializer<V>  valueSerializer;
-  private       boolean               nullPointerSupport;
-  private final AtomicLong            bonsaiFileId     = new AtomicLong(0);
-  private       OEncryption           encryption;
+  private final        Comparator<? super K> comparator       = ODefaultComparator.INSTANCE;
+  private final        String                nullFileExtension;
+  private              long                  fileId;
+  private              long                  nullBucketFileId = -1;
+  private              int                   keySize;
+  private              OBinarySerializer<K>  keySerializer;
+  private              OType[]               keyTypes;
+  private              OBinarySerializer<V>  valueSerializer;
+  private              boolean               nullPointerSupport;
+  private final        AtomicLong            bonsaiFileId     = new AtomicLong(0);
+  private              OEncryption           encryption;
 
   public OSBTree(final String name, final String dataFileExtension, final String nullFileExtension,
       final OAbstractPaginatedStorage storage) {
@@ -198,8 +198,8 @@ public final class OSBTree<K, V> extends ODurableComponent {
 
           final OCacheEntry nullBucketCacheEntry = loadPageForRead(nullBucketFileId, 0, false);
           try {
-            final ONullBucket<V> nullBucket = new ONullBucket<>(nullBucketCacheEntry, valueSerializer, false);
-            final OSBTreeValue<V> treeValue = nullBucket.getValue();
+            final ONullBucket<V> nullBucket = new ONullBucket<>(nullBucketCacheEntry);
+            final OSBTreeValue<V> treeValue = nullBucket.getValue(valueSerializer);
             if (treeValue == null) {
               return null;
             }
@@ -368,10 +368,14 @@ public final class OSBTree<K, V> extends ODurableComponent {
 
           ONullBucket<V> nullBucket = null;
           try {
-            nullBucket = new ONullBucket<>(cacheEntry, valueSerializer, isNew);
-            final OSBTreeValue<V> oldValue = nullBucket.getValue();
-            final V oldValueValue = oldValue == null ? null : readValue(oldValue);
-            final OIndexUpdateAction<V> updatedValue = updater.update(oldValueValue, bonsaiFileId);
+            nullBucket = new ONullBucket<>(cacheEntry);
+            if (isNew) {
+              nullBucket.init();
+            }
+
+            final byte[] rawOldValue = nullBucket.getRawValue(valueSerializer);
+            final V oldValue = valueSerializer.deserializeNativeObject(rawOldValue, 0);
+            final OIndexUpdateAction<V> updatedValue = updater.update(oldValue, bonsaiFileId);
             if (updatedValue.isChange()) {
               final V value = updatedValue.getValue();
               final int valueSize = valueSerializer.getObjectSize(value);
@@ -386,7 +390,7 @@ public final class OSBTree<K, V> extends ODurableComponent {
                   createLinkToTheValue ? null : value);
 
               if (validator != null) {
-                final Object result = validator.validate(null, oldValueValue, value);
+                final Object result = validator.validate(null, oldValue, value);
                 if (result == OIndexEngine.Validator.IGNORE) {
                   return false;
                 }
@@ -396,7 +400,7 @@ public final class OSBTree<K, V> extends ODurableComponent {
                 sizeDiff = -1;
               }
 
-              nullBucket.setValue(treeValue);
+              nullBucket.setValue(treeValue, valueSerializer, rawOldValue != null ? rawOldValue.length : -1);
             } else if (updatedValue.isRemove()) {
               removeNullBucket(atomicOperation);
             } else //noinspection StatementWithEmptyBody
@@ -415,7 +419,7 @@ public final class OSBTree<K, V> extends ODurableComponent {
       } finally {
         releaseExclusiveLock();
       }
-    } catch (final IOException e) {
+    } catch (final IOException | RuntimeException e) {
       rollback = true;
       throw e;
     } finally {
@@ -611,12 +615,12 @@ public final class OSBTree<K, V> extends ODurableComponent {
     ONullBucket<V> nullBucket = null;
     final OCacheEntry nullCacheEntry = loadPageForWrite(nullBucketFileId, 0, false);
     try {
-      nullBucket = new ONullBucket<>(nullCacheEntry, valueSerializer, false);
-      final OSBTreeValue<V> treeValue = nullBucket.getValue();
+      nullBucket = new ONullBucket<>(nullCacheEntry);
+      final byte[] treeValue = nullBucket.getRawValue(valueSerializer);
 
       if (treeValue != null) {
-        removedValue = readValue(treeValue);
-        nullBucket.removeValue();
+        removedValue = valueSerializer.deserializeNativeObject(treeValue, 0);
+        nullBucket.removeValue(treeValue.length);
       } else {
         removedValue = null;
       }

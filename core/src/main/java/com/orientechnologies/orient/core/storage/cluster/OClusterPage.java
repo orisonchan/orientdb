@@ -66,20 +66,20 @@ public final class OClusterPage extends ODurablePage {
   private static final int ENTRY_KIND_UNKNOWN = 0;
   private static final int ENTRY_KIND_DATA    = +1;
 
-  public OClusterPage(final OCacheEntry cacheEntry, final boolean newPage) {
+  public OClusterPage(final OCacheEntry cacheEntry) {
     super(cacheEntry);
+  }
 
-    if (newPage) {
-      setLongValue(NEXT_PAGE_OFFSET, -1);
-      setLongValue(PREV_PAGE_OFFSET, -1);
+  public void init() {
+    setLongValue(NEXT_PAGE_OFFSET, -1);
+    setLongValue(PREV_PAGE_OFFSET, -1);
 
-      setIntValue(FREELIST_HEADER_OFFSET, 0);
-      setIntValue(PAGE_INDEXES_LENGTH_OFFSET, 0);
-      setIntValue(ENTRIES_COUNT_OFFSET, 0);
+    setIntValue(FREELIST_HEADER_OFFSET, 0);
+    setIntValue(PAGE_INDEXES_LENGTH_OFFSET, 0);
+    setIntValue(ENTRIES_COUNT_OFFSET, 0);
 
-      setIntValue(FREE_POSITION_OFFSET, PAGE_SIZE);
-      setIntValue(FREE_SPACE_COUNTER_OFFSET, PAGE_SIZE - PAGE_INDEXES_OFFSET);
-    }
+    setIntValue(FREE_POSITION_OFFSET, PAGE_SIZE);
+    setIntValue(FREE_SPACE_COUNTER_OFFSET, PAGE_SIZE - PAGE_INDEXES_OFFSET);
   }
 
   public int appendRecord(final int recordVersion, final byte[] record) {

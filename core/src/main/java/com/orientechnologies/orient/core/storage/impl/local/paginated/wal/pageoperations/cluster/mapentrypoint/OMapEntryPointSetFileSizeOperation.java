@@ -33,40 +33,18 @@ public final class OMapEntryPointSetFileSizeOperation extends OPageOperationReco
   }
 
   @Override
-  public final boolean isUpdateMasterRecord() {
-    return false;
-  }
-
-  @Override
   public final byte getId() {
     return WALRecordTypes.MAP_ENTRY_POINT_SET_FILE_SIZE;
   }
 
   @Override
-  public final int toStream(final byte[] content, int offset) {
-    offset = super.toStream(content, offset);
-
-    OIntegerSerializer.INSTANCE.serializeNative(oldFileSize, content, offset);
-    offset += OIntegerSerializer.INT_SIZE;
-
-    return offset;
-  }
-
-  @Override
-  public final void toStream(final ByteBuffer buffer) {
-    super.toStream(buffer);
-
+  protected void serializeToByteBuffer(final ByteBuffer buffer) {
     buffer.putInt(oldFileSize);
   }
 
   @Override
-  public final int fromStream(final byte[] content, int offset) {
-    offset = super.fromStream(content, offset);
-
-    oldFileSize = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
-    offset += OIntegerSerializer.INT_SIZE;
-
-    return offset;
+  protected void deserializeFromByteBuffer(final ByteBuffer buffer) {
+    oldFileSize = buffer.getInt();
   }
 
   @Override

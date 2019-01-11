@@ -1,17 +1,12 @@
 package com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.btree.btreebucket;
 
-import com.orientechnologies.orient.core.storage.cache.OCacheEntry;
-import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OPageOperationRecord;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes;
 import com.orientechnologies.orient.core.storage.index.sbtree.local.OSBTreeBucket;
 
-public final class OSBTreeBucketConvertToNonLeafPageOperation extends OPageOperationRecord<OSBTreeBucket> {
-  public OSBTreeBucketConvertToNonLeafPageOperation() {
-  }
+import java.nio.ByteBuffer;
 
-  @Override
-  protected final OSBTreeBucket createPageInstance(final OCacheEntry cacheEntry) {
-    return new OSBTreeBucket(cacheEntry);
+public final class OSBTreeBucketConvertToNonLeafPageOperation extends OSBTreeBucketPageOperation {
+  public OSBTreeBucketConvertToNonLeafPageOperation() {
   }
 
   @Override
@@ -20,12 +15,17 @@ public final class OSBTreeBucketConvertToNonLeafPageOperation extends OPageOpera
   }
 
   @Override
-  public final boolean isUpdateMasterRecord() {
-    return false;
+  public final byte getId() {
+    return WALRecordTypes.SBTREE_BUCKET_CONVERT_TO_NON_LEAF_PAGE;
   }
 
   @Override
-  public final byte getId() {
-    return WALRecordTypes.SBTREE_BUCKET_CONVERT_TO_NON_LEAF_PAGE;
+  protected void serializeToByteBuffer(final ByteBuffer buffer) {
+    //do nothing
+  }
+
+  @Override
+  protected void deserializeFromByteBuffer(final ByteBuffer buffer) {
+    //do nothing
   }
 }

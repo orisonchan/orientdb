@@ -1,8 +1,6 @@
 package com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.btree.btreebucket;
 
 import com.orientechnologies.common.serialization.types.OIntegerSerializer;
-import com.orientechnologies.orient.core.storage.cache.OCacheEntry;
-import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OPageOperationRecord;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes;
 import com.orientechnologies.orient.core.storage.index.sbtree.local.OSBTreeBucket;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -10,7 +8,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.nio.ByteBuffer;
 
 @SuppressFBWarnings({ "EI_EXPOSE_REP2", "EI_EXPOSE_REP" })
-public final class OSBTreeBucketRemoveLeafEntryPageOperation extends OPageOperationRecord<OSBTreeBucket> {
+public final class OSBTreeBucketRemoveLeafEntryPageOperation extends OSBTreeBucketPageOperation {
   private int    entryIndex;
   private byte[] rawKey;
   private byte[] rawValue;
@@ -37,18 +35,8 @@ public final class OSBTreeBucketRemoveLeafEntryPageOperation extends OPageOperat
   }
 
   @Override
-  protected OSBTreeBucket createPageInstance(final OCacheEntry cacheEntry) {
-    return new OSBTreeBucket(cacheEntry);
-  }
-
-  @Override
   protected void doUndo(final OSBTreeBucket page) {
     page.insertLeafKeyValue(entryIndex, rawKey, rawValue);
-  }
-
-  @Override
-  public boolean isUpdateMasterRecord() {
-    return false;
   }
 
   @Override
@@ -57,60 +45,19 @@ public final class OSBTreeBucketRemoveLeafEntryPageOperation extends OPageOperat
   }
 
   @Override
-  public int toStream(final byte[] content, int offset) {
-    offset = super.toStream(content, offset);
-
-    OIntegerSerializer.INSTANCE.serializeNative(entryIndex, content, offset);
-    offset += OIntegerSerializer.INT_SIZE;
-
-    OIntegerSerializer.INSTANCE.serializeNative(rawKey.length, content, offset);
-    offset += OIntegerSerializer.INT_SIZE;
-
-    System.arraycopy(rawKey, 0, content, offset, rawKey.length);
-    offset += rawKey.length;
-
-    OIntegerSerializer.INSTANCE.serializeNative(rawValue.length, content, offset);
-    offset += OIntegerSerializer.INT_SIZE;
-
-    System.arraycopy(rawValue, 0, content, offset, rawValue.length);
-    offset += rawValue.length;
-
-    return offset;
-  }
-
-  @Override
-  public void toStream(final ByteBuffer buffer) {
-    super.toStream(buffer);
-
+  protected void serializeToByteBuffer(final ByteBuffer buffer) {
     buffer.putInt(entryIndex);
-    buffer.putInt(rawKey.length);
-    buffer.put(rawKey);
-    buffer.putInt(rawValue.length);
-    buffer.put(rawValue);
+
+    serializeByteArray(rawKey, buffer);
+    serializeByteArray(rawValue, buffer);
   }
 
   @Override
-  public int fromStream(final byte[] content, int offset) {
-    offset = super.fromStream(content, offset);
+  protected void deserializeFromByteBuffer(final ByteBuffer buffer) {
+    entryIndex = buffer.getInt();
 
-    entryIndex = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
-    offset += OIntegerSerializer.INT_SIZE;
-
-    final int rawKeyLen = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
-    offset += OIntegerSerializer.INT_SIZE;
-
-    rawKey = new byte[rawKeyLen];
-    System.arraycopy(content, offset, rawKey, 0, rawKeyLen);
-    offset += rawKeyLen;
-
-    final int rawValueLen = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
-    offset += OIntegerSerializer.INT_SIZE;
-
-    rawValue = new byte[rawValueLen];
-    System.arraycopy(content, offset, rawValue, 0, rawValueLen);
-    offset += rawValueLen;
-
-    return offset;
+    rawKey = deserializeByteArray(buffer);
+    rawValue = deserializeByteArray(buffer);
   }
 
   @Override

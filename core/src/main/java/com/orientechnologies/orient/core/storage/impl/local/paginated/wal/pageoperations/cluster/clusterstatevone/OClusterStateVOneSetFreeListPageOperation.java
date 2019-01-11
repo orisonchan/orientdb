@@ -1,14 +1,12 @@
 package com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.cluster.clusterstatevone;
 
 import com.orientechnologies.common.serialization.types.OIntegerSerializer;
-import com.orientechnologies.orient.core.storage.cache.OCacheEntry;
 import com.orientechnologies.orient.core.storage.cluster.v1.OPaginatedClusterStateV1;
-import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OPageOperationRecord;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes;
 
 import java.nio.ByteBuffer;
 
-public final class OClusterStateVOneSetFreeListPageOperation extends OPageOperationRecord<OPaginatedClusterStateV1> {
+public final class OClusterStateVOneSetFreeListPageOperation extends OClusterStateVOnePageOperation {
   private int index;
   private int oldFreeListPage;
 
@@ -29,18 +27,8 @@ public final class OClusterStateVOneSetFreeListPageOperation extends OPageOperat
   }
 
   @Override
-  protected OPaginatedClusterStateV1 createPageInstance(final OCacheEntry cacheEntry) {
-    return new OPaginatedClusterStateV1(cacheEntry);
-  }
-
-  @Override
   protected void doUndo(final OPaginatedClusterStateV1 clusterState) {
     clusterState.setFreeListPage(index, oldFreeListPage);
-  }
-
-  @Override
-  public final boolean isUpdateMasterRecord() {
-    return false;
   }
 
   @Override
@@ -49,37 +37,15 @@ public final class OClusterStateVOneSetFreeListPageOperation extends OPageOperat
   }
 
   @Override
-  public final int toStream(final byte[] content, int offset) {
-    offset = super.toStream(content, offset);
-
-    OIntegerSerializer.INSTANCE.serializeNative(index, content, offset);
-    offset += OIntegerSerializer.INT_SIZE;
-
-    OIntegerSerializer.INSTANCE.serializeNative(oldFreeListPage, content, offset);
-    offset += OIntegerSerializer.INT_SIZE;
-
-    return offset;
-  }
-
-  @Override
-  public final void toStream(final ByteBuffer buffer) {
-    super.toStream(buffer);
-
+  protected void serializeToByteBuffer(final ByteBuffer buffer) {
     buffer.putInt(index);
     buffer.putInt(oldFreeListPage);
   }
 
   @Override
-  public final int fromStream(final byte[] content, int offset) {
-    offset = super.fromStream(content, offset);
-
-    index = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
-    offset += OIntegerSerializer.INT_SIZE;
-
-    oldFreeListPage = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
-    offset += OIntegerSerializer.INT_SIZE;
-
-    return offset;
+  protected void deserializeFromByteBuffer(final ByteBuffer buffer) {
+    index = buffer.getInt();
+    oldFreeListPage = buffer.getInt();
   }
 
   @Override

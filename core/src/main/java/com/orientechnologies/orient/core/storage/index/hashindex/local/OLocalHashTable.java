@@ -354,7 +354,7 @@ public final class OLocalHashTable<K, V> extends ODurableComponent {
         releaseExclusiveLock();
       }
 
-    } catch (final IOException e) {
+    } catch (final IOException | RuntimeException e) {
       rollback = true;
       throw e;
     } finally {

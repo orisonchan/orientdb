@@ -35,12 +35,16 @@ public final class OBonsaiBucketSetFreeListPointerPageOperation extends OBonsaiB
 
   @Override
   protected void serializeToByteBuffer(final ByteBuffer buffer) {
+    super.serializeToByteBuffer(buffer);
+
     buffer.putInt(prevPageIndex);
     buffer.putInt(prevPageOffset);
   }
 
   @Override
   protected void deserializeFromByteBuffer(final ByteBuffer buffer) {
+    super.deserializeFromByteBuffer(buffer);
+
     prevPageIndex = buffer.getInt();
     prevPageOffset = buffer.getInt();
   }

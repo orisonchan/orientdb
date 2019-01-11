@@ -24,8 +24,8 @@ public class ONullBucketTest {
     OCacheEntry cacheEntry = new OCacheEntry(0, 0, cachePointer);
     cacheEntry.acquireExclusiveLock();
 
-    ONullBucket<String> bucket = new ONullBucket<>(cacheEntry, OStringSerializer.INSTANCE, true);
-    Assert.assertNull(bucket.getValue());
+    ONullBucket<String> bucket = new ONullBucket<>(cacheEntry);
+    Assert.assertNull(bucket.getValue(OStringSerializer.INSTANCE));
 
     cacheEntry.releaseExclusiveLock();
     cachePointer.decrementReferrer();
@@ -43,10 +43,10 @@ public class ONullBucketTest {
     OCacheEntry cacheEntry = new OCacheEntry(0, 0, cachePointer);
     cacheEntry.acquireExclusiveLock();
 
-    ONullBucket<String> bucket = new ONullBucket<>(cacheEntry, OStringSerializer.INSTANCE, true);
+    ONullBucket<String> bucket = new ONullBucket<>(cacheEntry);
 
-    bucket.setValue(new OSBTreeValue<>(false, -1, "test"));
-    OSBTreeValue<String> treeValue = bucket.getValue();
+    bucket.setValue(new OSBTreeValue<>(false, -1, "test"), OStringSerializer.INSTANCE, -1);
+    OSBTreeValue<String> treeValue = bucket.getValue(OStringSerializer.INSTANCE);
     assert treeValue != null;
     Assert.assertEquals(treeValue.getValue(), "test");
 
@@ -66,12 +66,12 @@ public class ONullBucketTest {
     OCacheEntry cacheEntry = new OCacheEntry(0, 0, cachePointer);
     cacheEntry.acquireExclusiveLock();
 
-    ONullBucket<String> bucket = new ONullBucket<>(cacheEntry, OStringSerializer.INSTANCE, true);
+    ONullBucket<String> bucket = new ONullBucket<>(cacheEntry);
 
-    bucket.setValue(new OSBTreeValue<>(false, -1, "test"));
-    bucket.removeValue();
+    bucket.setValue(new OSBTreeValue<>(false, -1, "test"), OStringSerializer.INSTANCE, -1);
+    bucket.removeValue(OStringSerializer.INSTANCE.getObjectSize("test"));
 
-    OSBTreeValue<String> treeValue = bucket.getValue();
+    OSBTreeValue<String> treeValue = bucket.getValue(OStringSerializer.INSTANCE);
     Assert.assertNull(treeValue);
 
     cacheEntry.releaseExclusiveLock();
@@ -90,17 +90,18 @@ public class ONullBucketTest {
     OCacheEntry cacheEntry = new OCacheEntry(0, 0, cachePointer);
     cacheEntry.acquireExclusiveLock();
 
-    ONullBucket<String> bucket = new ONullBucket<>(cacheEntry, OStringSerializer.INSTANCE, true);
+    ONullBucket<String> bucket = new ONullBucket<>(cacheEntry);
 
-    bucket.setValue(new OSBTreeValue<>(false, -1, "test"));
-    bucket.removeValue();
+    bucket.setValue(new OSBTreeValue<>(false, -1, "test"), OStringSerializer.INSTANCE, -1);
+    bucket.removeValue(OStringSerializer.INSTANCE.getObjectSize("test"));
 
-    OSBTreeValue<String> treeValue = bucket.getValue();
+    OSBTreeValue<String> treeValue = bucket.getValue(OStringSerializer.INSTANCE);
     Assert.assertNull(treeValue);
 
-    bucket.setValue(new OSBTreeValue<>(false, -1, "testOne"));
+    bucket.setValue(new OSBTreeValue<>(false, -1, "testOne"), OStringSerializer.INSTANCE, -1);
 
-    treeValue = bucket.getValue();
+    treeValue = bucket.getValue(OStringSerializer.INSTANCE);
+    Assert.assertNotNull(treeValue);
     Assert.assertEquals(treeValue.getValue(), "testOne");
 
     cacheEntry.releaseExclusiveLock();

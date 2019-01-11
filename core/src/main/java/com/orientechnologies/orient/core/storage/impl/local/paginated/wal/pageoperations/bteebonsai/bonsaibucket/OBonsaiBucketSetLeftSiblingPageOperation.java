@@ -37,12 +37,16 @@ public final class OBonsaiBucketSetLeftSiblingPageOperation extends OBonsaiBucke
 
   @Override
   protected void serializeToByteBuffer(final ByteBuffer buffer) {
+    super.serializeToByteBuffer(buffer);
+
     buffer.putInt(prevLeftSiblingPageIndex);
     buffer.putInt(prevLeftSiblingPageOffset);
   }
 
   @Override
   protected void deserializeFromByteBuffer(final ByteBuffer buffer) {
+    super.deserializeFromByteBuffer(buffer);
+
     prevLeftSiblingPageIndex = buffer.getInt();
     prevLeftSiblingPageOffset = buffer.getInt();
   }

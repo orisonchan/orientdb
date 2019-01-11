@@ -1,14 +1,12 @@
 package com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.cluster.clusterpositionmap;
 
 import com.orientechnologies.common.serialization.types.OIntegerSerializer;
-import com.orientechnologies.orient.core.storage.cache.OCacheEntry;
 import com.orientechnologies.orient.core.storage.cluster.OClusterPositionMapBucket;
-import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OPageOperationRecord;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes;
 
 import java.nio.ByteBuffer;
 
-public final class OClusterPositionMapUndoRemove extends OPageOperationRecord<OClusterPositionMapBucket> {
+public final class OClusterPositionMapUndoRemove extends OClusterPositionMapPageOperation {
   private int index;
   private int recordPageIndex;
   private int recordPosition;
@@ -37,11 +35,6 @@ public final class OClusterPositionMapUndoRemove extends OPageOperationRecord<OC
   }
 
   @Override
-  protected OClusterPositionMapBucket createPageInstance(final OCacheEntry cacheEntry) {
-    return new OClusterPositionMapBucket(cacheEntry, false);
-  }
-
-  @Override
   protected void doUndo(final OClusterPositionMapBucket bucket) {
     if (bucket.getSize() == index) {
       bucket.add(recordPageIndex, recordPosition);
@@ -52,54 +45,22 @@ public final class OClusterPositionMapUndoRemove extends OPageOperationRecord<OC
   }
 
   @Override
-  public boolean isUpdateMasterRecord() {
-    return false;
-  }
-
-  @Override
   public byte getId() {
     return WALRecordTypes.CLUSTER_POSITION_MAP_UNDO_REMOVE;
   }
 
   @Override
-  public int toStream(final byte[] content, int offset) {
-    offset = super.toStream(content, offset);
-
-    OIntegerSerializer.INSTANCE.serializeNative(index, content, offset);
-    offset += OIntegerSerializer.INT_SIZE;
-
-    OIntegerSerializer.INSTANCE.serializeNative(recordPageIndex, content, offset);
-    offset += OIntegerSerializer.INT_SIZE;
-
-    OIntegerSerializer.INSTANCE.serializeNative(recordPosition, content, offset);
-    offset += OIntegerSerializer.INT_SIZE;
-
-    return offset;
-  }
-
-  @Override
-  public void toStream(final ByteBuffer buffer) {
-    super.toStream(buffer);
-
+  protected void serializeToByteBuffer(final ByteBuffer buffer) {
     buffer.putInt(index);
     buffer.putInt(recordPageIndex);
     buffer.putInt(recordPosition);
   }
 
   @Override
-  public int fromStream(final byte[] content, int offset) {
-    offset = super.fromStream(content, offset);
-
-    index = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
-    offset += OIntegerSerializer.INT_SIZE;
-
-    recordPageIndex = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
-    offset += OIntegerSerializer.INT_SIZE;
-
-    recordPosition = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
-    offset += OIntegerSerializer.INT_SIZE;
-
-    return offset;
+  protected void deserializeFromByteBuffer(final ByteBuffer buffer) {
+    index = buffer.getInt();
+    recordPageIndex = buffer.getInt();
+    recordPosition = buffer.getInt();
   }
 
   @Override

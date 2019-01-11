@@ -56,6 +56,8 @@ public final class OBonsaiBucketInsertNonLeafEntryPageOperation extends OBonsaiB
 
   @Override
   protected void serializeToByteBuffer(final ByteBuffer buffer) {
+    super.serializeToByteBuffer(buffer);
+
     buffer.putInt(index);
     buffer.putInt(keySize);
 
@@ -65,6 +67,8 @@ public final class OBonsaiBucketInsertNonLeafEntryPageOperation extends OBonsaiB
 
   @Override
   protected void deserializeFromByteBuffer(final ByteBuffer buffer) {
+    super.deserializeFromByteBuffer(buffer);
+
     index = buffer.getInt();
 
     keySize = buffer.getInt();

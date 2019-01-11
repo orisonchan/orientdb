@@ -41,6 +41,8 @@ public final class OBonsaiBucketSetDeletedPageOperation extends OBonsaiBucketPag
 
   @Override
   protected void serializeToByteBuffer(final ByteBuffer buffer) {
+    super.serializeToByteBuffer(buffer);
+
     buffer.put(keySerializerId);
     buffer.put(valueSerializerId);
     buffer.put(isLeaf ? (byte) 1 : 0);
@@ -48,6 +50,8 @@ public final class OBonsaiBucketSetDeletedPageOperation extends OBonsaiBucketPag
 
   @Override
   protected void deserializeFromByteBuffer(final ByteBuffer buffer) {
+    super.deserializeFromByteBuffer(buffer);
+
     keySerializerId = buffer.get();
     valueSerializerId = buffer.get();
     isLeaf = buffer.get() == 1;

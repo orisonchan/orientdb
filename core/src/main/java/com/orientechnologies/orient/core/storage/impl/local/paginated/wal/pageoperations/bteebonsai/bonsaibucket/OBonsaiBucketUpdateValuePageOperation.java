@@ -49,12 +49,16 @@ public final class OBonsaiBucketUpdateValuePageOperation extends OBonsaiBucketPa
 
   @Override
   protected void serializeToByteBuffer(final ByteBuffer buffer) {
+    super.serializeToByteBuffer(buffer);
+
     buffer.putInt(index);
     serializeByteArray(prevValue, buffer);
   }
 
   @Override
   protected void deserializeFromByteBuffer(final ByteBuffer buffer) {
+    super.deserializeFromByteBuffer(buffer);
+
     index = buffer.getInt();
     prevValue = deserializeByteArray(buffer);
   }

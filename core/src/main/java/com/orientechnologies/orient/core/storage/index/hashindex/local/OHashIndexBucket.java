@@ -351,7 +351,7 @@ public final class OHashIndexBucket<K, V> extends ODurablePage {
     setLongValue(entryOffset, hashCode);
     entryOffset += OLongSerializer.LONG_SIZE;
 
-    setBinaryValue(entryOffset, key);
+    entryOffset += setBinaryValue(entryOffset, key);
     setBinaryValue(entryOffset, value);
   }
 

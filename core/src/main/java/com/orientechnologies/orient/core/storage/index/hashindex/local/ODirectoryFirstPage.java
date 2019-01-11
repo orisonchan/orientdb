@@ -23,6 +23,8 @@ package com.orientechnologies.orient.core.storage.index.hashindex.local;
 import com.orientechnologies.common.serialization.types.OIntegerSerializer;
 import com.orientechnologies.orient.core.config.OGlobalConfiguration;
 import com.orientechnologies.orient.core.storage.cache.OCacheEntry;
+import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.extendiblehashing.directoryfirstpage.ODirectoryFirstPageSetTombstonePageOperation;
+import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.extendiblehashing.directoryfirstpage.ODirectoryFirstPageSetTreeSizePageOperation;
 
 /**
  * @author Andrey Lomakin (a.lomakin-at-orientdb.com)
@@ -32,25 +34,31 @@ public final class ODirectoryFirstPage extends ODirectoryPage {
   private static final int TREE_SIZE_OFFSET = NEXT_FREE_POSITION;
   private static final int TOMBSTONE_OFFSET = TREE_SIZE_OFFSET + OIntegerSerializer.INT_SIZE;
 
-  private static final int ITEMS_OFFSET     = TOMBSTONE_OFFSET + OIntegerSerializer.INT_SIZE;
+  private static final int ITEMS_OFFSET = TOMBSTONE_OFFSET + OIntegerSerializer.INT_SIZE;
 
-  static final int NODES_PER_PAGE = (OGlobalConfiguration.DISK_CACHE_PAGE_SIZE.getValueAsInteger() * 1024 - ITEMS_OFFSET)
-                                                / OHashTableDirectory.BINARY_LEVEL_SIZE;
+  static final int NODES_PER_PAGE =
+      (OGlobalConfiguration.DISK_CACHE_PAGE_SIZE.getValueAsInteger() * 1024 - ITEMS_OFFSET) / OHashTableDirectory.BINARY_LEVEL_SIZE;
 
-  ODirectoryFirstPage(final OCacheEntry cacheEntry, final OCacheEntry entry) {
+  public ODirectoryFirstPage(final OCacheEntry cacheEntry) {
     super(cacheEntry);
   }
 
   public final void setTreeSize(final int treeSize) {
+    final int oldTreeSize = getIntValue(TREE_SIZE_OFFSET);
+
     setIntValue(TREE_SIZE_OFFSET, treeSize);
+    addPageOperation(new ODirectoryFirstPageSetTreeSizePageOperation(oldTreeSize));
   }
 
   final int getTreeSize() {
     return getIntValue(TREE_SIZE_OFFSET);
   }
 
-  final void setTombstone(final int tombstone) {
+  public final void setTombstone(final int tombstone) {
+    final int oldTombstone = getIntValue(TOMBSTONE_OFFSET);
+
     setIntValue(TOMBSTONE_OFFSET, tombstone);
+    addPageOperation(new ODirectoryFirstPageSetTombstonePageOperation(oldTombstone));
   }
 
   final int getTombstone() {

@@ -17,9 +17,7 @@ public final class OBonsaiBucketSetRightSiblingPageOperation extends OBonsaiBuck
   public OBonsaiBucketSetRightSiblingPageOperation(final int pageOffset, final int prevRightSiblingPageIndex,
       final int prevRightSiblingOffset) {
     super(pageOffset);
-    if (prevRightSiblingPageIndex == 0 && prevRightSiblingOffset == 0) {
-      System.out.println();
-    }
+
     this.prevRightSiblingPageIndex = prevRightSiblingPageIndex;
     this.prevRightSiblingOffset = prevRightSiblingOffset;
   }
@@ -39,6 +37,8 @@ public final class OBonsaiBucketSetRightSiblingPageOperation extends OBonsaiBuck
 
   @Override
   protected void serializeToByteBuffer(final ByteBuffer buffer) {
+    super.serializeToByteBuffer(buffer);
+
     buffer.putInt(prevRightSiblingPageIndex);
     buffer.putInt(prevRightSiblingOffset);
 
@@ -46,6 +46,8 @@ public final class OBonsaiBucketSetRightSiblingPageOperation extends OBonsaiBuck
 
   @Override
   protected void deserializeFromByteBuffer(final ByteBuffer buffer) {
+    super.deserializeFromByteBuffer(buffer);
+
     prevRightSiblingPageIndex = buffer.getInt();
     prevRightSiblingOffset = buffer.getInt();
   }

@@ -34,11 +34,15 @@ public final class OBonsaiBucketSetTreeSizePageOperation extends OBonsaiBucketPa
 
   @Override
   protected void deserializeFromByteBuffer(final ByteBuffer buffer) {
+    super.deserializeFromByteBuffer(buffer);
+
     prevTreeSize = buffer.getInt();
   }
 
   @Override
   protected void serializeToByteBuffer(final ByteBuffer buffer) {
+    super.serializeToByteBuffer(buffer);
+
     buffer.putInt(prevTreeSize);
   }
 

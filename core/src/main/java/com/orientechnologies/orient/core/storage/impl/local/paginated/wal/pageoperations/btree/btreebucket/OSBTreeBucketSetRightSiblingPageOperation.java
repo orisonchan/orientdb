@@ -1,14 +1,12 @@
 package com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.btree.btreebucket;
 
 import com.orientechnologies.common.serialization.types.OIntegerSerializer;
-import com.orientechnologies.orient.core.storage.cache.OCacheEntry;
-import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OPageOperationRecord;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes;
 import com.orientechnologies.orient.core.storage.index.sbtree.local.OSBTreeBucket;
 
 import java.nio.ByteBuffer;
 
-public final class OSBTreeBucketSetRightSiblingPageOperation extends OPageOperationRecord<OSBTreeBucket> {
+public final class OSBTreeBucketSetRightSiblingPageOperation extends OSBTreeBucketPageOperation {
   private int prevRightSibling;
 
   public OSBTreeBucketSetRightSiblingPageOperation() {
@@ -23,18 +21,8 @@ public final class OSBTreeBucketSetRightSiblingPageOperation extends OPageOperat
   }
 
   @Override
-  public boolean isUpdateMasterRecord() {
-    return false;
-  }
-
-  @Override
   public byte getId() {
     return WALRecordTypes.SBTREE_BUCKET_SET_RIGHT_SIBLING;
-  }
-
-  @Override
-  protected OSBTreeBucket createPageInstance(final OCacheEntry cacheEntry) {
-    return new OSBTreeBucket(cacheEntry);
   }
 
   @Override
@@ -43,30 +31,13 @@ public final class OSBTreeBucketSetRightSiblingPageOperation extends OPageOperat
   }
 
   @Override
-  public int toStream(final byte[] content, int offset) {
-    offset = super.toStream(content, offset);
-
-    OIntegerSerializer.INSTANCE.serializeNative(prevRightSibling, content, offset);
-    offset += OIntegerSerializer.INT_SIZE;
-
-    return offset;
-  }
-
-  @Override
-  public void toStream(final ByteBuffer buffer) {
-    super.toStream(buffer);
-
+  protected void serializeToByteBuffer(final ByteBuffer buffer) {
     buffer.putInt(prevRightSibling);
   }
 
   @Override
-  public int fromStream(final byte[] content, int offset) {
-    offset = super.fromStream(content, offset);
-
-    prevRightSibling = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
-    offset += OIntegerSerializer.INT_SIZE;
-
-    return offset;
+  protected void deserializeFromByteBuffer(final ByteBuffer buffer) {
+    prevRightSibling = buffer.getInt();
   }
 
   @Override

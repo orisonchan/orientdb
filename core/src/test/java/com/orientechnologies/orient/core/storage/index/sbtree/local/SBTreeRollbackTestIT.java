@@ -38,7 +38,7 @@ import java.util.Random;
 import java.util.Set;
 import java.util.TreeMap;
 
-@SuppressFBWarnings({ "ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD", "VA_FORMAT_STRING_USES_NEWLINE" })
+@SuppressFBWarnings({ "ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD" })
 public class SBTreeRollbackTestIT {
   private static final String           DB_NAME     = "TestDB";
   private static final String           VALUE_INDEX = "ValueIndex";
@@ -113,7 +113,7 @@ public class SBTreeRollbackTestIT {
   @Test
   public void testAdditionRollbackOne() {
     for (int k = 0; k < iterationsCount; k++) {
-      System.out.printf("Iteration %d out of %d\n", k + 1, iterationsCount);
+      System.out.printf("Iteration %d out of %d%n", k + 1, iterationsCount);
       long seed = -1;
 
       try {
@@ -138,7 +138,7 @@ public class SBTreeRollbackTestIT {
           values.put(document.getIdentity(), value);
 
           if (i > 0 && i % 20_000 == 0) {
-            System.out.printf("%d records are loaded out of %d\n", i, initialAmountOfRecords);
+            System.out.printf("%d records are loaded out of %d%n", i, initialAmountOfRecords);
           }
         }
 
@@ -161,7 +161,7 @@ public class SBTreeRollbackTestIT {
               document.save();
 
               if (i > 0 && (i * 10 + n) % 20_000 == 0) {
-                System.out.printf("%d records are tested out of %d\n", i * 10 + n, testedAmountOfRecords);
+                System.out.printf("%d records are tested out of %d%n", i * 10 + n, testedAmountOfRecords);
               }
             }
 
@@ -195,7 +195,7 @@ public class SBTreeRollbackTestIT {
           values.put(document.getIdentity(), value);
 
           if (i > 0 && i % 20_000 == 0) {
-            System.out.printf("%d records are loaded out of %d\n", i, additionalAmountOfRecords);
+            System.out.printf("%d records are loaded out of %d%n", i, additionalAmountOfRecords);
           }
         }
 
@@ -212,7 +212,7 @@ public class SBTreeRollbackTestIT {
           createSchema();
         }
       } catch (Exception | Error e) {
-        System.out.printf("testAdditionRollbackOne seed: %d\n", seed);
+        System.out.printf("testAdditionRollbackOne seed: %d%n", seed);
         throw e;
       }
     }
@@ -221,7 +221,7 @@ public class SBTreeRollbackTestIT {
   @Test
   public void testAddRollbackTwo() {
     for (int k = 0; k < iterationsCount; k++) {
-      System.out.printf("Iteration %d out of %d\n", k + 1, iterationsCount);
+      System.out.printf("Iteration %d out of %d%n", k + 1, iterationsCount);
       long seed = -1;
 
       try {
@@ -266,7 +266,7 @@ public class SBTreeRollbackTestIT {
           }
 
           if (i > 0 && i % 20_000 == 0) {
-            System.out.printf("%d records are loaded out of %d\n", i / 2, initialAmountOfRecords);
+            System.out.printf("%d records are loaded out of %d%n", i / 2, initialAmountOfRecords);
           }
         }
 
@@ -294,7 +294,7 @@ public class SBTreeRollbackTestIT {
           values.put(document.getIdentity(), value);
 
           if (i > 0 && i % 20_000 == 0) {
-            System.out.printf("%d records are loaded out of %d\n", i, additionalAmountOfRecords);
+            System.out.printf("%d records are loaded out of %d%n", i, additionalAmountOfRecords);
           }
         }
 
@@ -311,7 +311,7 @@ public class SBTreeRollbackTestIT {
           createSchema();
         }
       } catch (Exception | Error e) {
-        System.out.printf("testAddRollbackTwo seed : %d\n", seed);
+        System.out.printf("testAddRollbackTwo seed : %d%n", seed);
         throw e;
       }
     }
@@ -322,7 +322,7 @@ public class SBTreeRollbackTestIT {
     long seed = -1;
 
     for (int k = 0; k < iterationsCount; k++) {
-      System.out.printf("Iteration %d out of %d\n", k + 1, iterationsCount);
+      System.out.printf("Iteration %d out of %d%n", k + 1, iterationsCount);
       try {
         seed = System.nanoTime();
         Random random = new Random(seed);
@@ -345,7 +345,7 @@ public class SBTreeRollbackTestIT {
           values.put(document.getIdentity(), value);
 
           if (i > 0 && i % 20_000 == 0) {
-            System.out.printf("%d records are loaded out of %d\n", i, initialAmountOfRecords);
+            System.out.printf("%d records are loaded out of %d%n", i, initialAmountOfRecords);
           }
         }
 
@@ -388,7 +388,7 @@ public class SBTreeRollbackTestIT {
           }
 
           if (i > 0 && i % 20_000 == 0) {
-            System.out.printf("%d iterations are tested out of %d\n", i, testedAmountOfRecords);
+            System.out.printf("%d iterations are tested out of %d%n", i, testedAmountOfRecords);
           }
         }
 
@@ -415,7 +415,7 @@ public class SBTreeRollbackTestIT {
           values.put(document.getIdentity(), value);
 
           if (i > 0 && i % 20_000 == 0) {
-            System.out.printf("%d records are loaded out of %d\n", i, additionalAmountOfRecords);
+            System.out.printf("%d records are loaded out of %d%n", i, additionalAmountOfRecords);
           }
         }
 
@@ -432,7 +432,7 @@ public class SBTreeRollbackTestIT {
           createSchema();
         }
       } catch (Error | Exception e) {
-        System.out.printf("testUpdateRollbackOne seed: %d\n", seed);
+        System.out.printf("testUpdateRollbackOne seed: %d%n", seed);
         throw e;
       }
     }
@@ -442,7 +442,7 @@ public class SBTreeRollbackTestIT {
   public void testUpdateRollbackTwo() {
     long seed = -1;
     for (int k = 0; k < iterationsCount; k++) {
-      System.out.printf("Iteration %d out of %d\n", k + 1, iterationsCount);
+      System.out.printf("Iteration %d out of %d%n", k + 1, iterationsCount);
       try {
         seed = System.nanoTime();
         Random random = new Random(seed);
@@ -465,7 +465,7 @@ public class SBTreeRollbackTestIT {
           values.put(document.getIdentity(), value);
 
           if (i > 0 && i % 20_000 == 0) {
-            System.out.printf("%d records are loaded out of %d\n", i, initialAmountOfRecords);
+            System.out.printf("%d records are loaded out of %d%n", i, initialAmountOfRecords);
           }
         }
 
@@ -506,7 +506,7 @@ public class SBTreeRollbackTestIT {
           }
 
           if (i > 0 && i % 20_000 == 0) {
-            System.out.printf("%d iterations are tested out of %d\n", i, testedAmountOfRecords);
+            System.out.printf("%d iterations are tested out of %d%n", i, testedAmountOfRecords);
           }
         }
 
@@ -533,7 +533,7 @@ public class SBTreeRollbackTestIT {
           values.put(document.getIdentity(), value);
 
           if (i > 0 && i % 20_000 == 0) {
-            System.out.printf("%d records are loaded out of %d\n", i, additionalAmountOfRecords);
+            System.out.printf("%d records are loaded out of %d%n", i, additionalAmountOfRecords);
           }
         }
 
@@ -550,7 +550,7 @@ public class SBTreeRollbackTestIT {
           createSchema();
         }
       } catch (Error | Exception e) {
-        System.out.printf("testUpdateRollbackTwo seed: %d\n", seed);
+        System.out.printf("testUpdateRollbackTwo seed: %d%n", seed);
         throw e;
       }
     }
@@ -560,7 +560,7 @@ public class SBTreeRollbackTestIT {
   public void testDeletionRollbackOne() {
     long seed = -1;
     for (int k = 0; k < iterationsCount; k++) {
-      System.out.printf("Iteration %d out of %d\n", k + 1, iterationsCount);
+      System.out.printf("Iteration %d out of %d%n", k + 1, iterationsCount);
       try {
         seed = System.nanoTime();
         Random random = new Random(seed);
@@ -583,7 +583,7 @@ public class SBTreeRollbackTestIT {
           values.put(document.getIdentity(), value);
 
           if (i > 0 && i % 20_000 == 0) {
-            System.out.printf("%d records are loaded out of %d\n", i, initialAmountOfRecords);
+            System.out.printf("%d records are loaded out of %d%n", i, initialAmountOfRecords);
           }
         }
 
@@ -625,7 +625,7 @@ public class SBTreeRollbackTestIT {
           }
 
           if (i > 0 && i % 10_000 == 0) {
-            System.out.printf("%d iterations are tested out of %d\n", i, testedAmountOfRecords);
+            System.out.printf("%d iterations are tested out of %d%n", i, testedAmountOfRecords);
           }
         }
 
@@ -652,7 +652,7 @@ public class SBTreeRollbackTestIT {
           values.put(document.getIdentity(), value);
 
           if (i > 0 && i % 20_000 == 0) {
-            System.out.printf("%d records are loaded out of %d\n", i, additionalAmountOfRecords);
+            System.out.printf("%d records are loaded out of %d%n", i, additionalAmountOfRecords);
           }
         }
 
@@ -669,7 +669,7 @@ public class SBTreeRollbackTestIT {
           createSchema();
         }
       } catch (Error | Exception e) {
-        System.out.printf("testDeletionRollbackOne seed : %d\n", seed);
+        System.out.printf("testDeletionRollbackOne seed : %d%n", seed);
         throw e;
       }
     }
@@ -679,7 +679,7 @@ public class SBTreeRollbackTestIT {
   public void testDeletionRollbackTwo() {
     long seed = -1;
     for (int k = 0; k < iterationsCount; k++) {
-      System.out.printf("Iteration %d out of %d\n", k + 1, iterationsCount);
+      System.out.printf("Iteration %d out of %d%n", k + 1, iterationsCount);
       try {
         seed = System.nanoTime();
         Random random = new Random(seed);
@@ -702,7 +702,7 @@ public class SBTreeRollbackTestIT {
           values.put(document.getIdentity(), value);
 
           if (i > 0 && i % 20_000 == 0) {
-            System.out.printf("%d records are loaded out of %d\n", i, initialAmountOfRecords);
+            System.out.printf("%d records are loaded out of %d%n", i, initialAmountOfRecords);
           }
         }
 
@@ -761,7 +761,7 @@ public class SBTreeRollbackTestIT {
           values.remove(document.getIdentity());
 
           if (i > 0 && i % 10_000 == 0) {
-            System.out.printf("%d iterations are tested out of %d\n", i, testedAmountOfRecords);
+            System.out.printf("%d iterations are tested out of %d%n", i, testedAmountOfRecords);
           }
         }
 
@@ -788,7 +788,7 @@ public class SBTreeRollbackTestIT {
           values.put(document.getIdentity(), value);
 
           if (i > 0 && i % 20_000 == 0) {
-            System.out.printf("%d records are loaded out of %d\n", i, additionalAmountOfRecords);
+            System.out.printf("%d records are loaded out of %d%n", i, additionalAmountOfRecords);
           }
         }
 
@@ -805,7 +805,7 @@ public class SBTreeRollbackTestIT {
           createSchema();
         }
       } catch (Error | Exception e) {
-        System.out.printf("testDeletionRollbackTwo seed %d\n", seed);
+        System.out.printf("testDeletionRollbackTwo seed %d%n", seed);
         throw e;
       }
     }
@@ -815,7 +815,7 @@ public class SBTreeRollbackTestIT {
   public void testDeletionRollbackThree() {
     long seed = -1;
     for (int k = 0; k < iterationsCount; k++) {
-      System.out.printf("Iteration %d out of %d\n", k + 1, iterationsCount);
+      System.out.printf("Iteration %d out of %d%n", k + 1, iterationsCount);
       try {
         seed = System.nanoTime();
         Random random = new Random(seed);
@@ -838,7 +838,7 @@ public class SBTreeRollbackTestIT {
           values.put(document.getIdentity(), value);
 
           if (i > 0 && i % 20_000 == 0) {
-            System.out.printf("%d records are loaded out of %d\n", i, initialAmountOfRecords);
+            System.out.printf("%d records are loaded out of %d%n", i, initialAmountOfRecords);
           }
         }
 
@@ -912,7 +912,7 @@ public class SBTreeRollbackTestIT {
           values.put(document.getIdentity(), val);
 
           if (i > 0 && i % 10_000 == 0) {
-            System.out.printf("%d iterations are tested out of %d\n", i, testedAmountOfRecords);
+            System.out.printf("%d iterations are tested out of %d%n", i, testedAmountOfRecords);
           }
         }
 
@@ -939,7 +939,7 @@ public class SBTreeRollbackTestIT {
           values.put(document.getIdentity(), value);
 
           if (i > 0 && i % 20_000 == 0) {
-            System.out.printf("%d records are loaded out of %d\n", i, additionalAmountOfRecords);
+            System.out.printf("%d records are loaded out of %d%n", i, additionalAmountOfRecords);
           }
         }
 
@@ -956,7 +956,7 @@ public class SBTreeRollbackTestIT {
           createSchema();
         }
       } catch (Exception | Error e) {
-        System.out.printf("testDeletionRollbackThree seed: %d\n", seed);
+        System.out.printf("testDeletionRollbackThree seed: %d%n", seed);
         throw e;
       }
     }
@@ -966,7 +966,7 @@ public class SBTreeRollbackTestIT {
   public void testRollbackMixOne() {
     long seed = -1;
     for (int k = 0; k < iterationsCount; k++) {
-      System.out.printf("Iteration %d out of %d\n", k + 1, iterationsCount);
+      System.out.printf("Iteration %d out of %d%n", k + 1, iterationsCount);
       try {
         seed = System.nanoTime();
         Random random = new Random(seed);
@@ -989,7 +989,7 @@ public class SBTreeRollbackTestIT {
           values.put(document.getIdentity(), value);
 
           if (i > 0 && i % 20_000 == 0) {
-            System.out.printf("%d records are loaded out of %d\n", i, initialAmountOfRecords);
+            System.out.printf("%d records are loaded out of %d%n", i, initialAmountOfRecords);
           }
         }
 
@@ -1097,7 +1097,7 @@ public class SBTreeRollbackTestIT {
           values.put(document.getIdentity(), val);
 
           if (i > 0 && i % 10_000 == 0) {
-            System.out.printf("%d iterations are tested out of %d\n", i, testedAmountOfRecords);
+            System.out.printf("%d iterations are tested out of %d%n", i, testedAmountOfRecords);
           }
         }
 
@@ -1124,7 +1124,7 @@ public class SBTreeRollbackTestIT {
           values.put(document.getIdentity(), value);
 
           if (i > 0 && i % 20_000 == 0) {
-            System.out.printf("%d records are loaded out of %d\n", i, additionalAmountOfRecords);
+            System.out.printf("%d records are loaded out of %d%n", i, additionalAmountOfRecords);
           }
         }
 
@@ -1141,7 +1141,7 @@ public class SBTreeRollbackTestIT {
           createSchema();
         }
       } catch (Exception | Error e) {
-        System.out.printf("testRollbackMixOne seed: %d\n", seed);
+        System.out.printf("testRollbackMixOne seed: %d%n", seed);
         throw e;
       }
     }
@@ -1151,7 +1151,7 @@ public class SBTreeRollbackTestIT {
   public void testRollbackMixTwo() {
     long seed = -1;
     for (int k = 0; k < iterationsCount; k++) {
-      System.out.printf("Iteration %d out of %d\n", k + 1, iterationsCount);
+      System.out.printf("Iteration %d out of %d%n", k + 1, iterationsCount);
       try {
         seed = System.nanoTime();
         Random random = new Random(seed);
@@ -1174,7 +1174,7 @@ public class SBTreeRollbackTestIT {
           values.put(document.getIdentity(), value);
 
           if (i > 0 && i % 20_000 == 0) {
-            System.out.printf("%d records are loaded out of %d\n", i, initialAmountOfRecords);
+            System.out.printf("%d records are loaded out of %d%n", i, initialAmountOfRecords);
           }
         }
 
@@ -1280,7 +1280,7 @@ public class SBTreeRollbackTestIT {
           values.put(document.getIdentity(), val);
 
           if (i > 0 && i % 10_000 == 0) {
-            System.out.printf("%d iterations are tested out of %d\n", i, testedAmountOfRecords);
+            System.out.printf("%d iterations are tested out of %d%n", i, testedAmountOfRecords);
           }
         }
 
@@ -1307,7 +1307,7 @@ public class SBTreeRollbackTestIT {
           values.put(document.getIdentity(), value);
 
           if (i > 0 && i % 20_000 == 0) {
-            System.out.printf("%d records are loaded out of %d\n", i, additionalAmountOfRecords);
+            System.out.printf("%d records are loaded out of %d%n", i, additionalAmountOfRecords);
           }
         }
 
@@ -1324,7 +1324,7 @@ public class SBTreeRollbackTestIT {
           createSchema();
         }
       } catch (Exception | Error e) {
-        System.out.printf("testRollbackMixTwo seed : %d\n", seed);
+        System.out.printf("testRollbackMixTwo seed : %d%n", seed);
         throw e;
       }
     }
@@ -1334,7 +1334,7 @@ public class SBTreeRollbackTestIT {
   public void testRollbackMixThree() {
     long seed = -1;
     for (int k = 0; k < iterationsCount; k++) {
-      System.out.printf("Iteration %d out of %d\n", k + 1, iterationsCount);
+      System.out.printf("Iteration %d out of %d%n", k + 1, iterationsCount);
       try {
         seed = System.nanoTime();
         Random random = new Random(seed);
@@ -1357,7 +1357,7 @@ public class SBTreeRollbackTestIT {
           values.put(document.getIdentity(), value);
 
           if (i > 0 && i % 20_000 == 0) {
-            System.out.printf("%d records are loaded out of %d\n", i, initialAmountOfRecords);
+            System.out.printf("%d records are loaded out of %d%n", i, initialAmountOfRecords);
           }
         }
 
@@ -1464,7 +1464,7 @@ public class SBTreeRollbackTestIT {
           values.put(document.getIdentity(), val);
 
           if (i > 0 && i % 10_000 == 0) {
-            System.out.printf("%d iterations are tested out of %d\n", i, testedAmountOfRecords);
+            System.out.printf("%d iterations are tested out of %d%n", i, testedAmountOfRecords);
           }
         }
 
@@ -1491,7 +1491,7 @@ public class SBTreeRollbackTestIT {
           values.put(document.getIdentity(), value);
 
           if (i > 0 && i % 20_000 == 0) {
-            System.out.printf("%d records are loaded out of %d\n", i, additionalAmountOfRecords);
+            System.out.printf("%d records are loaded out of %d%n", i, additionalAmountOfRecords);
           }
         }
 
@@ -1509,7 +1509,7 @@ public class SBTreeRollbackTestIT {
         }
 
       } catch (Exception | Error e) {
-        System.out.printf("testRollbackMixThree seed : %d\n", seed);
+        System.out.printf("testRollbackMixThree seed : %d%n", seed);
         throw e;
       }
     }

@@ -9,13 +9,14 @@ import com.orientechnologies.orient.core.storage.impl.local.paginated.base.ODura
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.List;
 
 public abstract class OPageOperationRecord<T extends ODurablePage> extends OOperationUnitBodyRecord {
   private int  pageIndex;
   private long fileId;
 
-  public OPageOperationRecord() {
+  protected OPageOperationRecord() {
   }
 
   public final void setPageIndex(final int pageIndex) {
@@ -63,7 +64,7 @@ public abstract class OPageOperationRecord<T extends ODurablePage> extends OOper
   protected abstract void doUndo(T page);
 
   @Override
-  public int toStream(final byte[] content, int offset) {
+  public final int toStream(final byte[] content, int offset) {
     offset = super.toStream(content, offset);
 
     OLongSerializer.INSTANCE.serializeNative(fileId, content, offset);
@@ -72,19 +73,24 @@ public abstract class OPageOperationRecord<T extends ODurablePage> extends OOper
     OIntegerSerializer.INSTANCE.serializeNative(pageIndex, content, offset);
     offset += OIntegerSerializer.INT_SIZE;
 
-    return offset;
+    final ByteBuffer buffer = createNativeByteBuffer(content, offset);
+    serializeToByteBuffer(buffer);
+
+    return buffer.position();
   }
 
   @Override
-  public void toStream(final ByteBuffer buffer) {
+  public final void toStream(final ByteBuffer buffer) {
     super.toStream(buffer);
 
     buffer.putLong(fileId);
     buffer.putInt(pageIndex);
+
+    serializeToByteBuffer(buffer);
   }
 
   @Override
-  public int fromStream(final byte[] content, int offset) {
+  public final int fromStream(final byte[] content, int offset) {
     offset = super.fromStream(content, offset);
 
     fileId = OLongSerializer.INSTANCE.deserializeNative(content, offset);
@@ -93,11 +99,48 @@ public abstract class OPageOperationRecord<T extends ODurablePage> extends OOper
     pageIndex = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
     offset += OIntegerSerializer.INT_SIZE;
 
-    return offset;
+    final ByteBuffer buffer = createNativeByteBuffer(content, offset);
+    deserializeFromByteBuffer(buffer);
+
+    return buffer.position();
   }
 
   @Override
   public int serializedSize() {
     return super.serializedSize() + OIntegerSerializer.INT_SIZE + OLongSerializer.LONG_SIZE;
   }
+
+  @Override
+  public final boolean isUpdateMasterRecord() {
+    return false;
+  }
+
+  private static ByteBuffer createNativeByteBuffer(final byte[] content, final int offset) {
+    return ByteBuffer.wrap(content, offset, content.length - offset).order(ByteOrder.nativeOrder());
+  }
+
+  protected static void serializeByteArray(final byte[] value, final ByteBuffer buffer) {
+    if (value != null) {
+      buffer.putInt(value.length);
+      buffer.put(value);
+    } else {
+      buffer.putInt(-1);
+    }
+  }
+
+  protected static byte[] deserializeByteArray(final ByteBuffer buffer) {
+    final int len = buffer.getInt();
+    if (len >= 0) {
+      final byte[] value = new byte[len];
+      buffer.get(value);
+
+      return value;
+    }
+
+    return null;
+  }
+
+  protected abstract void serializeToByteBuffer(ByteBuffer buffer);
+
+  protected abstract void deserializeFromByteBuffer(ByteBuffer buffer);
 }

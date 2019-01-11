@@ -72,6 +72,8 @@ public final class OBonsaiBucketRemoveNonLeafEntryPageOperation extends OBonsaiB
 
   @Override
   protected void serializeToByteBuffer(final ByteBuffer buffer) {
+    super.serializeToByteBuffer(buffer);
+
     buffer.putInt(entryIndex);
 
     serializeByteArray(key, buffer);
@@ -85,6 +87,8 @@ public final class OBonsaiBucketRemoveNonLeafEntryPageOperation extends OBonsaiB
 
   @Override
   protected void deserializeFromByteBuffer(final ByteBuffer buffer) {
+    super.deserializeFromByteBuffer(buffer);
+
     entryIndex = buffer.getInt();
 
     key = deserializeByteArray(buffer);

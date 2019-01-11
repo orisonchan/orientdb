@@ -88,4 +88,7 @@ public final class WALRecordTypes {
 
   public static final byte HASH_INDEX_NULL_BUCKET_SET_VALUE    = 83;
   public static final byte HASH_INDEX_NULL_BUCKET_REMOVE_VALUE = 84;
+
+  public static final byte DIRECTORY_FIRST_PAGE_SET_TREE_SIZE = 85;
+  public static final byte DIRECTORY_FIRST_PAGE_SET_TOMBSTONE = 86;
 }

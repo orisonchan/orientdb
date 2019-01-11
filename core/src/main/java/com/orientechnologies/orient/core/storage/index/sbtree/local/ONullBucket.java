@@ -38,43 +38,47 @@ import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageop
  * @since 4/15/14
  */
 public final class ONullBucket<V> extends ODurablePage {
-  private final OBinarySerializer<V> valueSerializer;
-
-  public ONullBucket(final OCacheEntry cacheEntry, final OBinarySerializer<V> valueSerializer, final boolean isNew) {
+  public ONullBucket(final OCacheEntry cacheEntry) {
     super(cacheEntry);
-    this.valueSerializer = valueSerializer;
-
-    if (isNew) {
-      setByteValue(NEXT_FREE_POSITION, (byte) 0);
-    }
-
   }
 
-  public final void setValue(final OSBTreeValue<V> value) {
+  void init() {
+    setByteValue(NEXT_FREE_POSITION, (byte) 0);
+  }
+
+  public final void setValue(final OSBTreeValue<V> value, final OBinarySerializer<V> valueSerializer, final int prevValueSize) {
     final int valueSize = valueSerializer.getObjectSize(value.getValue());
 
     final byte[] serializedValue = new byte[valueSize];
     valueSerializer.serializeNativeObject(value.getValue(), serializedValue, 0);
 
-    setValue(serializedValue);
+    setValue(serializedValue, prevValueSize);
   }
 
-  public final void setValue(final byte[] value) {
+  public final void setValue(final byte[] value, final int prevValueSize) {
     final byte[] prevValue;
     if (getByteValue(NEXT_FREE_POSITION) == 0) {
       prevValue = null;
     } else {
-      prevValue = getBinaryValue(NEXT_FREE_POSITION + 2, getObjectSizeInDirectMemory(valueSerializer, NEXT_FREE_POSITION + 2));
+      prevValue = getBinaryValue(NEXT_FREE_POSITION + 2, prevValueSize);
     }
 
     setByteValue(NEXT_FREE_POSITION, (byte) 1);
     setByteValue(NEXT_FREE_POSITION + 1, (byte) 1);
     setBinaryValue(NEXT_FREE_POSITION + 2, value);
 
-    addPageOperation(new OSBTreeNullBucketSetValuePageOperation(prevValue));
+    addPageOperation(new OSBTreeNullBucketSetValuePageOperation(prevValue, value.length));
   }
 
-  public final OSBTreeValue<V> getValue() {
+  public final byte[] getRawValue(final OBinarySerializer<V> valueSerializer) {
+    if (getByteValue(NEXT_FREE_POSITION) == 0) {
+      return null;
+    }
+
+    return getBinaryValue(NEXT_FREE_POSITION + 2, getObjectSizeInDirectMemory(valueSerializer, NEXT_FREE_POSITION + 2));
+  }
+
+  public final OSBTreeValue<V> getValue(final OBinarySerializer<V> valueSerializer) {
     if (getByteValue(NEXT_FREE_POSITION) == 0)
       return null;
 
@@ -85,10 +89,9 @@ public final class ONullBucket<V> extends ODurablePage {
     return new OSBTreeValue<>(false, -1, deserializeFromDirectMemory(valueSerializer, NEXT_FREE_POSITION + 2));
   }
 
-  public final void removeValue() {
+  public final void removeValue(final int prevValueSize) {
     if (getByteValue(NEXT_FREE_POSITION) > 0) {
-      final byte[] prevValue = getBinaryValue(NEXT_FREE_POSITION + 2,
-          getObjectSizeInDirectMemory(valueSerializer, NEXT_FREE_POSITION + 2));
+      final byte[] prevValue = getBinaryValue(NEXT_FREE_POSITION + 2, prevValueSize);
       setByteValue(NEXT_FREE_POSITION, (byte) 0);
 
       addPageOperation(new OSBTreeNullBucketRemoveValuePageOperation(prevValue));

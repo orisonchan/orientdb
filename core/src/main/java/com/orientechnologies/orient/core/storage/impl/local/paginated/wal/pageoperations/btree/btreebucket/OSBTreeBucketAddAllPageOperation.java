@@ -3,14 +3,12 @@ package com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageo
 import com.orientechnologies.common.serialization.types.OByteSerializer;
 import com.orientechnologies.common.serialization.types.OIntegerSerializer;
 import com.orientechnologies.orient.core.serialization.serializer.binary.OBinarySerializerFactory;
-import com.orientechnologies.orient.core.storage.cache.OCacheEntry;
-import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OPageOperationRecord;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes;
 import com.orientechnologies.orient.core.storage.index.sbtree.local.OSBTreeBucket;
 
 import java.nio.ByteBuffer;
 
-public final class OSBTreeBucketAddAllPageOperation extends OPageOperationRecord<OSBTreeBucket> {
+public final class OSBTreeBucketAddAllPageOperation extends OSBTreeBucketPageOperation {
   private int     entriesCount;
   private byte    keySerializerId;
   private byte    valueSerializerId;
@@ -44,18 +42,8 @@ public final class OSBTreeBucketAddAllPageOperation extends OPageOperationRecord
   }
 
   @Override
-  public boolean isUpdateMasterRecord() {
-    return false;
-  }
-
-  @Override
   public byte getId() {
     return WALRecordTypes.SBTREE_BUCKET_ADD_ALL;
-  }
-
-  @Override
-  protected OSBTreeBucket createPageInstance(final OCacheEntry cacheEntry) {
-    return new OSBTreeBucket(cacheEntry);
   }
 
   @Override
@@ -68,28 +56,7 @@ public final class OSBTreeBucketAddAllPageOperation extends OPageOperationRecord
   }
 
   @Override
-  public int toStream(final byte[] content, int offset) {
-    offset = super.toStream(content, offset);
-
-    content[offset] = keySerializerId;
-    offset++;
-
-    content[offset] = valueSerializerId;
-    offset++;
-
-    content[offset] = isEncrypted ? (byte) 1 : 0;
-    offset++;
-
-    OIntegerSerializer.INSTANCE.serializeNative(entriesCount, content, offset);
-    offset += OIntegerSerializer.INT_SIZE;
-
-    return offset;
-  }
-
-  @Override
-  public void toStream(final ByteBuffer buffer) {
-    super.toStream(buffer);
-
+  protected void serializeToByteBuffer(final ByteBuffer buffer) {
     buffer.put(keySerializerId);
     buffer.put(valueSerializerId);
 
@@ -99,22 +66,11 @@ public final class OSBTreeBucketAddAllPageOperation extends OPageOperationRecord
   }
 
   @Override
-  public int fromStream(final byte[] content, int offset) {
-    offset = super.fromStream(content, offset);
-
-    keySerializerId = content[offset];
-    offset++;
-
-    valueSerializerId = content[offset];
-    offset++;
-
-    isEncrypted = content[offset] == 1;
-    offset++;
-
-    entriesCount = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
-    offset += OIntegerSerializer.INT_SIZE;
-
-    return offset;
+  protected void deserializeFromByteBuffer(final ByteBuffer buffer) {
+    keySerializerId = buffer.get();
+    valueSerializerId = buffer.get();
+    isEncrypted = buffer.get() > 0;
+    entriesCount = buffer.getInt();
   }
 
   @Override
