@@ -256,6 +256,9 @@ public class OLocalHashTableRollbackTestIT {
                 document.save();
               }
 
+              if (i == 134651) {
+                String s = "";
+              }
               session.commit();
             } catch (NotApprovedException e) {
               //continue

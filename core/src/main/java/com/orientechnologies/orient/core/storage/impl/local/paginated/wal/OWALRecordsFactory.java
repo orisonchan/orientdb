@@ -88,6 +88,7 @@ import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageop
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.extendiblehashing.directorypage.ODirectoryPageSetPointerPageOperation;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.extendiblehashing.filelevelmetadata.OFileLevelMetadataSetRecordsCountPageOperation;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.extendiblehashing.hashindexbucket.OHashIndexBucketAddEntryPageOperation;
+import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.extendiblehashing.hashindexbucket.OHashIndexBucketClearAndInitPageOperation;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.extendiblehashing.hashindexbucket.OHashIndexBucketDeleteEntryPageOperation;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.extendiblehashing.hashindexbucket.OHashIndexBucketSetDepthPageOperation;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.extendiblehashing.hashindexbucket.OHashIndexBucketUpdateEntryPageOperation;
@@ -145,6 +146,7 @@ import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal
 import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.FUZZY_CHECKPOINT_END_RECORD;
 import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.FUZZY_CHECKPOINT_START_RECORD;
 import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.HASH_INDEX_BUCKET_ADD_ENTRY;
+import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.HASH_INDEX_BUCKET_CLEAR_AND_INIT;
 import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.HASH_INDEX_BUCKET_DELETE_ENTRY;
 import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.HASH_INDEX_BUCKET_SET_DEPTH;
 import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.HASH_INDEX_BUCKET_UPDATE_ENTRY;
@@ -498,7 +500,9 @@ public final class OWALRecordsFactory {
     case DIRECTORY_FIRST_PAGE_SET_POINTER:
       walRecord = new ODirectoryFirstPageSetPointerPageOperation();
       break;
-
+    case HASH_INDEX_BUCKET_CLEAR_AND_INIT:
+      walRecord = new OHashIndexBucketClearAndInitPageOperation();
+      break;
     default:
       if (idToTypeMap.containsKey(content[0])) {
         try {

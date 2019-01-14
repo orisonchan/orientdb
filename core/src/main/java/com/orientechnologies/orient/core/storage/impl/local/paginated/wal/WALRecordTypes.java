@@ -97,4 +97,6 @@ public final class WALRecordTypes {
   public static final byte DIRECTORY_FIRST_PAGE_SET_NODE_LOCAL_DEPTH      = 89;
   public static final byte DIRECTORY_FIRST_PAGE_SET_POINTER               = 90;
 
+  public static final byte HASH_INDEX_BUCKET_CLEAR_AND_INIT = 91;
+
 }

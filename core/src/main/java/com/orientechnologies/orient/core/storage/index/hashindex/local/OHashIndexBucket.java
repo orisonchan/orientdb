@@ -29,14 +29,18 @@ import com.orientechnologies.orient.core.encryption.OEncryption;
 import com.orientechnologies.orient.core.storage.cache.OCacheEntry;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.base.ODurablePage;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.extendiblehashing.hashindexbucket.OHashIndexBucketAddEntryPageOperation;
+import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.extendiblehashing.hashindexbucket.OHashIndexBucketClearAndInitPageOperation;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.extendiblehashing.hashindexbucket.OHashIndexBucketDeleteEntryPageOperation;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.extendiblehashing.hashindexbucket.OHashIndexBucketSetDepthPageOperation;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.pageoperations.extendiblehashing.hashindexbucket.OHashIndexBucketUpdateEntryPageOperation;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Iterator;
+import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.Objects;
 
 /**
  * @author Andrey Lomakin (a.lomakin-at-orientdb.com)
@@ -264,6 +268,16 @@ public final class OHashIndexBucket<K, V> extends ODurablePage {
     addPageOperation(new OHashIndexBucketUpdateEntryPageOperation(index, keySize, value.length, oldValue));
   }
 
+  void clearAndInit(final List<RawEntry> bucketEntries, final int depth) {
+    final byte oldDepth = getByteValue(DEPTH_OFFSET);
+
+    setByteValue(DEPTH_OFFSET, (byte) depth);
+    setIntValue(FREE_POINTER_OFFSET, MAX_BUCKET_SIZE_BYTES);
+    setIntValue(SIZE_OFFSET, 0);
+
+    addPageOperation(new OHashIndexBucketClearAndInitPageOperation(oldDepth, bucketEntries));
+  }
+
   public final void deleteEntry(final int index, final int keySize, final int valueSize) {
     final int freePointer = getIntValue(FREE_POINTER_OFFSET);
 
@@ -330,7 +344,7 @@ public final class OHashIndexBucket<K, V> extends ODurablePage {
     setIntValue(SIZE_OFFSET, size + 1);
   }
 
-  final void appendEntry(final byte[] entry, final int keySize, final int valueSize) {
+  public final void appendEntry(final byte[] entry, final int keySize, final int valueSize) {
     final int index = size();
     final int positionsOffset = index * OIntegerSerializer.INT_SIZE + POSITIONS_ARRAY_OFFSET;
     final int entreeSize = entry.length;
@@ -413,17 +427,37 @@ public final class OHashIndexBucket<K, V> extends ODurablePage {
     }
   }
 
-  static final class RawEntry {
-    final byte[] entry;
-    final long   hashCode;
-    final int    keySize;
-    final int    valueSize;
+  @SuppressFBWarnings("EI_EXPOSE_REP2")
+  public static final class RawEntry {
+    public final byte[] entry;
+    public final long   hashCode;
+    public final int    keySize;
+    public final int    valueSize;
 
-    RawEntry(final byte[] entry, final long hashCode, final int keySize, final int valueSize) {
+    public RawEntry(final byte[] entry, final long hashCode, final int keySize, final int valueSize) {
       this.entry = entry;
       this.hashCode = hashCode;
       this.keySize = keySize;
       this.valueSize = valueSize;
+    }
+
+    @Override
+    public boolean equals(final Object o) {
+      if (this == o)
+        return true;
+      if (o == null || getClass() != o.getClass())
+        return false;
+      final RawEntry rawEntry = (RawEntry) o;
+      return hashCode == rawEntry.hashCode && keySize == rawEntry.keySize && valueSize == rawEntry.valueSize && Arrays
+          .equals(entry, rawEntry.entry);
+    }
+
+    @Override
+    public int hashCode() {
+      @SuppressWarnings("ObjectInstantiationInEqualsHashCode")
+      int result = Objects.hash(hashCode, keySize, valueSize);
+      result = 31 * result + Arrays.hashCode(entry);
+      return result;
     }
   }
 

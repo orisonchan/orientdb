@@ -1178,7 +1178,6 @@ public final class OLocalHashTable<K, V> extends ODurableComponent {
           System.arraycopy(serializedKey, 0, rawKey, OIntegerSerializer.INT_SIZE, serializedKey.length);
         }
 
-
         return doPut(key, value, rawKey, rawValue, validator, atomicOperation);
       } finally {
         releaseExclusiveLock();
@@ -1192,8 +1191,8 @@ public final class OLocalHashTable<K, V> extends ODurableComponent {
   }
 
   @SuppressWarnings("unchecked")
-  private boolean doPut(final K key, V value, final byte[] rawKey, byte[] rawValue,
-      final OIndexEngine.Validator<K, V> validator, final OAtomicOperation atomicOperation) throws IOException {
+  private boolean doPut(final K key, V value, final byte[] rawKey, byte[] rawValue, final OIndexEngine.Validator<K, V> validator,
+      final OAtomicOperation atomicOperation) throws IOException {
     int sizeDiff = 0;
 
     final byte[] rawOldValue;
@@ -1689,7 +1688,7 @@ public final class OLocalHashTable<K, V> extends ODurableComponent {
       entries.add(entry);
     }
 
-    bucket.init(newBucketDepth);
+    bucket.clearAndInit(entries, newBucketDepth);
 
     for (final OHashIndexBucket.RawEntry entry : entries) {
       if (((entry.hashCode >>> (HASH_CODE_SIZE - newBucketDepth)) & 1) == 0) {
