@@ -22,7 +22,6 @@ package com.orientechnologies.common.serialization.types;
 
 import com.orientechnologies.common.serialization.OBinaryConverter;
 import com.orientechnologies.common.serialization.OBinaryConverterFactory;
-import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OWALChanges;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -47,10 +46,10 @@ public class OLongSerializer implements OBinarySerializer<Long> {
   }
 
   public void serialize(final Long object, final byte[] stream, final int startPosition, final Object... hints) {
-    serializeLiteral(object.longValue(), stream, startPosition);
+    serializeLiteral(object, stream, startPosition);
   }
 
-  public void serializeLiteral(final long value, final byte[] stream, final int startPosition) {
+  public static void serializeLiteral(final long value, final byte[] stream, final int startPosition) {
     stream[startPosition] = (byte) ((value >>> 56) & 0xFF);
     stream[startPosition + 1] = (byte) ((value >>> 48) & 0xFF);
     stream[startPosition + 2] = (byte) ((value >>> 40) & 0xFF);
@@ -58,14 +57,14 @@ public class OLongSerializer implements OBinarySerializer<Long> {
     stream[startPosition + 4] = (byte) ((value >>> 24) & 0xFF);
     stream[startPosition + 5] = (byte) ((value >>> 16) & 0xFF);
     stream[startPosition + 6] = (byte) ((value >>> 8) & 0xFF);
-    stream[startPosition + 7] = (byte) ((value >>> 0) & 0xFF);
+    stream[startPosition + 7] = (byte) ((value) & 0xFF);
   }
 
   public Long deserialize(final byte[] stream, final int startPosition) {
     return deserializeLiteral(stream, startPosition);
   }
 
-  public long deserializeLiteral(final byte[] stream, final int startPosition) {
+  public static long deserializeLiteral(final byte[] stream, final int startPosition) {
     return ((0xff & stream[startPosition + 7]) | (0xff & stream[startPosition + 6]) << 8 | (0xff & stream[startPosition + 5]) << 16
         | (long) (0xff & stream[startPosition + 4]) << 24 | (long) (0xff & stream[startPosition + 3]) << 32
         | (long) (0xff & stream[startPosition + 2]) << 40 | (long) (0xff & stream[startPosition + 1]) << 48
@@ -94,11 +93,11 @@ public class OLongSerializer implements OBinarySerializer<Long> {
     return CONVERTER.getLong(stream, startPosition, ByteOrder.nativeOrder());
   }
 
-  public void serializeNative(final long object, final byte[] stream, final int startPosition, final Object... hints) {
+  public static void serializeNative(final long object, final byte[] stream, final int startPosition, final Object... hints) {
     CONVERTER.putLong(stream, startPosition, object, ByteOrder.nativeOrder());
   }
 
-  public long deserializeNative(final byte[] stream, final int startPosition) {
+  public static long deserializeNative(final byte[] stream, final int startPosition) {
     return CONVERTER.getLong(stream, startPosition, ByteOrder.nativeOrder());
   }
 
@@ -139,19 +138,4 @@ public class OLongSerializer implements OBinarySerializer<Long> {
     return LONG_SIZE;
   }
 
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  public Long deserializeFromByteBufferObject(ByteBuffer buffer, OWALChanges walChanges, int offset) {
-    return walChanges.getLongValue(buffer, offset);
-  }
-
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  public int getObjectSizeInByteBuffer(ByteBuffer buffer, OWALChanges walChanges, int offset) {
-    return LONG_SIZE;
-  }
 }

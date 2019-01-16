@@ -71,7 +71,7 @@ public final class OFileCreatedWALRecord extends OOperationUnitBodyRecord {
     OStringSerializer.INSTANCE.serializeNativeObject(fileName, content, offset);
     offset += OStringSerializer.INSTANCE.getObjectSize(fileName);
 
-    OLongSerializer.INSTANCE.serializeNative(fileId, content, offset);
+    OLongSerializer.serializeNative(fileId, content, offset);
     offset += OLongSerializer.LONG_SIZE;
 
     return offset;
@@ -92,7 +92,7 @@ public final class OFileCreatedWALRecord extends OOperationUnitBodyRecord {
     fileName = OStringSerializer.INSTANCE.deserializeNativeObject(content, offset);
     offset += OStringSerializer.INSTANCE.getObjectSize(fileName);
 
-    fileId = OLongSerializer.INSTANCE.deserializeNative(content, offset);
+    fileId = OLongSerializer.deserializeNative(content, offset);
     offset += OLongSerializer.LONG_SIZE;
 
     return offset;

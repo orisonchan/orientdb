@@ -132,7 +132,7 @@ public final class OLocalHashTable<K, V> extends ODurableComponent {
       acquireExclusiveLock();
       try {
         this.keyHashFunction = keyHashFunction;
-        this.comparator = new KeyHashCodeComparator<>(this.keyHashFunction);
+        this.comparator = new KeyHashCodeComparator<>(this.keyHashFunction, keyTypes);
         this.encryption = encryption;
 
         if (keyTypes != null) {
@@ -210,7 +210,7 @@ public final class OLocalHashTable<K, V> extends ODurableComponent {
         } else {
           key = keySerializer.preprocess(key, (Object[]) keyTypes);
 
-          final long hashCode = keyHashFunction.hashCode(key);
+          final long hashCode = keyHashFunction.hashCode(key, keyTypes);
 
           final BucketPath bucketPath = getBucket(hashCode, atomicOperation);
           final long bucketPointer = directory
@@ -408,7 +408,7 @@ public final class OLocalHashTable<K, V> extends ODurableComponent {
 
         key1 = keySerializer.preprocess(key1, (Object[]) keyTypes);
 
-        final long hashCode = keyHashFunction.hashCode(key1);
+        final long hashCode = keyHashFunction.hashCode(key1, keyTypes);
         BucketPath bucketPath = getBucket(hashCode, atomicOperation);
         final long bucketPointer = directory
             .getNodePointer(bucketPath.nodeIndex, bucketPath.itemIndex + bucketPath.hashMapOffset, atomicOperation);
@@ -467,7 +467,7 @@ public final class OLocalHashTable<K, V> extends ODurableComponent {
     acquireExclusiveLock();
     try {
       this.keyHashFunction = keyHashFunction;
-      this.comparator = new KeyHashCodeComparator<>(this.keyHashFunction);
+      this.comparator = new KeyHashCodeComparator<>(this.keyHashFunction, keyTypes);
       if (keyTypes != null) {
         this.keyTypes = Arrays.copyOf(keyTypes, keyTypes.length);
       } else {
@@ -479,12 +479,16 @@ public final class OLocalHashTable<K, V> extends ODurableComponent {
 
       fileStateId = openFile(name + metadataConfigurationFileExtension);
       final OCacheEntry hashStateEntry = loadPageForRead(fileStateId, 0, true);
-      hashStateEntryIndex = hashStateEntry.getPageIndex();
+      try {
+        hashStateEntryIndex = hashStateEntry.getPageIndex();
+        pinPage(hashStateEntry);
+      } finally {
+        releasePageFromRead(hashStateEntry);
+      }
 
       directory = new OHashTableDirectory(treeStateFileExtension, name, getFullName(), storage);
       directory.open();
 
-      pinPage(hashStateEntry);
       this.keySerializer = keySerializer;
       this.valueSerializer = valueSerializer;
 
@@ -664,7 +668,7 @@ public final class OLocalHashTable<K, V> extends ODurableComponent {
 
         key = keySerializer.preprocess(key, (Object[]) keyTypes);
 
-        final long hashCode = keyHashFunction.hashCode(key);
+        final long hashCode = keyHashFunction.hashCode(key, keyTypes);
         BucketPath bucketPath = getBucket(hashCode, atomicOperation);
 
         final long bucketPointer = directory
@@ -820,7 +824,7 @@ public final class OLocalHashTable<K, V> extends ODurableComponent {
 
         key = keySerializer.preprocess(key, (Object[]) keyTypes);
 
-        final long hashCode = keyHashFunction.hashCode(key);
+        final long hashCode = keyHashFunction.hashCode(key, keyTypes);
         BucketPath bucketPath = getBucket(hashCode, atomicOperation);
 
         final long bucketPointer = directory
@@ -883,7 +887,7 @@ public final class OLocalHashTable<K, V> extends ODurableComponent {
         final OAtomicOperation atomicOperation = OAtomicOperationsManager.getCurrentOperation();
         key = keySerializer.preprocess(key, (Object[]) keyTypes);
 
-        final long hashCode = keyHashFunction.hashCode(key);
+        final long hashCode = keyHashFunction.hashCode(key, keyTypes);
         BucketPath bucketPath = getBucket(hashCode, atomicOperation);
 
         final long bucketPointer = directory
@@ -1174,7 +1178,7 @@ public final class OLocalHashTable<K, V> extends ODurableComponent {
         } else {
           final byte[] serializedKey = encryption.encrypt(keySerializer.serializeNativeAsWhole(key, (Object[]) keyTypes));
           rawKey = new byte[OIntegerSerializer.INT_SIZE + serializedKey.length];
-          OIntegerSerializer.INSTANCE.serializeNative(serializedKey.length, rawKey, 0);
+          OIntegerSerializer.serializeNative(serializedKey.length, rawKey, 0);
           System.arraycopy(serializedKey, 0, rawKey, OIntegerSerializer.INT_SIZE, serializedKey.length);
         }
 
@@ -1735,9 +1739,9 @@ public final class OLocalHashTable<K, V> extends ODurableComponent {
 
     final Iterator<OHashIndexBucket.Entry<K, V>> positionIterator = bucket.iterator(keySerializer, valueSerializer, encryption);
 
-    final long firstValue = keyHashFunction.hashCode(positionIterator.next().key) >>> (HASH_CODE_SIZE - bucketDepth);
+    final long firstValue = keyHashFunction.hashCode(positionIterator.next().key, keyTypes) >>> (HASH_CODE_SIZE - bucketDepth);
     while (positionIterator.hasNext()) {
-      final long value = keyHashFunction.hashCode(positionIterator.next().key) >>> (HASH_CODE_SIZE - bucketDepth);
+      final long value = keyHashFunction.hashCode(positionIterator.next().key, keyTypes) >>> (HASH_CODE_SIZE - bucketDepth);
       if (value != firstValue) {
         return false;
       }
@@ -1884,15 +1888,17 @@ public final class OLocalHashTable<K, V> extends ODurableComponent {
     private final Comparator<? super K2> comparator = ODefaultComparator.INSTANCE;
 
     private final OHashFunction<K2> keyHashFunction;
+    private final OType[]           keyTypes;
 
-    KeyHashCodeComparator(final OHashFunction<K2> keyHashFunction) {
+    KeyHashCodeComparator(final OHashFunction<K2> keyHashFunction, final OType[] keyTypes) {
       this.keyHashFunction = keyHashFunction;
+      this.keyTypes = keyTypes;
     }
 
     @Override
     public int compare(final K2 keyOne, final K2 keyTwo) {
-      final long hashCodeOne = keyHashFunction.hashCode(keyOne);
-      final long hashCodeTwo = keyHashFunction.hashCode(keyTwo);
+      final long hashCodeOne = keyHashFunction.hashCode(keyOne, keyTypes);
+      final long hashCodeTwo = keyHashFunction.hashCode(keyTwo, keyTypes);
 
       if (greaterThanUnsigned(hashCodeOne, hashCodeTwo))
         return 1;

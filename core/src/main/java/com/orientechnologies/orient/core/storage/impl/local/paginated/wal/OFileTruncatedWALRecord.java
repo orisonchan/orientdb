@@ -6,7 +6,7 @@ import com.orientechnologies.orient.core.storage.cache.OWriteCache;
 
 import java.nio.ByteBuffer;
 
-public final class OFileTruncatedWALRecord extends OOperationUnitBodyRecord {
+final class OFileTruncatedWALRecord extends OOperationUnitBodyRecord {
   private long fileId;
 
   OFileTruncatedWALRecord() {
@@ -32,7 +32,7 @@ public final class OFileTruncatedWALRecord extends OOperationUnitBodyRecord {
   public final int toStream(final byte[] content, int offset) {
     offset = super.toStream(content, offset);
 
-    OLongSerializer.INSTANCE.serializeNative(fileId, content, offset);
+    OLongSerializer.serializeNative(fileId, content, offset);
     offset += OLongSerializer.LONG_SIZE;
 
     return offset;
@@ -49,7 +49,7 @@ public final class OFileTruncatedWALRecord extends OOperationUnitBodyRecord {
   public final int fromStream(final byte[] content, int offset) {
     offset = super.fromStream(content, offset);
 
-    fileId = OLongSerializer.INSTANCE.deserializeNative(content, offset);
+    fileId = OLongSerializer.deserializeNative(content, offset);
     offset += OLongSerializer.LONG_SIZE;
 
     return offset;

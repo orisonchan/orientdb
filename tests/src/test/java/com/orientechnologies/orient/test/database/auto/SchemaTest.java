@@ -40,12 +40,12 @@ import org.testng.annotations.Optional;
 import org.testng.annotations.Parameters;
 import org.testng.annotations.Test;
 
-import java.io.IOException;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 
+@SuppressWarnings("deprecation")
 @Test(groups = "schema")
 public class SchemaTest extends DocumentDBBaseTest {
   @Parameters(value = "url")
@@ -53,7 +53,7 @@ public class SchemaTest extends DocumentDBBaseTest {
     super(url);
   }
 
-  public void createSchema() throws IOException {
+  public void createSchema() {
 
     if (database.getMetadata().getSchema().existsClass("Account"))
       return;
@@ -119,16 +119,8 @@ public class SchemaTest extends DocumentDBBaseTest {
   public void checkClusters() {
 
     for (OClass cls : database.getMetadata().getSchema().getClasses()) {
-      if (!cls.isAbstract())
-        assert database.getClusterNameById(cls.getDefaultClusterId()) != null;
+      assert cls.isAbstract() || database.getClusterNameById(cls.getDefaultClusterId()) != null;
     }
-
-  }
-
-  @Test(dependsOnMethods = "createSchema")
-  public void checkDatabaseSize() {
-
-    Assert.assertTrue(database.getSize() > 0);
 
   }
 
@@ -149,18 +141,14 @@ public class SchemaTest extends DocumentDBBaseTest {
   @Test
   public void testMultiThreadSchemaCreation() throws InterruptedException {
 
-    Thread thread = new Thread(new Runnable() {
+    Thread thread = new Thread(() -> {
+      ODatabaseRecordThreadLocal.instance().set(database);
+      ODocument doc = new ODocument("NewClass");
+      database.save(doc);
 
-      @Override
-      public void run() {
-        ODatabaseRecordThreadLocal.instance().set(database);
-        ODocument doc = new ODocument("NewClass");
-        database.save(doc);
+      doc.delete();
+      database.getMetadata().getSchema().dropClass("NewClass");
 
-        doc.delete();
-        database.getMetadata().getSchema().dropClass("NewClass");
-
-      }
     });
 
     thread.start();
@@ -243,7 +231,7 @@ public class SchemaTest extends DocumentDBBaseTest {
 
     // TEST CUSTOM PROPERTY REMOVAL
     database.getMetadata().getSchema().getClass("Profile").getProperty("nick").setCustom("stereotype", null);
-    Assert.assertEquals(database.getMetadata().getSchema().getClass("Profile").getProperty("nick").getCustom("stereotype"), null);
+    Assert.assertNull(database.getMetadata().getSchema().getClass("Profile").getProperty("nick").getCustom("stereotype"));
 
     // TEST CUSTOM PROPERTY UPDATE
     database.getMetadata().getSchema().getClass("Profile").getProperty("nick").setCustom("stereotype", "polygon");
@@ -259,13 +247,11 @@ public class SchemaTest extends DocumentDBBaseTest {
 
     database.getMetadata().getSchema().getClass("Profile").getProperty("nick").setCustom("equal", "this = that");
 
-    Assert
-        .assertEquals(database.getMetadata().getSchema().getClass("Profile").getProperty("nick").getCustom("equal"), "this = that");
+    Assert.assertEquals(database.getMetadata().getSchema().getClass("Profile").getProperty("nick").getCustom("equal"), "this = that");
 
     // TEST CUSTOM PROPERTY WITH = AFTER REOPEN
 
-    Assert
-        .assertEquals(database.getMetadata().getSchema().getClass("Profile").getProperty("nick").getCustom("equal"), "this = that");
+    Assert.assertEquals(database.getMetadata().getSchema().getClass("Profile").getProperty("nick").getCustom("equal"), "this = that");
 
   }
 
@@ -283,7 +269,7 @@ public class SchemaTest extends DocumentDBBaseTest {
         break;
       }
     }
-    Assert.assertEquals(found, true);
+    Assert.assertTrue(found);
 
     company.setSuperClass(null);
     Assert.assertNull(company.getSuperClass());
@@ -305,7 +291,7 @@ public class SchemaTest extends DocumentDBBaseTest {
         break;
       }
     }
-    Assert.assertEquals(found, true);
+    Assert.assertTrue(found);
 
   }
 
@@ -416,16 +402,11 @@ public class SchemaTest extends DocumentDBBaseTest {
   }
 
   public void testExchangeCluster() {
+    database.command(new OCommandSQL("CREATE CLASS TestRenameClusterOriginal clusters 2")).execute();
 
-    try {
-      database.command(new OCommandSQL("CREATE CLASS TestRenameClusterOriginal clusters 2")).execute();
-
-      swapClusters(database, 1);
-      swapClusters(database, 2);
-      swapClusters(database, 3);
-    } finally {
-
-    }
+    swapClusters(database, 1);
+    swapClusters(database, 2);
+    swapClusters(database, 3);
   }
 
   public void testOfflineCluster() {
@@ -465,10 +446,9 @@ public class SchemaTest extends DocumentDBBaseTest {
 
     // TEST CREATE -> EXCEPTION
     try {
-      Object res = database
-          .command(new OCommandSQL("insert into TestOffline set name = 'offline', password = 'offline', status = 'ACTIVE'"))
+      Object res = database.command(new OCommandSQL("insert into TestOffline set name = 'offline', password = 'offline', status = 'ACTIVE'"))
           .execute();
-      Assert.assertTrue(false);
+      Assert.fail();
     } catch (OException e) {
 
       Throwable cause = e;
@@ -481,7 +461,7 @@ public class SchemaTest extends DocumentDBBaseTest {
     // TEST UPDATE RECORD -> EXCEPTION
     try {
       record.field("status", "offline").save();
-      Assert.assertTrue(false);
+      Assert.fail();
     } catch (OException e) {
       Throwable cause = e;
       while (cause.getCause() != null)
@@ -493,7 +473,7 @@ public class SchemaTest extends DocumentDBBaseTest {
     // TEST DELETE RECORD -> EXCEPTION
     try {
       record.delete();
-      Assert.assertTrue(false);
+      Assert.fail();
     } catch (OOfflineClusterException e) {
       Assert.assertTrue(true);
     }
@@ -501,7 +481,7 @@ public class SchemaTest extends DocumentDBBaseTest {
     // TEST DELETE RECORD -> EXCEPTION
     try {
       record.reload(null, true);
-      Assert.assertTrue(false);
+      Assert.fail();
     } catch (ORecordNotFoundException e) {
       Assert.assertTrue(e.getCause() instanceof OOfflineClusterException);
     }
@@ -527,7 +507,7 @@ public class SchemaTest extends DocumentDBBaseTest {
     Assert.assertNotNull(classB.getProperty("property"));
     Assert.assertTrue(classB.existsProperty("property"));
 
-    schema = ((OMetadataInternal) database.getMetadata()).getImmutableSchemaSnapshot();
+    schema = database.getMetadata().getImmutableSchemaSnapshot();
     classB = schema.getClass("TestExistsB");
 
     Assert.assertNotNull(classB.getProperty("property"));
@@ -574,8 +554,7 @@ public class SchemaTest extends DocumentDBBaseTest {
     try {
       database.getMetadata().getSchema().getClass("V").setName("OUser");
       Assert.fail();
-    } catch (OSchemaException e) {
-    } catch (OCommandExecutionException e) {
+    } catch (OSchemaException | OCommandExecutionException e) {
     }
   }
 
@@ -583,8 +562,7 @@ public class SchemaTest extends DocumentDBBaseTest {
     try {
       database.getMetadata().getSchema().getClass("V").setShortName("OUser");
       Assert.fail();
-    } catch (IllegalArgumentException e) {
-    } catch (OCommandExecutionException e) {
+    } catch (IllegalArgumentException | OCommandExecutionException e) {
     }
   }
 
@@ -606,34 +584,38 @@ public class SchemaTest extends DocumentDBBaseTest {
     database.command("create property " + className + "." + propertyName.toLowerCase(Locale.ENGLISH) + " STRING");
 
     database.command(
-        "create index " + className + "." + propertyName.toLowerCase(Locale.ENGLISH) + " on " + className + "(" + propertyName.toLowerCase(Locale.ENGLISH)
-            + ") NOTUNIQUE");
+        "create index " + className + "." + propertyName.toLowerCase(Locale.ENGLISH) + " on " + className + "(" + propertyName
+            .toLowerCase(Locale.ENGLISH) + ") NOTUNIQUE");
     database.command(
-        "create index " + className + "." + propertyName.toUpperCase(Locale.ENGLISH) + " on " + className + "(" + propertyName.toUpperCase(Locale.ENGLISH)
-            + ") NOTUNIQUE");
+        "create index " + className + "." + propertyName.toUpperCase(Locale.ENGLISH) + " on " + className + "(" + propertyName
+            .toUpperCase(Locale.ENGLISH) + ") NOTUNIQUE");
 
-    database.command(
-        "insert into " + className + " set " + propertyName.toUpperCase(Locale.ENGLISH) + " = 'FOO', " + propertyName.toLowerCase(Locale.ENGLISH) + " = 'foo'");
-    database.command(
-        "insert into " + className + " set " + propertyName.toUpperCase(Locale.ENGLISH) + " = 'BAR', " + propertyName.toLowerCase(Locale.ENGLISH) + " = 'bar'");
+    database.command("insert into " + className + " set " + propertyName.toUpperCase(Locale.ENGLISH) + " = 'FOO', " + propertyName
+        .toLowerCase(Locale.ENGLISH) + " = 'foo'");
+    database.command("insert into " + className + " set " + propertyName.toUpperCase(Locale.ENGLISH) + " = 'BAR', " + propertyName
+        .toLowerCase(Locale.ENGLISH) + " = 'bar'");
 
-    try (OResultSet rs = database.command("select from " + className + " where " + propertyName.toLowerCase(Locale.ENGLISH) + " = 'foo'")) {
+    try (OResultSet rs = database
+        .command("select from " + className + " where " + propertyName.toLowerCase(Locale.ENGLISH) + " = 'foo'")) {
       Assert.assertTrue(rs.hasNext());
       rs.next();
       Assert.assertFalse(rs.hasNext());
     }
 
-    try (OResultSet rs = database.command("select from " + className + " where " + propertyName.toLowerCase(Locale.ENGLISH) + " = 'FOO'")) {
+    try (OResultSet rs = database
+        .command("select from " + className + " where " + propertyName.toLowerCase(Locale.ENGLISH) + " = 'FOO'")) {
       Assert.assertFalse(rs.hasNext());
     }
 
-    try (OResultSet rs = database.command("select from " + className + " where " + propertyName.toUpperCase(Locale.ENGLISH) + " = 'FOO'")) {
+    try (OResultSet rs = database
+        .command("select from " + className + " where " + propertyName.toUpperCase(Locale.ENGLISH) + " = 'FOO'")) {
       Assert.assertTrue(rs.hasNext());
       rs.next();
       Assert.assertFalse(rs.hasNext());
     }
 
-    try (OResultSet rs = database.command("select from " + className + " where " + propertyName.toUpperCase(Locale.ENGLISH) + " = 'foo'")) {
+    try (OResultSet rs = database
+        .command("select from " + className + " where " + propertyName.toUpperCase(Locale.ENGLISH) + " = 'foo'")) {
       Assert.assertFalse(rs.hasNext());
     }
 
@@ -652,13 +634,13 @@ public class SchemaTest extends DocumentDBBaseTest {
     schema.dropClass(className);
   }
 
-  private void swapClusters(ODatabaseDocumentTx databaseDocumentTx, int i) {
-    databaseDocumentTx.command(new OCommandSQL("CREATE CLASS TestRenameClusterNew extends TestRenameClusterOriginal clusters 2")).execute();
+  private static void swapClusters(ODatabaseDocumentTx databaseDocumentTx, int i) {
+    databaseDocumentTx.command(new OCommandSQL("CREATE CLASS TestRenameClusterNew extends TestRenameClusterOriginal clusters 2"))
+        .execute();
 
     databaseDocumentTx.command(new OCommandSQL("INSERT INTO TestRenameClusterNew (iteration) VALUES(" + i + ")")).execute();
 
-    databaseDocumentTx.command(new OCommandSQL("ALTER CLASS TestRenameClusterOriginal removecluster TestRenameClusterOriginal"))
-        .execute();
+    databaseDocumentTx.command(new OCommandSQL("ALTER CLASS TestRenameClusterOriginal removecluster TestRenameClusterOriginal")).execute();
     databaseDocumentTx.command(new OCommandSQL("ALTER CLASS TestRenameClusterNew removecluster TestRenameClusterNew")).execute();
     databaseDocumentTx.command(new OCommandSQL("DROP CLASS TestRenameClusterNew")).execute();
     databaseDocumentTx.command(new OCommandSQL("ALTER CLASS TestRenameClusterOriginal addcluster TestRenameClusterNew")).execute();

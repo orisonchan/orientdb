@@ -67,10 +67,10 @@ public abstract class OPageOperationRecord<T extends ODurablePage> extends OOper
   public final int toStream(final byte[] content, int offset) {
     offset = super.toStream(content, offset);
 
-    OLongSerializer.INSTANCE.serializeNative(fileId, content, offset);
+    OLongSerializer.serializeNative(fileId, content, offset);
     offset += OLongSerializer.LONG_SIZE;
 
-    OIntegerSerializer.INSTANCE.serializeNative(pageIndex, content, offset);
+    OIntegerSerializer.serializeNative(pageIndex, content, offset);
     offset += OIntegerSerializer.INT_SIZE;
 
     final ByteBuffer buffer = createNativeByteBuffer(content, offset);
@@ -93,10 +93,10 @@ public abstract class OPageOperationRecord<T extends ODurablePage> extends OOper
   public final int fromStream(final byte[] content, int offset) {
     offset = super.fromStream(content, offset);
 
-    fileId = OLongSerializer.INSTANCE.deserializeNative(content, offset);
+    fileId = OLongSerializer.deserializeNative(content, offset);
     offset += OLongSerializer.LONG_SIZE;
 
-    pageIndex = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
+    pageIndex = OIntegerSerializer.deserializeNative(content, offset);
     offset += OIntegerSerializer.INT_SIZE;
 
     final ByteBuffer buffer = createNativeByteBuffer(content, offset);

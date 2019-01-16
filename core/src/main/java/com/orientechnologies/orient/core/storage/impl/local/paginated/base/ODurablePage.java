@@ -113,8 +113,8 @@ public class ODurablePage {
    */
   @SuppressWarnings("unused")
   public static OLogSequenceNumber getLogSequenceNumber(final int offset, final byte[] data) {
-    final long segment = OLongSerializer.INSTANCE.deserializeNative(data, offset + WAL_SEGMENT_OFFSET);
-    final long position = OLongSerializer.INSTANCE.deserializeNative(data, offset + WAL_POSITION_OFFSET);
+    final long segment = OLongSerializer.deserializeNative(data, offset + WAL_SEGMENT_OFFSET);
+    final long position = OLongSerializer.deserializeNative(data, offset + WAL_POSITION_OFFSET);
 
     return new OLogSequenceNumber(segment, position);
   }

@@ -491,7 +491,7 @@ public class WOWCacheTestIT {
     wowCache.load(fileId, 0, 1, true, false, new OModifiableBoolean(), true)[0].decrementReadersReferrer();
   }
 
-  private void assertFile(long pageIndex, byte[] value, OLogSequenceNumber lsn, String fileName) throws IOException {
+  private static void assertFile(long pageIndex, byte[] value, OLogSequenceNumber lsn, String fileName) throws IOException {
     OFileClassic fileClassic = new OFileClassic(storagePath.resolve(fileName));
     fileClassic.open();
     byte[] content = new byte[8 + systemOffset];
@@ -499,11 +499,11 @@ public class WOWCacheTestIT {
 
     Assert.assertArrayEquals(Arrays.copyOfRange(content, systemOffset, 8 + systemOffset), value);
 
-    long magicNumber = OLongSerializer.INSTANCE.deserializeNative(content, 0);
+    long magicNumber = OLongSerializer.deserializeNative(content, 0);
     Assert.assertEquals(magicNumber, OWOWCache.MAGIC_NUMBER_WITH_CHECKSUM);
 
-    int segment = OIntegerSerializer.INSTANCE.deserializeNative(content, OLongSerializer.LONG_SIZE + OIntegerSerializer.INT_SIZE);
-    long position = OLongSerializer.INSTANCE
+    int segment = OIntegerSerializer.deserializeNative(content, OLongSerializer.LONG_SIZE + OIntegerSerializer.INT_SIZE);
+    long position = OLongSerializer
         .deserializeNative(content, OLongSerializer.LONG_SIZE + 2 * OIntegerSerializer.INT_SIZE);
 
     OLogSequenceNumber readLsn = new OLogSequenceNumber(segment, position);
@@ -527,7 +527,7 @@ public class WOWCacheTestIT {
 
     @Override
     public int toStream(byte[] content, int offset) {
-      OIntegerSerializer.INSTANCE.serializeNative(data.length, content, offset);
+      OIntegerSerializer.serializeNative(data.length, content, offset);
       offset += OIntegerSerializer.INT_SIZE;
 
       System.arraycopy(data, 0, content, offset, data.length);
@@ -544,7 +544,7 @@ public class WOWCacheTestIT {
 
     @Override
     public int fromStream(byte[] content, int offset) {
-      int len = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
+      int len = OIntegerSerializer.deserializeNative(content, offset);
       offset += OIntegerSerializer.INT_SIZE;
 
       data = new byte[len];

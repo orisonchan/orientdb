@@ -47,13 +47,13 @@ public class LocalHashTableIterationTestIT {
 
     OHashFunction<Integer> hashFunction = new OHashFunction<Integer>() {
       @Override
-      public long hashCode(Integer value) {
+      public long hashCode(Integer value, final OType[] keyTypes) {
         return Long.MAX_VALUE / 2 + value;
       }
 
       @Override
       public long hashCode(final byte[] value) {
-        return Long.MAX_VALUE / 2 + OIntegerSerializer.INSTANCE.deserializeNative(value, 0);
+        return Long.MAX_VALUE / 2 + OIntegerSerializer.deserializeNative(value, 0);
       }
     };
 

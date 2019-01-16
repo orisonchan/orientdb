@@ -22,7 +22,6 @@ package com.orientechnologies.common.serialization.types;
 
 import com.orientechnologies.common.serialization.OBinaryConverter;
 import com.orientechnologies.common.serialization.OBinaryConverterFactory;
-import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OWALChanges;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -35,8 +34,8 @@ public class OCharSerializer implements OBinarySerializer<Character> {
   /**
    * size of char value in bytes
    */
-  public static final  int              CHAR_SIZE        = 2;
-  public static final  byte             ID               = 3;
+  private static final int              CHAR_SIZE        = 2;
+  private static final byte             ID               = 3;
   private static final OBinaryConverter BINARY_CONVERTER = OBinaryConverterFactory.getConverter();
   public static final  OCharSerializer  INSTANCE         = new OCharSerializer();
 
@@ -45,10 +44,10 @@ public class OCharSerializer implements OBinarySerializer<Character> {
   }
 
   public void serialize(final Character object, final byte[] stream, final int startPosition, final Object... hints) {
-    serializeLiteral(object.charValue(), stream, startPosition);
+    serializeLiteral(object, stream, startPosition);
   }
 
-  public void serializeLiteral(final char value, final byte[] stream, final int startPosition) {
+  private static void serializeLiteral(final char value, final byte[] stream, final int startPosition) {
     stream[startPosition] = (byte) (value >>> 8);
     stream[startPosition + 1] = (byte) (value);
   }
@@ -57,7 +56,7 @@ public class OCharSerializer implements OBinarySerializer<Character> {
     return deserializeLiteral(stream, startPosition);
   }
 
-  public char deserializeLiteral(final byte[] stream, final int startPosition) {
+  private static char deserializeLiteral(final byte[] stream, final int startPosition) {
     return (char) (((stream[startPosition] & 0xFF) << 8) + (stream[startPosition + 1] & 0xFF));
   }
 
@@ -83,11 +82,11 @@ public class OCharSerializer implements OBinarySerializer<Character> {
     return BINARY_CONVERTER.getChar(stream, startPosition, ByteOrder.nativeOrder());
   }
 
-  public void serializeNative(final char object, final byte[] stream, final int startPosition, final Object... hints) {
+  public static void serializeNative(final char object, final byte[] stream, final int startPosition, final Object... hints) {
     BINARY_CONVERTER.putChar(stream, startPosition, object, ByteOrder.nativeOrder());
   }
 
-  public char deserializeNative(final byte[] stream, final int startPosition) {
+  public static char deserializeNative(final byte[] stream, final int startPosition) {
     return BINARY_CONVERTER.getChar(stream, startPosition, ByteOrder.nativeOrder());
   }
 
@@ -128,19 +127,4 @@ public class OCharSerializer implements OBinarySerializer<Character> {
     return CHAR_SIZE;
   }
 
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  public Character deserializeFromByteBufferObject(ByteBuffer buffer, OWALChanges walChanges, int offset) {
-    return (char) walChanges.getShortValue(buffer, offset);
-  }
-
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  public int getObjectSizeInByteBuffer(ByteBuffer buffer, OWALChanges walChanges, int offset) {
-    return CHAR_SIZE;
-  }
 }

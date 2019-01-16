@@ -19,12 +19,14 @@
  */
 package com.orientechnologies.orient.core.storage.index.hashindex.local;
 
+import com.orientechnologies.orient.core.metadata.schema.OType;
+
 /**
  * @author Andrey Lomakin (a.lomakin-at-orientdb.com)
  * @since 12.03.13
  */
 public interface OHashFunction<V> {
-  long hashCode(V value);
+  long hashCode(V value, final OType... keyTypes);
 
   long hashCode(byte[] value);
 }

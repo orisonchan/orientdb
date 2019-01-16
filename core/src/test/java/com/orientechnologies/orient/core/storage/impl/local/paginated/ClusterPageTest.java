@@ -1016,6 +1016,7 @@ public class ClusterPageTest {
     OWriteCache writeCache = Mockito.mock(OWriteCache.class);
     OReadCache readCache = Mockito.mock(OReadCache.class);
     OWriteAheadLog writeAheadLog = Mockito.mock(OWriteAheadLog.class);
+    when(writeAheadLog.log(anyObject())).thenReturn(new OLogSequenceNumber(1, 1));
 
     when(readCache
         .loadForWrite(anyLong(), anyLong(), anyBoolean(), anyObject(), anyInt(), anyBoolean(), (OLogSequenceNumber) isNull()))

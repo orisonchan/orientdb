@@ -16,8 +16,6 @@
 
 package com.orientechnologies.common.serialization.types;
 
-import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OWALChanges;
-import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OWALChangesTree;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -30,10 +28,10 @@ import java.nio.ByteOrder;
  * @since 18.01.12
  */
 public class DoubleSerializerTest {
-  private static final int    FIELD_SIZE = 8;
-  private static final Double OBJECT     = Math.PI;
-  byte[] stream = new byte[FIELD_SIZE];
-  private ODoubleSerializer doubleSerializer;
+  private static final int               FIELD_SIZE = 8;
+  private static final Double            OBJECT     = Math.PI;
+  private              byte[]            stream     = new byte[FIELD_SIZE];
+  private              ODoubleSerializer doubleSerializer;
 
   @Before
   public void beforeClass() {
@@ -53,14 +51,14 @@ public class DoubleSerializerTest {
 
   @Test
   public void testSerializeNative() {
-    doubleSerializer.serializeNative(OBJECT, stream, 0);
-    Double v = doubleSerializer.deserializeNative(stream, 0);
+    ODoubleSerializer.serializeNative(OBJECT, stream, 0);
+    Double v = ODoubleSerializer.deserializeNative(stream, 0);
     Assert.assertEquals(v, OBJECT);
   }
 
   @Test
   public void testNativeDirectMemoryCompatibility() {
-    doubleSerializer.serializeNative(OBJECT, stream, 0);
+    ODoubleSerializer.serializeNative(OBJECT, stream, 0);
 
     ByteBuffer buffer = ByteBuffer.allocateDirect(stream.length).order(ByteOrder.nativeOrder());
     buffer.put(stream);
@@ -87,19 +85,5 @@ public class DoubleSerializerTest {
     Assert.assertEquals(doubleSerializer.deserializeFromByteBufferObject(buffer), OBJECT);
 
     Assert.assertEquals(buffer.position() - serializationOffset, FIELD_SIZE);
-  }
-
-  @Test
-  public void testSerializeWALChanges() {
-    final int serializationOffset = 5;
-    final ByteBuffer buffer = ByteBuffer.allocateDirect(FIELD_SIZE + serializationOffset).order(ByteOrder.nativeOrder());
-    final byte[] data = new byte[FIELD_SIZE];
-    doubleSerializer.serializeNativeObject(OBJECT, data, 0);
-
-    final OWALChanges walChanges = new OWALChangesTree();
-    walChanges.setBinaryValue(buffer, data, serializationOffset);
-
-    Assert.assertEquals(doubleSerializer.getObjectSizeInByteBuffer(buffer, walChanges, serializationOffset), FIELD_SIZE);
-    Assert.assertEquals(doubleSerializer.deserializeFromByteBufferObject(buffer, walChanges, serializationOffset), OBJECT);
   }
 }

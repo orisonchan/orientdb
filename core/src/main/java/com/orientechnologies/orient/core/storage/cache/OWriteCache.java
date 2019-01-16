@@ -216,4 +216,6 @@ public interface OWriteCache {
   Long getMinimalNotFlushedSegment();
 
   void updateDirtyPagesTable(OCachePointer pointer, OLogSequenceNumber startLSN);
+
+  boolean isDiskBased();
 }

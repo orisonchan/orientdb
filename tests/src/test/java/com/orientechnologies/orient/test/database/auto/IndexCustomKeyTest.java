@@ -23,7 +23,6 @@ import com.orientechnologies.orient.core.index.ORuntimeKeyIndexDefinition;
 import com.orientechnologies.orient.core.record.impl.ODocument;
 import com.orientechnologies.orient.core.serialization.OSerializableStream;
 import com.orientechnologies.orient.core.serialization.serializer.binary.OBinarySerializerFactory;
-import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OWALChanges;
 import com.orientechnologies.orient.core.tx.OTransaction;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
@@ -49,7 +48,7 @@ public class IndexCustomKeyTest extends DocumentDBBaseTest {
     public ComparableBinary() {
     }
 
-    public ComparableBinary(byte[] buffer) {
+    ComparableBinary(byte[] buffer) {
       value = buffer;
     }
 
@@ -66,7 +65,7 @@ public class IndexCustomKeyTest extends DocumentDBBaseTest {
       return 0;
     }
 
-    public byte[] toByteArray() {
+    byte[] toByteArray() {
       return value;
     }
 
@@ -85,10 +84,10 @@ public class IndexCustomKeyTest extends DocumentDBBaseTest {
   public static class OHash256Serializer implements OBinarySerializer<ComparableBinary> {
 
     public static final OBinaryTypeSerializer INSTANCE = new OBinaryTypeSerializer();
-    public static final byte                  ID       = 100;
-    public static final int                   LENGTH   = 32;
+    static final        byte                  ID       = 100;
+    static final        int                   LENGTH   = 32;
 
-    public int getObjectSize(final int length) {
+    public static int getObjectSize(final int length) {
       return length;
     }
 
@@ -167,18 +166,9 @@ public class IndexCustomKeyTest extends DocumentDBBaseTest {
       return LENGTH;
     }
 
-    @Override
-    public ComparableBinary deserializeFromByteBufferObject(ByteBuffer buffer, OWALChanges walChanges, int offset) {
-      return new ComparableBinary(walChanges.getBinaryValue(buffer, offset, LENGTH));
-    }
-
-    @Override
-    public int getObjectSizeInByteBuffer(ByteBuffer buffer, OWALChanges walChanges, int offset) {
-      return LENGTH;
-    }
   }
 
-  protected OIndex<?> getIndex() {
+  private OIndex<?> getIndex() {
     return database.getMetadata().getIndexManager().getIndex("custom-hash");
   }
 
@@ -291,9 +281,5 @@ public class IndexCustomKeyTest extends DocumentDBBaseTest {
 
     Assert.assertEquals(index.get(key7), doc1);
     Assert.assertEquals(index.get(key8), doc2);
-  }
-
-  public void testUsage2() {
-    // EMPTY BUT IT'S ENOUGH TO CALL THE BEFORE_METHOD AND TRY LOADING IT
   }
 }

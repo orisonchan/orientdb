@@ -7,7 +7,7 @@ public class DiffChange implements Change {
   public static final byte TYPE = 0;
   private int delta;
 
-  DiffChange(int delta) {
+  DiffChange(final int delta) {
     this.delta = delta;
   }
 
@@ -22,7 +22,7 @@ public class DiffChange implements Change {
   }
 
   @Override
-  public int applyTo(Integer value) {
+  public int applyTo(final Integer value) {
     int result;
     if (value == null)
       result = delta;
@@ -51,14 +51,14 @@ public class DiffChange implements Change {
   }
 
   @Override
-  public void applyDiff(int delta) {
+  public void applyDiff(final int delta) {
     this.delta += delta;
   }
 
   @Override
-  public int serialize(byte[] stream, int offset) {
-    OByteSerializer.INSTANCE.serializeLiteral(TYPE, stream, offset);
-    OIntegerSerializer.INSTANCE.serializeLiteral(delta, stream, offset + OByteSerializer.BYTE_SIZE);
+  public int serialize(final byte[] stream, final int offset) {
+    OByteSerializer.serializeLiteral(TYPE, stream, offset);
+    OIntegerSerializer.serializeLiteral(delta, stream, offset + OByteSerializer.BYTE_SIZE);
     return OByteSerializer.BYTE_SIZE + OIntegerSerializer.INT_SIZE;
   }
 }

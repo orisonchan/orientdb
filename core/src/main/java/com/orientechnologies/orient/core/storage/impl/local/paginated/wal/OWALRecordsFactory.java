@@ -186,7 +186,6 @@ import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal
 import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.SBTREE_BUCKET_UPDATE_VALUE;
 import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.SBTREE_NULL_BUCKET_REMOVE_VALUE;
 import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.SBTREE_NULL_BUCKET_SET_VALUE;
-import static com.orientechnologies.orient.core.storage.impl.local.paginated.wal.WALRecordTypes.UPDATE_PAGE_RECORD;
 
 /**
  * @author Andrey Lomakin (a.lomakin-at-orientdb.com)
@@ -246,7 +245,7 @@ public final class OWALRecordsFactory {
 
   public OWriteableWALRecord fromStream(byte[] content) {
     if (content[0] < 0) {
-      final int originalLen = OIntegerSerializer.INSTANCE.deserializeNative(content, 1);
+      final int originalLen = OIntegerSerializer.deserializeNative(content, 1);
       final byte[] restored = new byte[originalLen];
 
       final LZ4FastDecompressor decompressor = factory.fastDecompressor();
@@ -257,9 +256,6 @@ public final class OWALRecordsFactory {
 
     final OWriteableWALRecord walRecord;
     switch (content[0]) {
-    case UPDATE_PAGE_RECORD:
-      walRecord = new OUpdatePageRecord();
-      break;
     case FUZZY_CHECKPOINT_START_RECORD:
       walRecord = new OFuzzyCheckpointStartRecord();
       break;

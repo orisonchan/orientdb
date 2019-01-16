@@ -22,7 +22,6 @@ package com.orientechnologies.common.serialization.types;
 
 import com.orientechnologies.common.serialization.OBinaryConverter;
 import com.orientechnologies.common.serialization.OBinaryConverterFactory;
-import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OWALChanges;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -34,7 +33,7 @@ import java.nio.ByteOrder;
  * @since 18.01.12
  */
 public class OShortSerializer implements OBinarySerializer<Short> {
-  public static final  byte             ID         = 12;
+  private static final byte             ID         = 12;
   /**
    * size of short value in bytes
    */
@@ -47,19 +46,19 @@ public class OShortSerializer implements OBinarySerializer<Short> {
   }
 
   public void serialize(final Short object, final byte[] stream, final int startPosition, final Object... hints) {
-    serializeLiteral(object.shortValue(), stream, startPosition);
+    serializeLiteral(object, stream, startPosition);
   }
 
-  public void serializeLiteral(final short value, final byte[] stream, final int startPosition) {
+  private static void serializeLiteral(final short value, final byte[] stream, final int startPosition) {
     stream[startPosition] = (byte) ((value >>> 8) & 0xFF);
-    stream[startPosition + 1] = (byte) ((value >>> 0) & 0xFF);
+    stream[startPosition + 1] = (byte) ((value) & 0xFF);
   }
 
   public Short deserialize(final byte[] stream, final int startPosition) {
     return deserializeLiteral(stream, startPosition);
   }
 
-  public short deserializeLiteral(final byte[] stream, final int startPosition) {
+  private static short deserializeLiteral(final byte[] stream, final int startPosition) {
     return (short) ((stream[startPosition] << 8) | (stream[startPosition + 1] & 0xff));
   }
 
@@ -85,11 +84,11 @@ public class OShortSerializer implements OBinarySerializer<Short> {
     return CONVERTER.getShort(stream, startPosition, ByteOrder.nativeOrder());
   }
 
-  public void serializeNative(final short object, final byte[] stream, final int startPosition, final Object... hints) {
+  public static void serializeNative(final short object, final byte[] stream, final int startPosition, final Object... hints) {
     CONVERTER.putShort(stream, startPosition, object, ByteOrder.nativeOrder());
   }
 
-  public short deserializeNative(byte[] stream, int startPosition) {
+  public static short deserializeNative(byte[] stream, int startPosition) {
     return CONVERTER.getShort(stream, startPosition, ByteOrder.nativeOrder());
   }
 
@@ -130,19 +129,4 @@ public class OShortSerializer implements OBinarySerializer<Short> {
     return SHORT_SIZE;
   }
 
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  public Short deserializeFromByteBufferObject(ByteBuffer buffer, OWALChanges walChanges, int offset) {
-    return walChanges.getShortValue(buffer, offset);
-  }
-
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  public int getObjectSizeInByteBuffer(ByteBuffer buffer, OWALChanges walChanges, int offset) {
-    return SHORT_SIZE;
-  }
 }

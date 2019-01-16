@@ -23,6 +23,7 @@ package com.orientechnologies.orient.core.storage.impl.local.paginated.wal;
 import com.orientechnologies.common.serialization.types.OLongSerializer;
 
 import java.nio.ByteBuffer;
+import java.util.Objects;
 
 /**
  * @author Andrey Lomakin (a.lomakin-at-orientdb.com)
@@ -34,16 +35,16 @@ public abstract class OAbstractCheckPointStartRecord extends OAbstractWALRecord 
   protected OAbstractCheckPointStartRecord() {
   }
 
-  protected OAbstractCheckPointStartRecord(OLogSequenceNumber previousCheckpoint) {
+  protected OAbstractCheckPointStartRecord(final OLogSequenceNumber previousCheckpoint) {
     this.previousCheckpoint = previousCheckpoint;
   }
 
-  public OLogSequenceNumber getPreviousCheckpoint() {
+  public final OLogSequenceNumber getPreviousCheckpoint() {
     return previousCheckpoint;
   }
 
   @Override
-  public int toStream(byte[] content, int offset) {
+  public int toStream(final byte[] content, int offset) {
     if (previousCheckpoint == null) {
       content[offset] = 0;
       offset++;
@@ -53,17 +54,17 @@ public abstract class OAbstractCheckPointStartRecord extends OAbstractWALRecord 
     content[offset] = 1;
     offset++;
 
-    OLongSerializer.INSTANCE.serializeNative(previousCheckpoint.getSegment(), content, offset);
+    OLongSerializer.serializeNative(previousCheckpoint.getSegment(), content, offset);
     offset += OLongSerializer.LONG_SIZE;
 
-    OLongSerializer.INSTANCE.serializeNative(previousCheckpoint.getPosition(), content, offset);
+    OLongSerializer.serializeNative(previousCheckpoint.getPosition(), content, offset);
     offset += OLongSerializer.LONG_SIZE;
 
     return offset;
   }
 
   @Override
-  public void toStream(ByteBuffer buffer) {
+  public void toStream(final ByteBuffer buffer) {
     if (previousCheckpoint == null) {
       buffer.put((byte) 0);
       return;
@@ -76,7 +77,7 @@ public abstract class OAbstractCheckPointStartRecord extends OAbstractWALRecord 
   }
 
   @Override
-  public int fromStream(byte[] content, int offset) {
+  public int fromStream(final byte[] content, int offset) {
     if (content[offset] == 0) {
       offset++;
       return offset;
@@ -84,10 +85,10 @@ public abstract class OAbstractCheckPointStartRecord extends OAbstractWALRecord 
 
     offset++;
 
-    long segment = OLongSerializer.INSTANCE.deserializeNative(content, offset);
+    final long segment = OLongSerializer.deserializeNative(content, offset);
     offset += OLongSerializer.LONG_SIZE;
 
-    long position = OLongSerializer.INSTANCE.deserializeNative(content, offset);
+    final long position = OLongSerializer.deserializeNative(content, offset);
     offset += OLongSerializer.LONG_SIZE;
 
     previousCheckpoint = new OLogSequenceNumber(segment, position);
@@ -104,27 +105,24 @@ public abstract class OAbstractCheckPointStartRecord extends OAbstractWALRecord 
   }
 
   @Override
-  public boolean isUpdateMasterRecord() {
+  public final boolean isUpdateMasterRecord() {
     return true;
   }
 
   @Override
-  public boolean equals(Object o) {
+  public final boolean equals(final Object o) {
     if (this == o)
       return true;
     if (o == null || getClass() != o.getClass())
       return false;
 
-    OAbstractCheckPointStartRecord that = (OAbstractCheckPointStartRecord) o;
+    final OAbstractCheckPointStartRecord that = (OAbstractCheckPointStartRecord) o;
 
-    if (previousCheckpoint != null ? !previousCheckpoint.equals(that.previousCheckpoint) : that.previousCheckpoint != null)
-      return false;
-
-    return true;
+    return Objects.equals(previousCheckpoint, that.previousCheckpoint);
   }
 
   @Override
-  public int hashCode() {
+  public final int hashCode() {
     return previousCheckpoint != null ? previousCheckpoint.hashCode() : 0;
   }
 

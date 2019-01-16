@@ -1624,7 +1624,7 @@ public final class OWOWCache extends OAbstractWriteCache implements OWriteCache,
           bufferPool.release(pointer);
         }
 
-        final long magicNumber = OLongSerializer.INSTANCE.deserializeNative(data, MAGIC_NUMBER_OFFSET);
+        final long magicNumber = OLongSerializer.deserializeNative(data, MAGIC_NUMBER_OFFSET);
 
         if (magicNumber != MAGIC_NUMBER_WITH_CHECKSUM && magicNumber != MAGIC_NUMBER_WITHOUT_CHECKSUM) {
           magicNumberIncorrect = true;
@@ -1636,7 +1636,7 @@ public final class OWOWCache extends OAbstractWriteCache implements OWriteCache,
         }
 
         if (magicNumber != MAGIC_NUMBER_WITHOUT_CHECKSUM) {
-          final int storedCRC32 = OIntegerSerializer.INSTANCE.deserializeNative(data, CHECKSUM_OFFSET);
+          final int storedCRC32 = OIntegerSerializer.deserializeNative(data, CHECKSUM_OFFSET);
 
           final CRC32 crc32 = new CRC32();
           crc32.update(data, PAGE_OFFSET_TO_CHECKSUM_FROM, data.length - PAGE_OFFSET_TO_CHECKSUM_FROM);
@@ -1756,6 +1756,11 @@ public final class OWOWCache extends OAbstractWriteCache implements OWriteCache,
 
   public long getExclusiveWriteCacheSize() {
     return exclusiveWriteCacheSize.get();
+  }
+
+  @Override
+  public boolean isDiskBased() {
+    return true;
   }
 
   private static void openFile(final OFileClassic fileClassic) {

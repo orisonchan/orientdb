@@ -16,9 +16,10 @@
 
 package com.orientechnologies.common.serialization.types;
 
-import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OWALChanges;
-import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OWALChangesTree;
-import org.junit.Assert;import org.junit.Before; import org.junit.Test;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
+
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
@@ -27,32 +28,36 @@ import java.nio.ByteOrder;
  * @since 18.01.12
  */
 public class ShortSerializerTest {
-  private static final int FIELD_SIZE = 2;
-  byte[] stream = new byte[FIELD_SIZE];
-  private static final Short OBJECT = 1;
-  private OShortSerializer shortSerializer;
+  private static final int              FIELD_SIZE = 2;
+  private              byte[]           stream     = new byte[FIELD_SIZE];
+  private static final Short            OBJECT     = 1;
+  private              OShortSerializer shortSerializer;
 
   @Before
   public void beforeClass() {
     shortSerializer = new OShortSerializer();
   }
 
+  @Test
   public void testFieldSize() {
     Assert.assertEquals(shortSerializer.getObjectSize(null), FIELD_SIZE);
   }
 
+  @Test
   public void testSerialize() {
     shortSerializer.serialize(OBJECT, stream, 0);
     Assert.assertEquals(shortSerializer.deserialize(stream, 0), OBJECT);
   }
 
+  @Test
   public void testSerializeNative() {
-    shortSerializer.serializeNative(OBJECT, stream, 0);
+    OShortSerializer.serializeNative(OBJECT, stream, 0);
     Assert.assertEquals(shortSerializer.deserializeNativeObject(stream, 0), OBJECT);
   }
 
+  @Test
   public void testNativeDirectMemoryCompatibility() {
-    shortSerializer.serializeNative(OBJECT, stream, 0);
+    OShortSerializer.serializeNative(OBJECT, stream, 0);
 
     ByteBuffer buffer = ByteBuffer.allocateDirect(stream.length).order(ByteOrder.nativeOrder());
     buffer.put(stream);
@@ -61,6 +66,7 @@ public class ShortSerializerTest {
     Assert.assertEquals(shortSerializer.deserializeFromByteBufferObject(buffer), OBJECT);
   }
 
+  @Test
   public void testSerializationInByteBuffer() {
     final int serializationOffset = 5;
 
@@ -79,19 +85,5 @@ public class ShortSerializerTest {
     Assert.assertEquals(shortSerializer.deserializeFromByteBufferObject(buffer), OBJECT);
 
     Assert.assertEquals(buffer.position() - serializationOffset, FIELD_SIZE);
-  }
-
-  public void testSerializationWALChanges() {
-    final int serializationOffset = 5;
-
-    final ByteBuffer buffer = ByteBuffer.allocateDirect(FIELD_SIZE + serializationOffset).order(ByteOrder.nativeOrder());
-    final byte[] data = new byte[FIELD_SIZE];
-    shortSerializer.serializeNative(OBJECT, data, 0);
-
-    final OWALChanges walChanges = new OWALChangesTree();
-    walChanges.setBinaryValue(buffer, data, serializationOffset);
-
-    Assert.assertEquals(shortSerializer.getObjectSizeInByteBuffer(buffer, walChanges, serializationOffset), FIELD_SIZE);
-    Assert.assertEquals(shortSerializer.deserializeFromByteBufferObject(buffer, walChanges, serializationOffset), OBJECT);
   }
 }

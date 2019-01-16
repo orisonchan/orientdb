@@ -22,7 +22,6 @@ package com.orientechnologies.common.serialization.types;
 
 import com.orientechnologies.common.serialization.OBinaryConverter;
 import com.orientechnologies.common.serialization.OBinaryConverterFactory;
-import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OWALChanges;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -34,11 +33,11 @@ import java.nio.ByteOrder;
  * @since 17.01.12
  */
 public class ODoubleSerializer implements OBinarySerializer<Double> {
-  public static final  byte              ID          = 6;
+  private static final byte              ID          = 6;
   /**
    * size of double value in bytes
    */
-  public static final  int               DOUBLE_SIZE = 8;
+  private static final int               DOUBLE_SIZE = 8;
   private static final OBinaryConverter  CONVERTER   = OBinaryConverterFactory.getConverter();
   public static final  ODoubleSerializer INSTANCE    = new ODoubleSerializer();
 
@@ -47,11 +46,11 @@ public class ODoubleSerializer implements OBinarySerializer<Double> {
   }
 
   public void serialize(final Double object, final byte[] stream, final int startPosition, final Object... hints) {
-    OLongSerializer.INSTANCE.serializeLiteral(Double.doubleToLongBits(object), stream, startPosition);
+    OLongSerializer.serializeLiteral(Double.doubleToLongBits(object), stream, startPosition);
   }
 
   public Double deserialize(final byte[] stream, final int startPosition) {
-    return Double.longBitsToDouble(OLongSerializer.INSTANCE.deserializeLiteral(stream, startPosition));
+    return Double.longBitsToDouble(OLongSerializer.deserializeLiteral(stream, startPosition));
   }
 
   public int getObjectSize(final byte[] stream, final int startPosition) {
@@ -66,11 +65,11 @@ public class ODoubleSerializer implements OBinarySerializer<Double> {
     return DOUBLE_SIZE;
   }
 
-  public void serializeNative(final double object, final byte[] stream, final int startPosition, final Object... hints) {
+  public static void serializeNative(final double object, final byte[] stream, final int startPosition, final Object... hints) {
     CONVERTER.putLong(stream, startPosition, Double.doubleToLongBits(object), ByteOrder.nativeOrder());
   }
 
-  public double deserializeNative(byte[] stream, int startPosition) {
+  public static double deserializeNative(byte[] stream, int startPosition) {
     return Double.longBitsToDouble(CONVERTER.getLong(stream, startPosition, ByteOrder.nativeOrder()));
   }
 
@@ -121,19 +120,4 @@ public class ODoubleSerializer implements OBinarySerializer<Double> {
     return DOUBLE_SIZE;
   }
 
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  public Double deserializeFromByteBufferObject(ByteBuffer buffer, OWALChanges walChanges, int offset) {
-    return Double.longBitsToDouble(walChanges.getLongValue(buffer, offset));
-  }
-
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  public int getObjectSizeInByteBuffer(ByteBuffer buffer, OWALChanges walChanges, int offset) {
-    return DOUBLE_SIZE;
-  }
 }

@@ -15,7 +15,6 @@
  */
 package com.orientechnologies.orient.test.database.auto;
 
-import com.orientechnologies.common.listener.OProgressListener;
 import com.orientechnologies.common.serialization.types.OIntegerSerializer;
 import com.orientechnologies.orient.core.index.OIndex;
 import com.orientechnologies.orient.core.index.OIndexKeyCursor;
@@ -36,11 +35,11 @@ import org.testng.annotations.Test;
  */
 @Test
 public class AutoShardingTest extends DocumentDBBaseTest {
-  private static final int                      ITERATIONS   = 500;
-  private              OClass                   cls;
-  private              OIndex<?>                idx;
-  private final        OMurmurHash3HashFunction hashFunction = new OMurmurHash3HashFunction(new OIntegerSerializer());
-  private              int[]                    clusterIds;
+  private static final int                               ITERATIONS   = 500;
+  private              OClass                            cls;
+  private              OIndex<?>                         idx;
+  private final        OMurmurHash3HashFunction<Integer> hashFunction = new OMurmurHash3HashFunction<>(new OIntegerSerializer());
+  private              int[]                             clusterIds;
 
   @Parameters(value = "url")
   public AutoShardingTest(@Optional String url) {
@@ -57,8 +56,8 @@ public class AutoShardingTest extends DocumentDBBaseTest {
     cls = database.getMetadata().getSchema().createClass("AutoShardingTest");
     cls.createProperty("id", OType.INTEGER);
 
-    idx = cls.createIndex("testAutoSharding", OClass.INDEX_TYPE.NOTUNIQUE.toString(), (OProgressListener) null, (ODocument) null,
-        "AUTOSHARDING", new String[] { "id" });
+    idx = cls
+        .createIndex("testAutoSharding", OClass.INDEX_TYPE.NOTUNIQUE.toString(), null, null, "AUTOSHARDING", new String[] { "id" });
 
     clusterIds = cls.getClusterIds();
   }
@@ -72,7 +71,7 @@ public class AutoShardingTest extends DocumentDBBaseTest {
   public void testQuery() {
     create();
     for (int i = 0; i < ITERATIONS; ++i) {
-      final int selectedClusterId = clusterIds[((int) (Math.abs(hashFunction.hashCode(i)) % clusterIds.length))];
+      final int selectedClusterId = clusterIds[((int) (Math.abs(hashFunction.hashCode(i, new OType[0])) % clusterIds.length))];
 
       Iterable<ODocument> resultSet = database.command(new OCommandSQL("select from AutoShardingTest where id = ?")).execute(i);
       Assert.assertTrue(resultSet.iterator().hasNext());
@@ -138,7 +137,7 @@ public class AutoShardingTest extends DocumentDBBaseTest {
 
   private void create() {
     for (int i = 0; i < ITERATIONS; ++i) {
-      final int selectedClusterId = clusterIds[((int) (Math.abs(hashFunction.hashCode(i)) % clusterIds.length))];
+      final int selectedClusterId = clusterIds[((int) (Math.abs(hashFunction.hashCode(i, new OType[0])) % clusterIds.length))];
 
       ODocument sqlRecord = database.command(new OCommandSQL("insert into AutoShardingTest (id) values (" + i + ")")).execute();
       Assert.assertEquals(sqlRecord.getIdentity().getClusterId(), selectedClusterId);

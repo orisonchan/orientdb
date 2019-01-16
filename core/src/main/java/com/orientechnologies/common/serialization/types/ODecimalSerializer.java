@@ -20,8 +20,6 @@
 
 package com.orientechnologies.common.serialization.types;
 
-import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OWALChanges;
-
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
@@ -33,21 +31,20 @@ import java.nio.ByteBuffer;
  * @since 03.04.12
  */
 public class ODecimalSerializer implements OBinarySerializer<BigDecimal> {
-  public static final ODecimalSerializer INSTANCE = new ODecimalSerializer();
-  public static final byte               ID       = 18;
+  public static final  ODecimalSerializer INSTANCE = new ODecimalSerializer();
+  private static final byte               ID       = 18;
 
   public int getObjectSize(BigDecimal object, Object... hints) {
     return OIntegerSerializer.INT_SIZE + OBinaryTypeSerializer.INSTANCE.getObjectSize(object.unscaledValue().toByteArray());
   }
 
   public int getObjectSize(byte[] stream, int startPosition) {
-    final int size = OIntegerSerializer.INT_SIZE + OBinaryTypeSerializer.INSTANCE
+    return OIntegerSerializer.INT_SIZE + OBinaryTypeSerializer.INSTANCE
         .getObjectSize(stream, startPosition + OIntegerSerializer.INT_SIZE);
-    return size;
   }
 
   public void serialize(BigDecimal object, byte[] stream, int startPosition, Object... hints) {
-    OIntegerSerializer.INSTANCE.serializeLiteral(object.scale(), stream, startPosition);
+    OIntegerSerializer.serializeLiteral(object.scale(), stream, startPosition);
     startPosition += OIntegerSerializer.INT_SIZE;
     OBinaryTypeSerializer.INSTANCE.serialize(object.unscaledValue().toByteArray(), stream, startPosition);
 
@@ -67,21 +64,20 @@ public class ODecimalSerializer implements OBinarySerializer<BigDecimal> {
   }
 
   public int getObjectSizeNative(final byte[] stream, final int startPosition) {
-    final int size = OIntegerSerializer.INT_SIZE + OBinaryTypeSerializer.INSTANCE
+    return OIntegerSerializer.INT_SIZE + OBinaryTypeSerializer.INSTANCE
         .getObjectSizeNative(stream, startPosition + OIntegerSerializer.INT_SIZE);
-    return size;
   }
 
   @Override
   public void serializeNativeObject(BigDecimal object, byte[] stream, int startPosition, Object... hints) {
-    OIntegerSerializer.INSTANCE.serializeNative(object.scale(), stream, startPosition);
+    OIntegerSerializer.serializeNative(object.scale(), stream, startPosition);
     startPosition += OIntegerSerializer.INT_SIZE;
     OBinaryTypeSerializer.INSTANCE.serializeNativeObject(object.unscaledValue().toByteArray(), stream, startPosition);
   }
 
   @Override
   public BigDecimal deserializeNativeObject(byte[] stream, int startPosition) {
-    final int scale = OIntegerSerializer.INSTANCE.deserializeNative(stream, startPosition);
+    final int scale = OIntegerSerializer.deserializeNative(stream, startPosition);
     startPosition += OIntegerSerializer.INT_SIZE;
 
     final byte[] unscaledValue = OBinaryTypeSerializer.INSTANCE.deserializeNativeObject(stream, startPosition);
@@ -131,25 +127,4 @@ public class ODecimalSerializer implements OBinarySerializer<BigDecimal> {
     return OIntegerSerializer.INT_SIZE + OBinaryTypeSerializer.INSTANCE.getObjectSizeInByteBuffer(buffer);
   }
 
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  public BigDecimal deserializeFromByteBufferObject(ByteBuffer buffer, OWALChanges walChanges, int offset) {
-    final int scale = walChanges.getIntValue(buffer, offset);
-    offset += OIntegerSerializer.INT_SIZE;
-
-    final byte[] unscaledValue = OBinaryTypeSerializer.INSTANCE.deserializeFromByteBufferObject(buffer, walChanges, offset);
-
-    return new BigDecimal(new BigInteger(unscaledValue), scale);
-  }
-
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  public int getObjectSizeInByteBuffer(ByteBuffer buffer, OWALChanges walChanges, int offset) {
-    return OIntegerSerializer.INT_SIZE + OBinaryTypeSerializer.INSTANCE
-        .getObjectSizeInByteBuffer(buffer, walChanges, offset + OIntegerSerializer.INT_SIZE);
-  }
 }

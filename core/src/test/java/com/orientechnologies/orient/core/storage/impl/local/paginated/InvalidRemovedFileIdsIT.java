@@ -3,7 +3,11 @@ package com.orientechnologies.orient.core.storage.impl.local.paginated;
 import com.orientechnologies.common.serialization.types.OIntegerSerializer;
 import com.orientechnologies.common.serialization.types.OLongSerializer;
 import com.orientechnologies.common.serialization.types.OStringSerializer;
-import com.orientechnologies.orient.core.db.*;
+import com.orientechnologies.orient.core.db.ODatabase;
+import com.orientechnologies.orient.core.db.ODatabaseInternal;
+import com.orientechnologies.orient.core.db.ODatabaseType;
+import com.orientechnologies.orient.core.db.OrientDB;
+import com.orientechnologies.orient.core.db.OrientDBConfig;
 import com.orientechnologies.orient.core.db.document.ODatabaseDocument;
 import com.orientechnologies.orient.core.metadata.schema.OSchema;
 import com.orientechnologies.orient.core.storage.OStorage;
@@ -134,9 +138,9 @@ public class InvalidRemovedFileIdsIT {
     final int nameSize = OStringSerializer.INSTANCE.getObjectSize(name);
 
     byte[] serializedRecord = new byte[OIntegerSerializer.INT_SIZE + nameSize + OLongSerializer.LONG_SIZE];
-    OIntegerSerializer.INSTANCE.serializeLiteral(nameSize, serializedRecord, 0);
+    OIntegerSerializer.serializeLiteral(nameSize, serializedRecord, 0);
     OStringSerializer.INSTANCE.serialize(name, serializedRecord, OIntegerSerializer.INT_SIZE);
-    OLongSerializer.INSTANCE.serializeLiteral(fileId, serializedRecord, OIntegerSerializer.INT_SIZE + nameSize);
+    OLongSerializer.serializeLiteral(fileId, serializedRecord, OIntegerSerializer.INT_SIZE + nameSize);
 
     file.write(serializedRecord);
   }

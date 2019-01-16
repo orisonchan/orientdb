@@ -596,7 +596,7 @@ public final class OSBTreeBucket<K, V> extends ODurablePage {
     } else {
       final byte[] encryptedKey = encryption.encrypt(serializedKey);
       rawKey = new byte[OIntegerSerializer.INT_SIZE + encryptedKey.length];
-      OIntegerSerializer.INSTANCE.serializeNative(encryptedKey.length, rawKey, 0);
+      OIntegerSerializer.serializeNative(encryptedKey.length, rawKey, 0);
       System.arraycopy(encryptedKey, 0, rawKey, OIntegerSerializer.INT_SIZE, encryptedKey.length);
     }
 

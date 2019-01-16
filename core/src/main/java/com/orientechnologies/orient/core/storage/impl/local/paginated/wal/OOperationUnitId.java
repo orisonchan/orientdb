@@ -27,7 +27,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * @author Andrey Lomakin (a.lomakin-at-orientdb.com)
  * @since 06.06.13
  */
-public class OOperationUnitId {
+public final class OOperationUnitId {
   private static final AtomicLong                      sharedId        = new AtomicLong();
 
   private static volatile ThreadLocal<OModifiableLong> localId      = new ThreadLocal<>();
@@ -57,13 +57,13 @@ public class OOperationUnitId {
   private long                                         lId;
   private long                                         sId;
 
-  public OOperationUnitId(long lId, long sId) {
+  public OOperationUnitId(final long lId, final long sId) {
     this.lId = lId;
     this.sId = sId;
   }
 
   public static OOperationUnitId generateId() {
-    OOperationUnitId operationUnitId = new OOperationUnitId();
+    final OOperationUnitId operationUnitId = new OOperationUnitId();
 
     OModifiableLong lId = localId.get();
     if (lId == null) {
@@ -87,39 +87,39 @@ public class OOperationUnitId {
   public OOperationUnitId() {
   }
 
-  public int toStream(byte[] content, int offset) {
-    OLongSerializer.INSTANCE.serializeNative(sId, content, offset);
+  public int toStream(final byte[] content, int offset) {
+    OLongSerializer.serializeNative(sId, content, offset);
     offset += OLongSerializer.LONG_SIZE;
 
-    OLongSerializer.INSTANCE.serializeNative(lId, content, offset);
+    OLongSerializer.serializeNative(lId, content, offset);
     offset += OLongSerializer.LONG_SIZE;
 
     return offset;
   }
 
-  public void toStream(ByteBuffer buffer) {
+  public void toStream(final ByteBuffer buffer) {
     buffer.putLong(sId);
     buffer.putLong(lId);
   }
 
-  public int fromStream(byte[] content, int offset) {
-    sId = OLongSerializer.INSTANCE.deserializeNative(content, offset);
+  public int fromStream(final byte[] content, int offset) {
+    sId = OLongSerializer.deserializeNative(content, offset);
     offset += OLongSerializer.LONG_SIZE;
 
-    lId = OLongSerializer.INSTANCE.deserializeNative(content, offset);
+    lId = OLongSerializer.deserializeNative(content, offset);
     offset += OLongSerializer.LONG_SIZE;
 
     return offset;
   }
 
   @Override
-  public boolean equals(Object o) {
+  public final boolean equals(final Object o) {
     if (this == o)
       return true;
     if (!(o instanceof OOperationUnitId))
       return false;
 
-    OOperationUnitId that = (OOperationUnitId) o;
+    final OOperationUnitId that = (OOperationUnitId) o;
 
     if (lId != that.lId)
       return false;
@@ -129,14 +129,14 @@ public class OOperationUnitId {
   }
 
   @Override
-  public int hashCode() {
+  public final int hashCode() {
     int result = (int) (lId ^ (lId >>> 32));
     result = 31 * result + (int) (sId ^ (sId >>> 32));
     return result;
   }
 
   @Override
-  public String toString() {
+  public final String toString() {
     return "OOperationUnitId{" + "lId=" + lId + ", sId=" + sId + '}';
   }
 }

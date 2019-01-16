@@ -23,8 +23,6 @@ package com.orientechnologies.common.serialization.types;
 import java.nio.ByteBuffer;
 import java.util.UUID;
 
-import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OWALChanges;
-
 /**
  * @author Artem Orobets (enisher-at-gmail.com)
  */
@@ -44,14 +42,14 @@ public class OUUIDSerializer implements OBinarySerializer<UUID> {
 
   @Override
   public void serialize(final UUID object, final byte[] stream, final int startPosition, final Object... hints) {
-    OLongSerializer.INSTANCE.serializeLiteral(object.getMostSignificantBits(), stream, startPosition);
-    OLongSerializer.INSTANCE.serializeLiteral(object.getLeastSignificantBits(), stream, startPosition + OLongSerializer.LONG_SIZE);
+    OLongSerializer.serializeLiteral(object.getMostSignificantBits(), stream, startPosition);
+    OLongSerializer.serializeLiteral(object.getLeastSignificantBits(), stream, startPosition + OLongSerializer.LONG_SIZE);
   }
 
   @Override
   public UUID deserialize(byte[] stream, int startPosition) {
-    final long mostSignificantBits = OLongSerializer.INSTANCE.deserializeLiteral(stream, startPosition);
-    final long leastSignificantBits = OLongSerializer.INSTANCE
+    final long mostSignificantBits = OLongSerializer.deserializeLiteral(stream, startPosition);
+    final long leastSignificantBits = OLongSerializer
         .deserializeLiteral(stream, startPosition + OLongSerializer.LONG_SIZE);
     return new UUID(mostSignificantBits, leastSignificantBits);
   }
@@ -73,15 +71,15 @@ public class OUUIDSerializer implements OBinarySerializer<UUID> {
 
   @Override
   public void serializeNativeObject(final UUID object, final byte[] stream, final int startPosition, final Object... hints) {
-    OLongSerializer.INSTANCE.serializeNative(object.getMostSignificantBits(), stream, startPosition, hints);
-    OLongSerializer.INSTANCE
+    OLongSerializer.serializeNative(object.getMostSignificantBits(), stream, startPosition, hints);
+    OLongSerializer
         .serializeNative(object.getLeastSignificantBits(), stream, startPosition + OLongSerializer.LONG_SIZE, hints);
   }
 
   @Override
   public UUID deserializeNativeObject(final byte[] stream, final int startPosition) {
-    final long mostSignificantBits = OLongSerializer.INSTANCE.deserializeNative(stream, startPosition);
-    final long leastSignificantBits = OLongSerializer.INSTANCE.deserializeNative(stream, startPosition + OLongSerializer.LONG_SIZE);
+    final long mostSignificantBits = OLongSerializer.deserializeNative(stream, startPosition);
+    final long leastSignificantBits = OLongSerializer.deserializeNative(stream, startPosition + OLongSerializer.LONG_SIZE);
     return new UUID(mostSignificantBits, leastSignificantBits);
   }
 
@@ -122,21 +120,4 @@ public class OUUIDSerializer implements OBinarySerializer<UUID> {
     return UUID_SIZE;
   }
 
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  public UUID deserializeFromByteBufferObject(ByteBuffer buffer, OWALChanges walChanges, int offset) {
-    final long mostSignificantBits = walChanges.getLongValue(buffer, offset);
-    final long leastSignificantBits = walChanges.getLongValue(buffer, offset + OLongSerializer.LONG_SIZE);
-    return new UUID(mostSignificantBits, leastSignificantBits);
-  }
-
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  public int getObjectSizeInByteBuffer(ByteBuffer buffer, OWALChanges walChanges, int offset) {
-    return UUID_SIZE;
-  }
 }

@@ -38,7 +38,15 @@ import com.orientechnologies.orient.core.record.ORecordInternal;
 import com.orientechnologies.orient.core.serialization.serializer.binary.impl.OLinkSerializer;
 import com.orientechnologies.orient.core.storage.ridbag.sbtree.Change;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.NavigableMap;
+import java.util.NoSuchElementException;
+import java.util.UUID;
 
 public class OEmbeddedRidBag implements ORidBagDelegate {
   private boolean contentWasChanged = false;
@@ -58,7 +66,7 @@ public class OEmbeddedRidBag implements ORidBagDelegate {
     this.size = size;
   }
 
-  private static enum Tombstone {
+  private enum Tombstone {
     TOMBSTONE
   }
   
@@ -421,7 +429,7 @@ public class OEmbeddedRidBag implements ORidBagDelegate {
 
   @Override
   public int serialize(byte[] stream, int offset, UUID ownerUuid) {
-    OIntegerSerializer.INSTANCE.serializeLiteral(size, stream, offset);
+    OIntegerSerializer.serializeLiteral(size, stream, offset);
     offset += OIntegerSerializer.INT_SIZE;
     ODatabaseDocumentInternal db = ODatabaseRecordThreadLocal.instance().getIfDefined();
     final int totEntries = entries.length;

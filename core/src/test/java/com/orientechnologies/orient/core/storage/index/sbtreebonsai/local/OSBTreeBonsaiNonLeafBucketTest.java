@@ -27,9 +27,9 @@ public class OSBTreeBonsaiNonLeafBucketTest {
     OByteBufferPool bufferPool = OByteBufferPool.instance(null);
     OPointer pointer = bufferPool.acquireDirect(true);
 
-    OCachePointer cachePointer = new OCachePointer(pointer, bufferPool, 0, 0);
+    OCachePointer cachePointer = new OCachePointer(pointer, bufferPool, 0, 1);
     cachePointer.incrementReferrer();
-    OCacheEntry cacheEntry = new OCacheEntry(0, 0, cachePointer);
+    OCacheEntry cacheEntry = new OCacheEntry(0, 1, cachePointer);
     cacheEntry.acquireExclusiveLock();
 
     OSBTreeBonsaiBucket<Long, OIdentifiable> treeBucket = new OSBTreeBonsaiBucket<>(cacheEntry, 0);
@@ -62,10 +62,10 @@ public class OSBTreeBonsaiNonLeafBucketTest {
     OByteBufferPool bufferPool = OByteBufferPool.instance(null);
     OPointer pointer = bufferPool.acquireDirect(true);
 
-    OCachePointer cachePointer = new OCachePointer(pointer, bufferPool, 0, 0);
+    OCachePointer cachePointer = new OCachePointer(pointer, bufferPool, 0, 1);
     cachePointer.incrementReferrer();
 
-    OCacheEntry cacheEntry = new OCacheEntry(0, 0, cachePointer);
+    OCacheEntry cacheEntry = new OCacheEntry(0, 1, cachePointer);
     cacheEntry.acquireExclusiveLock();
 
     OSBTreeBonsaiBucket<Long, OIdentifiable> treeBucket = new OSBTreeBonsaiBucket<>(cacheEntry, 0);
@@ -131,9 +131,9 @@ public class OSBTreeBonsaiNonLeafBucketTest {
     OByteBufferPool bufferPool = OByteBufferPool.instance(null);
     OPointer pointer = bufferPool.acquireDirect(true);
 
-    OCachePointer cachePointer = new OCachePointer(pointer, bufferPool, 0, 0);
+    OCachePointer cachePointer = new OCachePointer(pointer, bufferPool, 0, 1);
     cachePointer.incrementReferrer();
-    OCacheEntry cacheEntry = new OCacheEntry(0, 0, cachePointer);
+    OCacheEntry cacheEntry = new OCacheEntry(0, 1, cachePointer);
     cacheEntry.acquireExclusiveLock();
 
     OSBTreeBonsaiBucket<Long, OIdentifiable> treeBucket = new OSBTreeBonsaiBucket<>(cacheEntry, 0);

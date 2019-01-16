@@ -15,10 +15,8 @@
  */
 package com.orientechnologies.orient.core.serialization.serializer.binary.impl;
 
-import com.orientechnologies.common.exception.OException;
 import com.orientechnologies.common.serialization.types.OIntegerSerializer;
 import com.orientechnologies.orient.core.db.document.ODatabaseDocumentTx;
-import com.orientechnologies.orient.core.exception.OSerializationException;
 import com.orientechnologies.orient.core.metadata.schema.OType;
 import com.orientechnologies.orient.core.record.impl.ODocument;
 import com.orientechnologies.orient.core.serialization.serializer.record.binary.BytesContainer;
@@ -31,8 +29,14 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-import java.io.UnsupportedEncodingException;
-import java.util.*;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * @author mdjurovi
@@ -89,11 +93,7 @@ public class ORecordSerializerBinaryTest {
   }
 
   protected static String stringFromBytes(final byte[] bytes, final int offset, final int len) {
-    try {
-      return new String(bytes, offset, len, "UTF-8");
-    } catch (UnsupportedEncodingException e) {
-      throw OException.wrapException(new OSerializationException("Error on string decoding"), e);
-    }
+    return new String(bytes, offset, len, StandardCharsets.UTF_8);
   }
 
   protected static String readString(final BytesContainer bytes) {
@@ -290,7 +290,7 @@ public class ORecordSerializerBinaryTest {
         //shift pointer by start ofset
         pointer -= stepSize;
         //write to byte container
-        OIntegerSerializer.INSTANCE.serializeLiteral(pointer, container.bytes, container.offset - OIntegerSerializer.INT_SIZE);
+        OIntegerSerializer.serializeLiteral(pointer, container.bytes, container.offset - OIntegerSerializer.INT_SIZE);
         //read type
         container.offset++;
       } else if (len < 0) {
@@ -299,7 +299,7 @@ public class ORecordSerializerBinaryTest {
         //shift pointer
         pointer -= stepSize;
         //write to byte container
-        OIntegerSerializer.INSTANCE.serializeLiteral(pointer, container.bytes, container.offset - OIntegerSerializer.INT_SIZE);
+        OIntegerSerializer.serializeLiteral(pointer, container.bytes, container.offset - OIntegerSerializer.INT_SIZE);
       }
     }
   }

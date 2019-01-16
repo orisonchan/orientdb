@@ -29,26 +29,25 @@ import com.tinkerpop.blueprints.impls.orient.OrientGraphFactory;
 import com.tinkerpop.blueprints.impls.orient.OrientGraphNoTx;
 import com.tinkerpop.blueprints.impls.orient.OrientVertex;
 
-public final class DatabaseConflictStategyTest {
+public final class DatabaseConflictStrategyTest {
 
   private String             dbName;
   private OrientGraphFactory graphReadFactory;
 
-  public DatabaseConflictStategyTest(String dbName) {
-    this.dbName = dbName;
+  private DatabaseConflictStrategyTest() {
+    this.dbName = "DatabaseConflictStrategyTest";
   }
 
-  public static void main(String args[]) {
-    DatabaseConflictStategyTest test = new DatabaseConflictStategyTest("DatabaseConflictStategyTest");
+  public static void main(String[] args) {
+    DatabaseConflictStrategyTest test = new DatabaseConflictStrategyTest();
     test.runTest();
     Runtime.getRuntime().halt(0);
   }
 
-  public void runTest() {
+  private void runTest() {
     OrientBaseGraph orientGraph = new OrientGraphNoTx(getDBURL());
-    log("Set database CONFLICTSTRATEGY to automerge");
     orientGraph.command(new OCommandSQL("ALTER database CONFLICTSTRATEGY 'automerge'")).execute();
-    createVertexType(orientGraph, "Test");
+    createVertexType(orientGraph);
     orientGraph.shutdown();
 
     OrientBaseGraph graph = getGraphFactory().getTx();
@@ -59,9 +58,9 @@ public final class DatabaseConflictStategyTest {
     vertex.setProperty("prop3", "v3-1");
     graph.shutdown();
 
-    Thread th1 = startThread(2, 1000, "prop1");
-    Thread th2 = startThread(3, 2000, "prop1");
-    Thread th3 = startThread(4, 3000, "prop1");
+    Thread th1 = startThread(2, 1000);
+    Thread th2 = startThread(3, 2000);
+    Thread th3 = startThread(4, 3000);
     try {
       th1.join();
       th2.join();
@@ -72,71 +71,44 @@ public final class DatabaseConflictStategyTest {
 
   }
 
-  public void printVertex(String info, OrientVertex vtx) {
-//    System.out.println("--------" + info + " ----------");
-//    System.out.println(vtx);
-//    Set<String> keys = vtx.getPropertyKeys();
-//    for (String key : keys) {
-//      System.out.println("Key = " + key + " Value = " + vtx.getProperty(key));
-//    }
-  }
-
-  /**
-   * @return
-   */
-  public String getDBURL() {
+  private String getDBURL() {
     return "memory:" + dbName;
   }
 
-  private Thread startThread(final int version, final long timeout, final String key) {
+  private Thread startThread(final int version, final long timeout) {
 
-    Thread th = new Thread() {
-      @Override
-      public void run() {
-        OrientVertex vtx1 = null;
-        OrientGraph graph = getGraphFactory().getTx();
-        Iterable<Vertex> vtxs = graph.getVertices();
-        for (Vertex vtx : vtxs) {
-          vtx1 = (OrientVertex) vtx;
-        }
-        try {
-          Thread.sleep(timeout);
-        } catch (InterruptedException e) {
-          e.printStackTrace();
-        }
-        vtx1.setProperty(key, "key-" + version);
-        graph.commit();
-        printVertex(version + "", vtx1);
-        graph.shutdown();
+    Thread th = new Thread(() -> {
+      OrientVertex vtx1 = null;
+      OrientGraph graph = getGraphFactory().getTx();
+      Iterable<Vertex> vtxs = graph.getVertices();
+      for (Vertex vtx : vtxs) {
+        vtx1 = (OrientVertex) vtx;
       }
-    };
+      try {
+        Thread.sleep(timeout);
+      } catch (InterruptedException e) {
+        e.printStackTrace();
+      }
+      vtx1.setProperty("prop1", "key-" + version);
+      graph.commit();
+      graph.shutdown();
+    });
     th.start();
     return th;
   }
 
   private OrientGraphFactory getGraphFactory() {
     if (graphReadFactory == null) {
-      log("Datastore pool created with size : 10, db location: " + getDBURL());
       graphReadFactory = new OrientGraphFactory(getDBURL()).setupPool(1, 10);
     }
     return graphReadFactory;
   }
 
-  private void createVertexType(OrientBaseGraph orientGraph, String className) {
-    OClass clazz = orientGraph.getVertexType(className);
+  private static void createVertexType(OrientBaseGraph orientGraph) {
+    OClass clazz = orientGraph.getVertexType("Test");
     if (clazz == null) {
-      log("Creating vertex type - " + className);
-      orientGraph.createVertexType(className);
+      orientGraph.createVertexType("Test");
     }
-  }
-
-  private void log(String message) {
-//    System.out.println(message);
-  }
-
-  private void log(String message, Throwable th) {
-    System.out.println(th.getMessage());
-    th.printStackTrace();
   }
 
 }

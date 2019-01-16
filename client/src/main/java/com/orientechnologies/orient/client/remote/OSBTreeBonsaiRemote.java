@@ -86,7 +86,7 @@ public class OSBTreeBonsaiRemote<K, V> implements OSBTreeBonsai<K, V> {
     OSBTGetResponse response = storage.networkOperation(request, "Cannot get by key from sb-tree bonsai");
 
     byte[] stream = response.getStream();
-    final byte serializerId = OByteSerializer.INSTANCE.deserializeLiteral(stream, 0);
+    final byte serializerId = OByteSerializer.deserializeLiteral(stream, 0);
     final OBinarySerializer<V> serializer = (OBinarySerializer<V>) OBinarySerializerFactory.getInstance()
         .getObjectSerializer(serializerId);
     return serializer.deserialize(stream, OByteSerializer.BYTE_SIZE);
@@ -181,7 +181,7 @@ public class OSBTreeBonsaiRemote<K, V> implements OSBTreeBonsai<K, V> {
     OSBTFirstKeyResponse response = storage.networkOperation(request, "Cannot get first key from sb-tree bonsai");
 
     byte[] stream = response.getStream();
-    final byte serializerId = OByteSerializer.INSTANCE.deserializeLiteral(stream, 0);
+    final byte serializerId = OByteSerializer.deserializeLiteral(stream, 0);
     final OBinarySerializer<K> serializer = (OBinarySerializer<K>) OBinarySerializerFactory.getInstance()
         .getObjectSerializer(serializerId);
     return serializer.deserialize(stream, OByteSerializer.BYTE_SIZE);

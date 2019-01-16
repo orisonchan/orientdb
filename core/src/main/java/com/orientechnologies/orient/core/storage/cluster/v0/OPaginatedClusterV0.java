@@ -432,7 +432,7 @@ public final class OPaginatedClusterV0 extends OPaginatedCluster {
           entryContent[entryPosition] = recordType;
           entryPosition++;
 
-          OIntegerSerializer.INSTANCE.serializeNative(content.length, entryContent, entryPosition);
+          OIntegerSerializer.serializeNative(content.length, entryContent, entryPosition);
           entryPosition += OIntegerSerializer.INT_SIZE;
 
           System.arraycopy(content, 0, entryContent, entryPosition, content.length);
@@ -441,7 +441,7 @@ public final class OPaginatedClusterV0 extends OPaginatedCluster {
           entryContent[entryPosition] = 1;
           entryPosition++;
 
-          OLongSerializer.INSTANCE.serializeNative(-1L, entryContent, entryPosition);
+          OLongSerializer.serializeNative(-1L, entryContent, entryPosition);
 
           final AddEntryResult addEntryResult = addEntry(recordVersion, entryContent, atomicOperation);
 
@@ -469,7 +469,7 @@ public final class OPaginatedClusterV0 extends OPaginatedCluster {
           fullEntry[fullEntryPosition] = recordType;
           fullEntryPosition++;
 
-          OIntegerSerializer.INSTANCE.serializeNative(content.length, fullEntry, fullEntryPosition);
+          OIntegerSerializer.serializeNative(content.length, fullEntry, fullEntryPosition);
           fullEntryPosition += OIntegerSerializer.INT_SIZE;
 
           System.arraycopy(content, 0, fullEntry, fullEntryPosition, content.length);
@@ -495,7 +495,7 @@ public final class OPaginatedClusterV0 extends OPaginatedCluster {
               entryContent[entryContent.length - OLongSerializer.LONG_SIZE - OByteSerializer.BYTE_SIZE] = 1;
             }
 
-            OLongSerializer.INSTANCE.serializeNative(-1L, entryContent, entryContent.length - OLongSerializer.LONG_SIZE);
+            OLongSerializer.serializeNative(-1L, entryContent, entryContent.length - OLongSerializer.LONG_SIZE);
 
             final AddEntryResult addEntryResult = addEntry(recordVersion, entryContent, atomicOperation);
             recordsSizeDiff += addEntryResult.recordsSizeDiff;
@@ -645,7 +645,7 @@ public final class OPaginatedClusterV0 extends OPaginatedCluster {
     final byte recordType = fullContent[fullContentPosition];
     fullContentPosition++;
 
-    final int readContentSize = OIntegerSerializer.INSTANCE.deserializeNative(fullContent, fullContentPosition);
+    final int readContentSize = OIntegerSerializer.deserializeNative(fullContent, fullContentPosition);
     fullContentPosition += OIntegerSerializer.INT_SIZE;
 
     byte[] recordContent = Arrays.copyOfRange(fullContent, fullContentPosition, fullContentPosition + readContentSize);
@@ -760,7 +760,7 @@ public final class OPaginatedClusterV0 extends OPaginatedCluster {
             localPage.deleteRecord(recordPosition);
 
             removedContentSize += localPage.getFreeSpace() - initialFreeSpace;
-            nextPagePointer = OLongSerializer.INSTANCE.deserializeNative(content, content.length - OLongSerializer.LONG_SIZE);
+            nextPagePointer = OLongSerializer.deserializeNative(content, content.length - OLongSerializer.LONG_SIZE);
           } finally {
             if (!cacheEntryReleased) {
               releasePageFromWrite(localPage, atomicOperation);
@@ -879,7 +879,7 @@ public final class OPaginatedClusterV0 extends OPaginatedCluster {
               updateEntry[entryPosition] = recordType;
               entryPosition++;
 
-              OIntegerSerializer.INSTANCE.serializeNative(content.length, updateEntry, entryPosition);
+              OIntegerSerializer.serializeNative(content.length, updateEntry, entryPosition);
               entryPosition += OIntegerSerializer.INT_SIZE;
             }
 
@@ -892,7 +892,7 @@ public final class OPaginatedClusterV0 extends OPaginatedCluster {
 
             entryPosition++;
 
-            OLongSerializer.INSTANCE.serializeNative(-1, updateEntry, entryPosition);
+            OLongSerializer.serializeNative(-1, updateEntry, entryPosition);
 
             assert to >= content.length || entrySize == OClusterPage.MAX_RECORD_SIZE;
           } else {
@@ -1101,7 +1101,7 @@ public final class OPaginatedClusterV0 extends OPaginatedCluster {
           entryContent[entryPosition] = recordType;
           entryPosition++;
 
-          OIntegerSerializer.INSTANCE.serializeNative(content.length, entryContent, entryPosition);
+          OIntegerSerializer.serializeNative(content.length, entryContent, entryPosition);
           entryPosition += OIntegerSerializer.INT_SIZE;
 
           System.arraycopy(content, 0, entryContent, entryPosition, content.length);
@@ -1110,7 +1110,7 @@ public final class OPaginatedClusterV0 extends OPaginatedCluster {
           entryContent[entryPosition] = 1;
           entryPosition++;
 
-          OLongSerializer.INSTANCE.serializeNative(-1L, entryContent, entryPosition);
+          OLongSerializer.serializeNative(-1L, entryContent, entryPosition);
 
           final AddEntryResult addEntryResult = addEntry(recordVersion, entryContent, atomicOperation);
 
@@ -1129,7 +1129,7 @@ public final class OPaginatedClusterV0 extends OPaginatedCluster {
           fullEntry[fullEntryPosition] = recordType;
           fullEntryPosition++;
 
-          OIntegerSerializer.INSTANCE.serializeNative(content.length, fullEntry, fullEntryPosition);
+          OIntegerSerializer.serializeNative(content.length, fullEntry, fullEntryPosition);
           fullEntryPosition += OIntegerSerializer.INT_SIZE;
 
           System.arraycopy(content, 0, fullEntry, fullEntryPosition, content.length);
@@ -1153,7 +1153,7 @@ public final class OPaginatedClusterV0 extends OPaginatedCluster {
               entryContent[entryContent.length - OLongSerializer.LONG_SIZE - OByteSerializer.BYTE_SIZE] = 1;
             }
 
-            OLongSerializer.INSTANCE.serializeNative(-1L, entryContent, entryContent.length - OLongSerializer.LONG_SIZE);
+            OLongSerializer.serializeNative(-1L, entryContent, entryContent.length - OLongSerializer.LONG_SIZE);
 
             final AddEntryResult addEntryResult = addEntry(recordVersion, entryContent, atomicOperation);
             recordsSizeDiff += addEntryResult.recordsSizeDiff;
@@ -1655,7 +1655,7 @@ public final class OPaginatedClusterV0 extends OPaginatedCluster {
         }
 
         recordChunks.add(content);
-        nextPagePointer = OLongSerializer.INSTANCE.deserializeNative(content, content.length - OLongSerializer.LONG_SIZE);
+        nextPagePointer = OLongSerializer.deserializeNative(content, content.length - OLongSerializer.LONG_SIZE);
         contentSize += content.length - OLongSerializer.LONG_SIZE - OByteSerializer.BYTE_SIZE;
 
         firstEntry = false;
@@ -2002,7 +2002,7 @@ public final class OPaginatedClusterV0 extends OPaginatedCluster {
         }
 
         debug.pages.add(debugPage);
-        nextPagePointer = OLongSerializer.INSTANCE.deserializeNative(content, content.length - OLongSerializer.LONG_SIZE);
+        nextPagePointer = OLongSerializer.deserializeNative(content, content.length - OLongSerializer.LONG_SIZE);
         contentSize += content.length - OLongSerializer.LONG_SIZE - OByteSerializer.BYTE_SIZE;
 
         firstEntry = false;

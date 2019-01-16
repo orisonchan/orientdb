@@ -22,7 +22,6 @@ package com.orientechnologies.common.serialization.types;
 
 import com.orientechnologies.common.serialization.OBinaryConverter;
 import com.orientechnologies.common.serialization.OBinaryConverterFactory;
-import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OWALChanges;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -34,11 +33,11 @@ import java.nio.ByteOrder;
  * @since 18.01.12
  */
 public class OFloatSerializer implements OBinarySerializer<Float> {
-  public static final  byte             ID         = 7;
+  private static final byte             ID         = 7;
   /**
    * size of float value in bytes
    */
-  public static final  int              FLOAT_SIZE = 4;
+  private static final int              FLOAT_SIZE = 4;
   private static final OBinaryConverter CONVERTER  = OBinaryConverterFactory.getConverter();
   public static final  OFloatSerializer INSTANCE   = new OFloatSerializer();
 
@@ -47,7 +46,7 @@ public class OFloatSerializer implements OBinarySerializer<Float> {
   }
 
   public void serialize(Float object, byte[] stream, int startPosition, Object... hints) {
-    OIntegerSerializer.INSTANCE.serializeLiteral(Float.floatToIntBits(object), stream, startPosition);
+    OIntegerSerializer.serializeLiteral(Float.floatToIntBits(object), stream, startPosition);
   }
 
   public Float deserialize(final byte[] stream, final int startPosition) {
@@ -76,11 +75,11 @@ public class OFloatSerializer implements OBinarySerializer<Float> {
     return Float.intBitsToFloat(CONVERTER.getInt(stream, startPosition, ByteOrder.nativeOrder()));
   }
 
-  public void serializeNative(final float object, final byte[] stream, final int startPosition, final Object... hints) {
+  public static void serializeNative(final float object, final byte[] stream, final int startPosition, final Object... hints) {
     CONVERTER.putInt(stream, startPosition, Float.floatToIntBits(object), ByteOrder.nativeOrder());
   }
 
-  public float deserializeNative(final byte[] stream, final int startPosition) {
+  public static float deserializeNative(final byte[] stream, final int startPosition) {
     return Float.intBitsToFloat(CONVERTER.getInt(stream, startPosition, ByteOrder.nativeOrder()));
   }
 
@@ -121,19 +120,4 @@ public class OFloatSerializer implements OBinarySerializer<Float> {
     return FLOAT_SIZE;
   }
 
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  public Float deserializeFromByteBufferObject(ByteBuffer buffer, OWALChanges walChanges, int offset) {
-    return Float.intBitsToFloat(walChanges.getIntValue(buffer, offset));
-  }
-
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  public int getObjectSizeInByteBuffer(ByteBuffer buffer, OWALChanges walChanges, int offset) {
-    return FLOAT_SIZE;
-  }
 }

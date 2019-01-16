@@ -273,7 +273,7 @@ public final class OSBTree<K, V> extends ODurableComponent {
             final byte[] encryptedKey = encryption.encrypt(serializedKey);
 
             rawKey = new byte[OIntegerSerializer.INT_SIZE + encryptedKey.length];
-            OIntegerSerializer.INSTANCE.serializeNative(encryptedKey.length, rawKey, 0);
+            OIntegerSerializer.serializeNative(encryptedKey.length, rawKey, 0);
             System.arraycopy(encryptedKey, 0, rawKey, OIntegerSerializer.INT_SIZE, encryptedKey.length);
           }
 
@@ -374,7 +374,7 @@ public final class OSBTree<K, V> extends ODurableComponent {
             }
 
             final byte[] rawOldValue = nullBucket.getRawValue(valueSerializer);
-            final V oldValue = valueSerializer.deserializeNativeObject(rawOldValue, 0);
+            final V oldValue = rawOldValue != null ? valueSerializer.deserializeNativeObject(rawOldValue, 0) : null;
             final OIndexUpdateAction<V> updatedValue = updater.update(oldValue, bonsaiFileId);
             if (updatedValue.isChange()) {
               final V value = updatedValue.getValue();

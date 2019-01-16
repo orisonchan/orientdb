@@ -24,7 +24,6 @@ import com.orientechnologies.orient.core.db.document.ODatabaseDocumentTx;
 import com.orientechnologies.orient.core.record.impl.ODocument;
 import com.orientechnologies.orient.core.storage.impl.local.OAbstractPaginatedStorage;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.atomicoperations.OAtomicOperationsManager;
-import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OLogSequenceNumber;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OWriteAheadLog;
 import org.junit.After;
 import org.junit.Assert;
@@ -36,11 +35,10 @@ import java.io.File;
 /**
  * @author Sergey Sitnikov
  */
+@SuppressWarnings("deprecation")
 public class NonDurableTxTest {
 
-  private ODatabaseDocumentTx       db;
-  private OAtomicOperationsManager  atomicOperationsManager;
-  private OWriteAheadLog            wal;
+  private ODatabaseDocumentTx db;
 
   @Before
   public void before() {
@@ -58,8 +56,8 @@ public class NonDurableTxTest {
     db.create();
 
     final OAbstractPaginatedStorage storage = (OAbstractPaginatedStorage) db.getStorage();
-    atomicOperationsManager = storage.getAtomicOperationsManager();
-    wal = storage.getWALInstance();
+    final OAtomicOperationsManager atomicOperationsManager = storage.getAtomicOperationsManager();
+    final OWriteAheadLog wal = storage.getWALInstance();
   }
 
   @After
@@ -105,23 +103,4 @@ public class NonDurableTxTest {
       OGlobalConfiguration.USE_WAL.setValue(true);
     }
   }
-
-  @Test
-  public void testWalNotGrowingWhileWalDisabledInTx() throws Exception {
-    db.newInstance().field("some-unrelated-key", "some-unrelated-value").save(db.getClusterNameById(db.getDefaultClusterId()));
-
-    wal.flush();
-    final OLogSequenceNumber startLsn = wal.getFlushedLsn();
-
-    db.begin();
-    db.getTransaction().setUsingLog(false);
-    db.newInstance().field("tx-key", "tx-value").save(db.getClusterNameById(db.getDefaultClusterId()));
-    db.commit();
-
-    wal.flush();
-    final OLogSequenceNumber endLsn = wal.getFlushedLsn();
-
-    Assert.assertEquals(startLsn, endLsn);
-  }
-
 }

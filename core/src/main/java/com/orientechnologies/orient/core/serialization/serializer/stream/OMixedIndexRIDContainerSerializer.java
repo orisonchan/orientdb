@@ -8,7 +8,6 @@ import com.orientechnologies.orient.core.db.ODatabaseRecordThreadLocal;
 import com.orientechnologies.orient.core.id.ORID;
 import com.orientechnologies.orient.core.serialization.serializer.binary.impl.OCompactedLinkSerializer;
 import com.orientechnologies.orient.core.storage.impl.local.OAbstractPaginatedStorage;
-import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OWALChanges;
 import com.orientechnologies.orient.core.storage.index.sbtreebonsai.local.OBonsaiBucketPointer;
 import com.orientechnologies.orient.core.storage.ridbag.sbtree.OIndexRIDContainerSBTree;
 import com.orientechnologies.orient.core.storage.ridbag.sbtree.OMixedIndexRIDContainer;
@@ -141,13 +140,13 @@ public class OMixedIndexRIDContainerSerializer implements OBinarySerializer<OMix
       size += OCompactedLinkSerializer.INSTANCE.getObjectSize(orid);
     }
 
-    OIntegerSerializer.INSTANCE.serializeNative(size, stream, startPosition);
+    OIntegerSerializer.serializeNative(size, stream, startPosition);
     startPosition += OIntegerSerializer.INT_SIZE;
 
-    OLongSerializer.INSTANCE.serializeNative(object.getFileId(), stream, startPosition);
+    OLongSerializer.serializeNative(object.getFileId(), stream, startPosition);
     startPosition += OLongSerializer.LONG_SIZE;
 
-    OIntegerSerializer.INSTANCE.serializeNative(embedded.size(), stream, startPosition);
+    OIntegerSerializer.serializeNative(embedded.size(), stream, startPosition);
     startPosition += OIntegerSerializer.INT_SIZE;
 
     for (ORID orid : embedded) {
@@ -157,16 +156,16 @@ public class OMixedIndexRIDContainerSerializer implements OBinarySerializer<OMix
 
     final OIndexRIDContainerSBTree tree = object.getTree();
     if (tree == null) {
-      OLongSerializer.INSTANCE.serializeNative(-1L, stream, startPosition);
+      OLongSerializer.serializeNative(-1L, stream, startPosition);
       startPosition += OLongSerializer.LONG_SIZE;
 
-      OIntegerSerializer.INSTANCE.serializeNative(-1, stream, startPosition);
+      OIntegerSerializer.serializeNative(-1, stream, startPosition);
     } else {
       final OBonsaiBucketPointer rootPointer = tree.getRootPointer();
-      OLongSerializer.INSTANCE.serializeNative(rootPointer.getPageIndex(), stream, startPosition);
+      OLongSerializer.serializeNative(rootPointer.getPageIndex(), stream, startPosition);
       startPosition += OLongSerializer.LONG_SIZE;
 
-      OIntegerSerializer.INSTANCE.serializeNative(rootPointer.getPageOffset(), stream, startPosition);
+      OIntegerSerializer.serializeNative(rootPointer.getPageOffset(), stream, startPosition);
     }
   }
 
@@ -174,10 +173,10 @@ public class OMixedIndexRIDContainerSerializer implements OBinarySerializer<OMix
   public OMixedIndexRIDContainer deserializeNativeObject(byte[] stream, int startPosition) {
     startPosition += OIntegerSerializer.INT_SIZE;
 
-    final long fileId = OLongSerializer.INSTANCE.deserializeNative(stream, startPosition);
+    final long fileId = OLongSerializer.deserializeNative(stream, startPosition);
     startPosition += OLongSerializer.LONG_SIZE;
 
-    final int embeddedSize = OIntegerSerializer.INSTANCE.deserializeNative(stream, startPosition);
+    final int embeddedSize = OIntegerSerializer.deserializeNative(stream, startPosition);
     startPosition += OIntegerSerializer.INT_SIZE;
 
     final Set<ORID> hashSet = new HashSet<>();
@@ -187,10 +186,10 @@ public class OMixedIndexRIDContainerSerializer implements OBinarySerializer<OMix
       hashSet.add(orid);
     }
 
-    final long pageIndex = OLongSerializer.INSTANCE.deserializeNative(stream, startPosition);
+    final long pageIndex = OLongSerializer.deserializeNative(stream, startPosition);
     startPosition += OLongSerializer.LONG_SIZE;
 
-    final int offset = OIntegerSerializer.INSTANCE.deserializeNative(stream, startPosition);
+    final int offset = OIntegerSerializer.deserializeNative(stream, startPosition);
 
     final OIndexRIDContainerSBTree tree;
     if (pageIndex == -1) {
@@ -206,7 +205,7 @@ public class OMixedIndexRIDContainerSerializer implements OBinarySerializer<OMix
 
   @Override
   public int getObjectSizeNative(byte[] stream, int startPosition) {
-    return OIntegerSerializer.INSTANCE.deserializeNative(stream, startPosition);
+    return OIntegerSerializer.deserializeNative(stream, startPosition);
   }
 
   @Override
@@ -277,42 +276,4 @@ public class OMixedIndexRIDContainerSerializer implements OBinarySerializer<OMix
     return buffer.getInt();
   }
 
-  @Override
-  public OMixedIndexRIDContainer deserializeFromByteBufferObject(ByteBuffer buffer, OWALChanges walChanges, int offset) {
-    offset += OIntegerSerializer.INT_SIZE;
-
-    final long fileId = walChanges.getLongValue(buffer, offset);
-    offset += OLongSerializer.LONG_SIZE;
-
-    final int embeddedSize = walChanges.getIntValue(buffer, offset);
-    offset += OIntegerSerializer.INT_SIZE;
-
-    final Set<ORID> hashSet = new HashSet<>();
-    for (int i = 0; i < embeddedSize; i++) {
-      final ORID orid = OCompactedLinkSerializer.INSTANCE.deserializeFromByteBufferObject(buffer, walChanges, offset).getIdentity();
-      offset += OCompactedLinkSerializer.INSTANCE.getObjectSizeInByteBuffer(buffer, walChanges, offset);
-      hashSet.add(orid);
-    }
-
-    final long pageIndex = walChanges.getLongValue(buffer, offset);
-    offset += OLongSerializer.LONG_SIZE;
-
-    final int pageOffset = walChanges.getIntValue(buffer, offset);
-
-    final OIndexRIDContainerSBTree tree;
-    if (pageIndex == -1) {
-      tree = null;
-    } else {
-      final ODatabaseDocumentInternal db = ODatabaseRecordThreadLocal.instance().get();
-      tree = new OIndexRIDContainerSBTree(fileId, new OBonsaiBucketPointer(pageIndex, pageOffset),
-          (OAbstractPaginatedStorage) db.getStorage().getUnderlying());
-    }
-
-    return new OMixedIndexRIDContainer(fileId, hashSet, tree);
-  }
-
-  @Override
-  public int getObjectSizeInByteBuffer(ByteBuffer buffer, OWALChanges walChanges, int offset) {
-    return walChanges.getIntValue(buffer, offset);
-  }
 }

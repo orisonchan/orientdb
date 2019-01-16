@@ -20,8 +20,6 @@
 
 package com.orientechnologies.common.serialization.types;
 
-import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OWALChanges;
-
 import java.nio.ByteBuffer;
 import java.util.Calendar;
 import java.util.Date;
@@ -33,8 +31,8 @@ import java.util.Date;
  * @since 20.01.12
  */
 public class ODateTimeSerializer implements OBinarySerializer<Date> {
-  public static final byte                ID       = 5;
-  public static final ODateTimeSerializer INSTANCE = new ODateTimeSerializer();
+  private static final byte                ID       = 5;
+  public static final  ODateTimeSerializer INSTANCE = new ODateTimeSerializer();
 
   public int getObjectSize(Date object, Object... hints) {
     return OLongSerializer.LONG_SIZE;
@@ -43,12 +41,12 @@ public class ODateTimeSerializer implements OBinarySerializer<Date> {
   public void serialize(Date object, byte[] stream, int startPosition, Object... hints) {
     final Calendar calendar = Calendar.getInstance();
     calendar.setTime(object);
-    OLongSerializer.INSTANCE.serializeLiteral(calendar.getTimeInMillis(), stream, startPosition);
+    OLongSerializer.serializeLiteral(calendar.getTimeInMillis(), stream, startPosition);
   }
 
   public Date deserialize(byte[] stream, int startPosition) {
     final Calendar calendar = Calendar.getInstance();
-    calendar.setTimeInMillis(OLongSerializer.INSTANCE.deserializeLiteral(stream, startPosition));
+    calendar.setTimeInMillis(OLongSerializer.deserializeLiteral(stream, startPosition));
     return calendar.getTime();
   }
 
@@ -68,13 +66,13 @@ public class ODateTimeSerializer implements OBinarySerializer<Date> {
   public void serializeNativeObject(Date object, byte[] stream, int startPosition, Object... hints) {
     final Calendar calendar = Calendar.getInstance();
     calendar.setTime(object);
-    OLongSerializer.INSTANCE.serializeNative(calendar.getTimeInMillis(), stream, startPosition);
+    OLongSerializer.serializeNative(calendar.getTimeInMillis(), stream, startPosition);
   }
 
   @Override
   public Date deserializeNativeObject(byte[] stream, int startPosition) {
     final Calendar calendar = Calendar.getInstance();
-    calendar.setTimeInMillis(OLongSerializer.INSTANCE.deserializeNative(stream, startPosition));
+    calendar.setTimeInMillis(OLongSerializer.deserializeNative(stream, startPosition));
     return calendar.getTime();
   }
 
@@ -119,21 +117,4 @@ public class ODateTimeSerializer implements OBinarySerializer<Date> {
     return OLongSerializer.LONG_SIZE;
   }
 
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  public Date deserializeFromByteBufferObject(ByteBuffer buffer, OWALChanges walChanges, int offset) {
-    final Calendar calendar = Calendar.getInstance();
-    calendar.setTimeInMillis(walChanges.getLongValue(buffer, offset));
-    return calendar.getTime();
-  }
-
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  public int getObjectSizeInByteBuffer(ByteBuffer buffer, OWALChanges walChanges, int offset) {
-    return OLongSerializer.LONG_SIZE;
-  }
 }

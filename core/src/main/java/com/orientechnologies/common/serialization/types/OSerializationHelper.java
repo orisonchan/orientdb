@@ -51,7 +51,7 @@ public class OSerializationHelper {
 
   private <K, V> void serialize(Map<K, V> map, byte[] stream, int offset, OBinarySerializer<K> keySerializer,
       OBinarySerializer<V> valueSerializer) {
-    OIntegerSerializer.INSTANCE.serializeLiteral(map.size(), stream, offset);
+    OIntegerSerializer.serializeLiteral(map.size(), stream, offset);
     offset += OIntegerSerializer.INT_SIZE;
 
     for (Map.Entry<K, V> entry : map.entrySet()) {

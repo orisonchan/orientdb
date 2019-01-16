@@ -6,7 +6,6 @@ import com.orientechnologies.common.serialization.types.OShortSerializer;
 import com.orientechnologies.orient.core.db.record.OIdentifiable;
 import com.orientechnologies.orient.core.id.ORID;
 import com.orientechnologies.orient.core.id.ORecordId;
-import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OWALChanges;
 
 import java.nio.ByteBuffer;
 
@@ -14,8 +13,8 @@ import static com.orientechnologies.orient.core.serialization.OBinaryProtocol.by
 import static com.orientechnologies.orient.core.serialization.OBinaryProtocol.short2bytes;
 
 public class OCompactedLinkSerializer implements OBinarySerializer<OIdentifiable> {
-  public static final byte                     ID       = 22;
-  public static final OCompactedLinkSerializer INSTANCE = new OCompactedLinkSerializer();
+  private static final byte                     ID       = 22;
+  public static final  OCompactedLinkSerializer INSTANCE = new OCompactedLinkSerializer();
 
   @Override
   public int getObjectSize(OIdentifiable rid, Object... hints) {
@@ -92,7 +91,7 @@ public class OCompactedLinkSerializer implements OBinarySerializer<OIdentifiable
   public void serializeNativeObject(OIdentifiable rid, byte[] stream, int startPosition, Object... hints) {
     final ORID r = rid.getIdentity();
 
-    OShortSerializer.INSTANCE.serializeNative((short) r.getClusterId(), stream, startPosition);
+    OShortSerializer.serializeNative((short) r.getClusterId(), stream, startPosition);
     startPosition += OShortSerializer.SHORT_SIZE;
 
     final int zeroBits = Long.numberOfLeadingZeros(r.getClusterPosition());
@@ -178,27 +177,4 @@ public class OCompactedLinkSerializer implements OBinarySerializer<OIdentifiable
     return buffer.get(buffer.position() + OShortSerializer.SHORT_SIZE) + OByteSerializer.BYTE_SIZE + OShortSerializer.SHORT_SIZE;
   }
 
-  @Override
-  public OIdentifiable deserializeFromByteBufferObject(ByteBuffer buffer, OWALChanges walChanges, int offset) {
-    final int cluster = walChanges.getShortValue(buffer, offset);
-    offset += OShortSerializer.SHORT_SIZE;
-
-    final int numberSize = walChanges.getByteValue(buffer, offset);
-    offset++;
-
-    final byte[] number = walChanges.getBinaryValue(buffer, offset, numberSize);
-
-    long position = 0;
-    for (int i = 0; i < numberSize; i++) {
-      position = position | ((0xFF & number[i]) << (i * 8));
-    }
-
-    return new ORecordId(cluster, position);
-  }
-
-  @Override
-  public int getObjectSizeInByteBuffer(ByteBuffer buffer, OWALChanges walChanges, int offset) {
-    return walChanges.getByteValue(buffer, offset + OShortSerializer.SHORT_SIZE) + OByteSerializer.BYTE_SIZE
-        + OShortSerializer.SHORT_SIZE;
-  }
 }

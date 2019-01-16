@@ -86,14 +86,14 @@ public final class OAtomicUnitEndRecord extends OOperationUnitBodyRecord {
 
           final ORecordOperationMetadata recordOperationMetadata = (ORecordOperationMetadata) entry.getValue();
           final Set<ORID> rids = recordOperationMetadata.getValue();
-          OIntegerSerializer.INSTANCE.serializeNative(rids.size(), content, offset);
+          OIntegerSerializer.serializeNative(rids.size(), content, offset);
           offset += OIntegerSerializer.INT_SIZE;
 
           for (final ORID rid : rids) {
-            OLongSerializer.INSTANCE.serializeNative(rid.getClusterPosition(), content, offset);
+            OLongSerializer.serializeNative(rid.getClusterPosition(), content, offset);
             offset += OLongSerializer.LONG_SIZE;
 
-            OIntegerSerializer.INSTANCE.serializeNative(rid.getClusterId(), content, offset);
+            OIntegerSerializer.serializeNative(rid.getClusterId(), content, offset);
             offset += OIntegerSerializer.INT_SIZE;
           }
         } else {
@@ -148,15 +148,15 @@ public final class OAtomicUnitEndRecord extends OOperationUnitBodyRecord {
     offset++;
 
     if (metadataId == 1) {
-      final int collectionsSize = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
+      final int collectionsSize = OIntegerSerializer.deserializeNative(content, offset);
       offset += OIntegerSerializer.INT_SIZE;
 
       final ORecordOperationMetadata recordOperationMetadata = new ORecordOperationMetadata();
       for (int i = 0; i < collectionsSize; i++) {
-        final long clusterPosition = OLongSerializer.INSTANCE.deserializeNative(content, offset);
+        final long clusterPosition = OLongSerializer.deserializeNative(content, offset);
         offset += OLongSerializer.LONG_SIZE;
 
-        final int clusterId = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
+        final int clusterId = OIntegerSerializer.deserializeNative(content, offset);
         offset += OIntegerSerializer.INT_SIZE;
 
         recordOperationMetadata.addRid(new ORecordId(clusterId, clusterPosition));

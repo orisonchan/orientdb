@@ -20,8 +20,6 @@
 
 package com.orientechnologies.common.serialization.types;
 
-import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OWALChanges;
-
 import java.nio.ByteBuffer;
 
 /**
@@ -34,9 +32,9 @@ public class OBooleanSerializer implements OBinarySerializer<Boolean> {
   /**
    * size of boolean value in bytes
    */
-  public static final int                BOOLEAN_SIZE = 1;
-  public static final byte               ID           = 1;
-  public static final OBooleanSerializer INSTANCE     = new OBooleanSerializer();
+  public static final  int                BOOLEAN_SIZE = 1;
+  private static final byte               ID           = 1;
+  public static final  OBooleanSerializer INSTANCE     = new OBooleanSerializer();
 
   public int getObjectSize(Boolean object, Object... hints) {
     return BOOLEAN_SIZE;
@@ -46,7 +44,7 @@ public class OBooleanSerializer implements OBinarySerializer<Boolean> {
     stream[startPosition] = object ? (byte) 1 : (byte) 0;
   }
 
-  public void serializeLiteral(final boolean value, final byte[] stream, final int startPosition) {
+  private static void serializeLiteral(final boolean value, final byte[] stream, final int startPosition) {
     stream[startPosition] = value ? (byte) 1 : (byte) 0;
   }
 
@@ -54,7 +52,7 @@ public class OBooleanSerializer implements OBinarySerializer<Boolean> {
     return stream[startPosition] == 1;
   }
 
-  public boolean deserializeLiteral(final byte[] stream, final int startPosition) {
+  private static boolean deserializeLiteral(final byte[] stream, final int startPosition) {
     return stream[startPosition] == 1;
   }
 
@@ -84,7 +82,7 @@ public class OBooleanSerializer implements OBinarySerializer<Boolean> {
     return deserialize(stream, startPosition);
   }
 
-  public boolean deserializeNative(final byte[] stream, final int startPosition) {
+  public static boolean deserializeNative(final byte[] stream, final int startPosition) {
     return deserializeLiteral(stream, startPosition);
   }
 
@@ -106,7 +104,7 @@ public class OBooleanSerializer implements OBinarySerializer<Boolean> {
    */
   @Override
   public void serializeInByteBufferObject(Boolean object, ByteBuffer buffer, Object... hints) {
-    buffer.put(object.booleanValue() ? (byte) 1 : (byte) 0);
+    buffer.put(object ? (byte) 1 : (byte) 0);
   }
 
   /**
@@ -125,19 +123,4 @@ public class OBooleanSerializer implements OBinarySerializer<Boolean> {
     return BOOLEAN_SIZE;
   }
 
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  public Boolean deserializeFromByteBufferObject(ByteBuffer buffer, OWALChanges walChanges, int offset) {
-    return walChanges.getByteValue(buffer, offset) > 0;
-  }
-
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  public int getObjectSizeInByteBuffer(ByteBuffer buffer, OWALChanges walChanges, int offset) {
-    return BOOLEAN_SIZE;
-  }
 }

@@ -2,14 +2,14 @@ package com.orientechnologies.orient.core.index;
 
 import com.orientechnologies.orient.core.record.impl.ODocument;
 import com.orientechnologies.orient.core.serialization.serializer.binary.impl.index.OCompositeKeySerializer;
-import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OWALChanges;
-import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OWALChangesTree;
 import org.junit.Test;
 
 import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertTrue;
 
 public class OCompositeKeyTest {
 
@@ -24,8 +24,8 @@ public class OCompositeKeyTest {
     anotherCompositeKey.addKey("a");
     anotherCompositeKey.addKey("b");
 
-    assertTrue(compositeKey.equals(anotherCompositeKey));
-    assertTrue(compositeKey.hashCode() == anotherCompositeKey.hashCode());
+    assertEquals(compositeKey, anotherCompositeKey);
+    assertEquals(compositeKey.hashCode(), anotherCompositeKey.hashCode());
   }
 
   @Test
@@ -40,25 +40,25 @@ public class OCompositeKeyTest {
     anotherCompositeKey.addKey("b");
     anotherCompositeKey.addKey("c");
 
-    assertFalse(compositeKey.equals(anotherCompositeKey));
+    assertNotEquals(compositeKey, anotherCompositeKey);
   }
 
   @Test
   public void testEqualNull() {
     final OCompositeKey compositeKey = new OCompositeKey();
-    assertFalse(compositeKey.equals(null));
+    assertNotEquals(null, compositeKey);
   }
 
   @Test
   public void testEqualSame() {
     final OCompositeKey compositeKey = new OCompositeKey();
-    assertTrue(compositeKey.equals(compositeKey));
+    assertEquals(compositeKey, compositeKey);
   }
 
   @Test
   public void testEqualDiffClass() {
     final OCompositeKey compositeKey = new OCompositeKey();
-    assertFalse(compositeKey.equals("1"));
+    assertNotEquals("1", compositeKey);
   }
 
   @Test
@@ -287,27 +287,5 @@ public class OCompositeKeyTest {
     assertNotSame(compositeKeyOne, compositeKeyTwo);
 
     assertEquals(buffer.position() - serializationOffset, len);
-  }
-
-  @Test
-  public void testWALChangesBinarySerializationCompositeKeyNull() {
-    final int serializationOffset = 5;
-
-    final OCompositeKey compositeKey = new OCompositeKey();
-    compositeKey.addKey(1);
-    compositeKey.addKey(null);
-    compositeKey.addKey(2);
-
-    final int len = OCompositeKeySerializer.INSTANCE.getObjectSize(compositeKey);
-    final ByteBuffer buffer = ByteBuffer.allocateDirect(len + serializationOffset).order(ByteOrder.nativeOrder());
-    final byte[] data = new byte[len];
-
-    OCompositeKeySerializer.INSTANCE.serializeNativeObject(compositeKey, data, 0);
-    final OWALChanges walChanges = new OWALChangesTree();
-    walChanges.setBinaryValue(buffer, data, serializationOffset);
-
-    assertEquals(OCompositeKeySerializer.INSTANCE.getObjectSizeInByteBuffer(buffer, walChanges, serializationOffset), len);
-    assertEquals(OCompositeKeySerializer.INSTANCE.deserializeFromByteBufferObject(buffer, walChanges, serializationOffset),
-        compositeKey);
   }
 }

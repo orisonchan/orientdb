@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2010-2016 OrientDB LTD (http://orientdb.com)
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,7 +19,6 @@ package com.orientechnologies.spatial;
 
 import com.orientechnologies.common.serialization.types.OBinarySerializer;
 import com.orientechnologies.orient.core.record.impl.ODocument;
-import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OWALChanges;
 
 import java.nio.ByteBuffer;
 
@@ -30,7 +29,7 @@ public class OLuceneMockSpatialSerializer implements OBinarySerializer<ODocument
 
   static OLuceneMockSpatialSerializer INSTANCE = new OLuceneMockSpatialSerializer();
 
-  protected OLuceneMockSpatialSerializer() {
+  private OLuceneMockSpatialSerializer() {
 
   }
 
@@ -104,13 +103,4 @@ public class OLuceneMockSpatialSerializer implements OBinarySerializer<ODocument
     return 0;
   }
 
-  @Override
-  public ODocument deserializeFromByteBufferObject(ByteBuffer buffer, OWALChanges walChanges, int offset) {
-    return null;
-  }
-
-  @Override
-  public int getObjectSizeInByteBuffer(ByteBuffer buffer, OWALChanges walChanges, int offset) {
-    return 0;
-  }
 }

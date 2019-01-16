@@ -20,8 +20,6 @@
 
 package com.orientechnologies.common.serialization.types;
 
-import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OWALChanges;
-
 import java.nio.ByteBuffer;
 
 /**
@@ -31,8 +29,8 @@ import java.nio.ByteBuffer;
  * @since 18.01.12
  */
 public class OStringSerializer implements OBinarySerializer<String> {
-  public static final OStringSerializer INSTANCE = new OStringSerializer();
-  public static final byte              ID       = 13;
+  public static final  OStringSerializer INSTANCE = new OStringSerializer();
+  private static final byte              ID       = 13;
 
   public int getObjectSize(final String object, Object... hints) {
     return object.length() * 2 + OIntegerSerializer.INT_SIZE;
@@ -40,7 +38,7 @@ public class OStringSerializer implements OBinarySerializer<String> {
 
   public void serialize(final String object, final byte[] stream, int startPosition, Object... hints) {
     final int length = object.length();
-    OIntegerSerializer.INSTANCE.serializeLiteral(length, stream, startPosition);
+    OIntegerSerializer.serializeLiteral(length, stream, startPosition);
 
     startPosition += OIntegerSerializer.INT_SIZE;
     final char[] stringContent = new char[length];
@@ -79,13 +77,13 @@ public class OStringSerializer implements OBinarySerializer<String> {
   }
 
   public int getObjectSizeNative(byte[] stream, int startPosition) {
-    return OIntegerSerializer.INSTANCE.deserializeNative(stream, startPosition) * 2 + OIntegerSerializer.INT_SIZE;
+    return OIntegerSerializer.deserializeNative(stream, startPosition) * 2 + OIntegerSerializer.INT_SIZE;
   }
 
   @Override
   public void serializeNativeObject(String object, byte[] stream, int startPosition, Object... hints) {
     int length = object.length();
-    OIntegerSerializer.INSTANCE.serializeNative(length, stream, startPosition);
+    OIntegerSerializer.serializeNative(length, stream, startPosition);
 
     startPosition += OIntegerSerializer.INT_SIZE;
     char[] stringContent = new char[length];
@@ -102,7 +100,7 @@ public class OStringSerializer implements OBinarySerializer<String> {
   }
 
   public String deserializeNativeObject(byte[] stream, int startPosition) {
-    int len = OIntegerSerializer.INSTANCE.deserializeNative(stream, startPosition);
+    int len = OIntegerSerializer.deserializeNative(stream, startPosition);
     char[] buffer = new char[len];
 
     startPosition += OIntegerSerializer.INT_SIZE;
@@ -178,29 +176,4 @@ public class OStringSerializer implements OBinarySerializer<String> {
     return buffer.getInt() * 2 + OIntegerSerializer.INT_SIZE;
   }
 
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  public String deserializeFromByteBufferObject(ByteBuffer buffer, OWALChanges walChanges, int offset) {
-    int len = walChanges.getIntValue(buffer, offset);
-
-    final char[] chars = new char[len];
-    offset += OIntegerSerializer.INT_SIZE;
-
-    byte[] binaryData = walChanges.getBinaryValue(buffer, offset, 2 * len);
-
-    for (int i = 0; i < len; i++)
-      chars[i] = (char) ((0xFF & binaryData[i << 1]) | ((0xFF & binaryData[(i << 1) + 1]) << 8));
-
-    return new String(chars);
-  }
-
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  public int getObjectSizeInByteBuffer(ByteBuffer buffer, OWALChanges walChanges, int offset) {
-    return walChanges.getIntValue(buffer, offset) * 2 + OIntegerSerializer.INT_SIZE;
-  }
 }

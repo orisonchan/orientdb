@@ -21,6 +21,7 @@ package com.orientechnologies.orient.core.storage.index.hashindex.local;
 
 import com.orientechnologies.common.hash.OMurmurHash3;
 import com.orientechnologies.common.serialization.types.OBinarySerializer;
+import com.orientechnologies.orient.core.metadata.schema.OType;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
@@ -38,9 +39,13 @@ public final class OMurmurHash3HashFunction<V> implements OHashFunction<V> {
   }
 
   @Override
-  public long hashCode(final V value) {
+  public long hashCode(final V value, final OType[] keyTypes) {
     final byte[] serializedValue = new byte[valueSerializer.getObjectSize(value)];
-    valueSerializer.serializeNativeObject(value, serializedValue, 0);
+    if (keyTypes.length == 0) {
+      valueSerializer.serializeNativeObject(value, serializedValue, 0);
+    } else {
+      valueSerializer.serializeNativeObject(value, serializedValue, 0, (Object[]) keyTypes);
+    }
 
     return OMurmurHash3.murmurHash3_x64_64(serializedValue, SEED);
   }

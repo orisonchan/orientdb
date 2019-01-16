@@ -98,12 +98,16 @@ public final class OAtomicOperation {
     } else {
       lsn = writeAheadLog.log(operationUnitBodyRecord);
 
-      totalLoggedSize += operationUnitBodyRecord.getDiskSize();
-      if (totalLoggedSize < 1024 * 1024) {
-        operations.add(operationUnitBodyRecord);
+      if (writeCache.isDiskBased()) {
+        totalLoggedSize += operationUnitBodyRecord.getDiskSize();
+        if (totalLoggedSize < 1024 * 1024) {
+          operations.add(operationUnitBodyRecord);
+        } else {
+          operations.clear();
+          keepOnlyRids = true;
+        }
       } else {
-        operations.clear();
-        keepOnlyRids = true;
+        operations.add(operationUnitBodyRecord);
       }
 
       lastLSN = lsn;

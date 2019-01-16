@@ -751,4 +751,9 @@ public final class ODirectMemoryOnlyDiskCache extends OAbstractWriteCache implem
   public final void deleteFile(final long fileId, final OWriteCache writeCache) {
     deleteFile(fileId);
   }
+
+  @Override
+  public final boolean isDiskBased() {
+    return false;
+  }
 }

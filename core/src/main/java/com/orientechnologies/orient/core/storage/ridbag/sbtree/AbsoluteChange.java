@@ -7,7 +7,7 @@ public class AbsoluteChange implements Change {
   public static final byte TYPE = 1;
   private int value;
 
-  AbsoluteChange(int value) {
+  AbsoluteChange(final int value) {
     this.value = value;
 
     checkPositive();
@@ -31,7 +31,7 @@ public class AbsoluteChange implements Change {
   }
 
   @Override
-  public int applyTo(Integer value) {
+  public int applyTo(final Integer value) {
     return this.value;
   }
 
@@ -41,7 +41,7 @@ public class AbsoluteChange implements Change {
   }
 
   @Override
-  public void applyDiff(int delta) {
+  public void applyDiff(final int delta) {
     value += delta;
 
     checkPositive();
@@ -53,9 +53,9 @@ public class AbsoluteChange implements Change {
   }
 
   @Override
-  public int serialize(byte[] stream, int offset) {
-    OByteSerializer.INSTANCE.serializeLiteral(TYPE, stream, offset);
-    OIntegerSerializer.INSTANCE.serializeLiteral(value, stream, offset + OByteSerializer.BYTE_SIZE);
+  public int serialize(final byte[] stream, final int offset) {
+    OByteSerializer.serializeLiteral(TYPE, stream, offset);
+    OIntegerSerializer.serializeLiteral(value, stream, offset + OByteSerializer.BYTE_SIZE);
     return OByteSerializer.BYTE_SIZE + OIntegerSerializer.INT_SIZE;
   }
 

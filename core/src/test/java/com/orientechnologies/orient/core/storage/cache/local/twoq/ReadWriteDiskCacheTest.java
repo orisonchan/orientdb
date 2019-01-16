@@ -1176,11 +1176,11 @@ public class ReadWriteDiskCacheTest {
 
     Assertions.assertThat(Arrays.copyOfRange(content, systemOffset, userDataSize + systemOffset)).isEqualTo(value);
 
-    long magicNumber = OLongSerializer.INSTANCE.deserializeNative(content, 0);
+    long magicNumber = OLongSerializer.deserializeNative(content, 0);
     Assert.assertEquals(magicNumber, OWOWCache.MAGIC_NUMBER_WITH_CHECKSUM);
 
-    long segment = OLongSerializer.INSTANCE.deserializeNative(content, ODurablePage.WAL_SEGMENT_OFFSET);
-    long position = OLongSerializer.INSTANCE.deserializeNative(content, ODurablePage.WAL_POSITION_OFFSET);
+    long segment = OLongSerializer.deserializeNative(content, ODurablePage.WAL_SEGMENT_OFFSET);
+    long position = OLongSerializer.deserializeNative(content, ODurablePage.WAL_POSITION_OFFSET);
 
     OLogSequenceNumber readLsn = new OLogSequenceNumber(segment, position);
 
@@ -1219,7 +1219,7 @@ public class ReadWriteDiskCacheTest {
 
     @Override
     public int toStream(byte[] content, int offset) {
-      OIntegerSerializer.INSTANCE.serializeNative(data.length, content, offset);
+      OIntegerSerializer.serializeNative(data.length, content, offset);
       offset += OIntegerSerializer.INT_SIZE;
 
       System.arraycopy(data, 0, content, offset, data.length);
@@ -1236,7 +1236,7 @@ public class ReadWriteDiskCacheTest {
 
     @Override
     public int fromStream(byte[] content, int offset) {
-      int len = OIntegerSerializer.INSTANCE.deserializeNative(content, offset);
+      int len = OIntegerSerializer.deserializeNative(content, offset);
       offset += OIntegerSerializer.INT_SIZE;
 
       data = new byte[len];

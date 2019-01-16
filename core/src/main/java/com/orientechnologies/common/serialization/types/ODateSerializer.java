@@ -20,8 +20,6 @@
 
 package com.orientechnologies.common.serialization.types;
 
-import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OWALChanges;
-
 import java.nio.ByteBuffer;
 import java.util.Calendar;
 import java.util.Date;
@@ -34,8 +32,8 @@ import java.util.Date;
  */
 public class ODateSerializer implements OBinarySerializer<Date> {
 
-  public static final byte      ID       = 4;
-  public static final ODateSerializer INSTANCE = new ODateSerializer();
+  private static final byte            ID       = 4;
+  public static final  ODateSerializer INSTANCE = new ODateSerializer();
 
   public int getObjectSize(Date object, Object... hints) {
     return OLongSerializer.LONG_SIZE;
@@ -140,20 +138,4 @@ public class ODateSerializer implements OBinarySerializer<Date> {
     return OLongSerializer.LONG_SIZE;
   }
 
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  public Date deserializeFromByteBufferObject(ByteBuffer buffer, OWALChanges walChanges, int offset) {
-    final ODateTimeSerializer dateTimeSerializer = ODateTimeSerializer.INSTANCE;
-    return dateTimeSerializer.deserializeFromByteBufferObject(buffer, walChanges, offset);
-  }
-
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  public int getObjectSizeInByteBuffer(ByteBuffer buffer, OWALChanges walChanges, int offset) {
-    return OLongSerializer.LONG_SIZE;
-  }
 }

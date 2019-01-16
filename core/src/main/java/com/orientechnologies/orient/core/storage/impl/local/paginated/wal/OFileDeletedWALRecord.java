@@ -32,7 +32,7 @@ public final class OFileDeletedWALRecord extends OOperationUnitBodyRecord {
   public int toStream(final byte[] content, int offset) {
     offset = super.toStream(content, offset);
 
-    OLongSerializer.INSTANCE.serializeNative(fileId, content, offset);
+    OLongSerializer.serializeNative(fileId, content, offset);
     offset += OLongSerializer.LONG_SIZE;
 
     return offset;
@@ -48,7 +48,7 @@ public final class OFileDeletedWALRecord extends OOperationUnitBodyRecord {
   public int fromStream(final byte[] content, int offset) {
     offset = super.fromStream(content, offset);
 
-    fileId = OLongSerializer.INSTANCE.deserializeNative(content, offset);
+    fileId = OLongSerializer.deserializeNative(content, offset);
     offset += OLongSerializer.LONG_SIZE;
 
     return offset;

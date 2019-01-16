@@ -22,7 +22,6 @@ package com.orientechnologies.common.serialization.types;
 
 import com.orientechnologies.common.serialization.OBinaryConverter;
 import com.orientechnologies.common.serialization.OBinaryConverterFactory;
-import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OWALChanges;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -36,10 +35,10 @@ import java.util.Arrays;
  */
 public class OBinaryTypeSerializer implements OBinarySerializer<byte[]> {
   public static final  OBinaryTypeSerializer INSTANCE  = new OBinaryTypeSerializer();
-  public static final  byte                  ID        = 17;
+  private static final byte                  ID        = 17;
   private static final OBinaryConverter      CONVERTER = OBinaryConverterFactory.getConverter();
 
-  public int getObjectSize(int length) {
+  public static int getObjectSize(int length) {
     return length + OIntegerSerializer.INT_SIZE;
   }
 
@@ -49,7 +48,7 @@ public class OBinaryTypeSerializer implements OBinarySerializer<byte[]> {
 
   public void serialize(final byte[] object, final byte[] stream, final int startPosition, final Object... hints) {
     int len = object.length;
-    OIntegerSerializer.INSTANCE.serializeLiteral(len, stream, startPosition);
+    OIntegerSerializer.serializeLiteral(len, stream, startPosition);
     System.arraycopy(object, 0, stream, startPosition + OIntegerSerializer.INT_SIZE, len);
   }
 
@@ -125,21 +124,4 @@ public class OBinaryTypeSerializer implements OBinarySerializer<byte[]> {
     return buffer.getInt() + OIntegerSerializer.INT_SIZE;
   }
 
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  public byte[] deserializeFromByteBufferObject(ByteBuffer buffer, OWALChanges walChanges, int offset) {
-    final int len = walChanges.getIntValue(buffer, offset);
-    offset += OIntegerSerializer.INT_SIZE;
-    return walChanges.getBinaryValue(buffer, offset, len);
-  }
-
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  public int getObjectSizeInByteBuffer(ByteBuffer buffer, OWALChanges walChanges, int offset) {
-    return walChanges.getIntValue(buffer, offset) + OIntegerSerializer.INT_SIZE;
-  }
 }

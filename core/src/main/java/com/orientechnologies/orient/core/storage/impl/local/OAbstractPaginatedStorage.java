@@ -113,7 +113,6 @@ import com.orientechnologies.orient.core.storage.ORecordMetadata;
 import com.orientechnologies.orient.core.storage.OStorageAbstract;
 import com.orientechnologies.orient.core.storage.OStorageOperationResult;
 import com.orientechnologies.orient.core.storage.OTXApprover;
-import com.orientechnologies.orient.core.storage.cache.OCacheEntry;
 import com.orientechnologies.orient.core.storage.cache.OPageDataVerificationError;
 import com.orientechnologies.orient.core.storage.cache.OReadCache;
 import com.orientechnologies.orient.core.storage.cache.OWriteCache;
@@ -125,7 +124,6 @@ import com.orientechnologies.orient.core.storage.impl.local.paginated.ORecordSer
 import com.orientechnologies.orient.core.storage.impl.local.paginated.OStorageTransaction;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.atomicoperations.OAtomicOperation;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.atomicoperations.OAtomicOperationsManager;
-import com.orientechnologies.orient.core.storage.impl.local.paginated.base.ODurablePage;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OAbstractCheckPointStartRecord;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OAtomicUnitEndRecord;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OAtomicUnitStartRecord;
@@ -140,7 +138,6 @@ import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.ONonTx
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OOperationUnitId;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OOperationUnitRecord;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OPaginatedClusterFactory;
-import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OUpdatePageRecord;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OWALPageBrokenException;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OWALRecord;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OWriteAheadLog;
@@ -871,7 +868,7 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
     return id;
   }
 
-  public boolean setClusterStatus(final int clusterId, final OStorageClusterConfiguration.STATUS iStatus) {
+  public final boolean setClusterStatus(final int clusterId, final OStorageClusterConfiguration.STATUS iStatus) {
     try {
       checkOpenness();
       stateLock.acquireWriteLock();
@@ -1702,7 +1699,7 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
     return atomicOperationsManager;
   }
 
-  public OWriteAheadLog getWALInstance() {
+  public final OWriteAheadLog getWALInstance() {
     return writeAheadLog;
   }
 
@@ -3565,7 +3562,7 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
    * Method that completes the cluster rename operation. <strong>IT WILL NOT RENAME A CLUSTER, IT JUST CHANGES THE NAME IN THE
    * INTERNAL MAPPING</strong>
    */
-  public void renameCluster(final String oldName, final String newName) {
+  public final void renameCluster(final String oldName, final String newName) {
     try {
       clusterMap.put(newName.toLowerCase(configuration.getLocaleInstance()),
           clusterMap.remove(oldName.toLowerCase(configuration.getLocaleInstance())));
@@ -5397,45 +5394,6 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
         if (!writeCache.exists(fileCreatedCreatedWALRecord.getFileName())) {
           readCache.addFile(fileCreatedCreatedWALRecord.getFileName(), fileCreatedCreatedWALRecord.getFileId(), writeCache);
         }
-      } else if (walRecord instanceof OUpdatePageRecord) {
-        final OUpdatePageRecord updatePageRecord = (OUpdatePageRecord) walRecord;
-
-        long fileId = updatePageRecord.getFileId();
-        if (!writeCache.exists(fileId)) {
-          final String fileName = writeCache.restoreFileById(fileId);
-
-          if (fileName == null) {
-            throw new OStorageException(
-                "File with id " + fileId + " was deleted from storage, the rest of operations can not be restored");
-          } else {
-            OLogManager.instance().warn(this, "Previously deleted file with name " + fileName
-                + " was deleted but new empty file was added to continue restore process");
-          }
-        }
-
-        final long pageIndex = updatePageRecord.getPageIndex();
-        fileId = writeCache.externalFileId(writeCache.internalFileId(fileId));
-
-        OCacheEntry cacheEntry = readCache.loadForWrite(fileId, pageIndex, true, writeCache, 1, false, null);
-        if (cacheEntry == null) {
-          do {
-            if (cacheEntry != null) {
-              readCache.releaseFromWrite(cacheEntry, writeCache);
-            }
-
-            cacheEntry = readCache.allocateNewPage(fileId, writeCache, false, null, false);
-          } while (cacheEntry.getPageIndex() != pageIndex);
-        }
-
-        try {
-          final ODurablePage durablePage = new ODurablePage(cacheEntry);
-          //durablePage.restoreChanges(updatePageRecord.getChanges());
-          durablePage.setLsn(updatePageRecord.getLsn());
-        } finally {
-          readCache.releaseFromWrite(cacheEntry, writeCache);
-        }
-
-        atLeastOnePageUpdate.setValue(true);
       } else if (walRecord instanceof OAtomicUnitStartRecord) {
         //noinspection UnnecessaryContinue
         continue;

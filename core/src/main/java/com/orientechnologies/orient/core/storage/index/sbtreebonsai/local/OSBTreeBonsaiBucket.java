@@ -215,7 +215,7 @@ public final class OSBTreeBonsaiBucket<K, V> extends OBonsaiBucketAbstract {
     final int entryPosition = getIntValue(offset + POSITIONS_ARRAY_OFFSET + entryIndex * OIntegerSerializer.INT_SIZE);
     final int entrySize = keySize + valueSize;
     final byte[] key = getBinaryValue(entryPosition + offset, keySize);
-    final byte[] value = getBinaryValue(entryPosition + offset, valueSize);
+    final byte[] value = getBinaryValue(entryPosition + keySize + offset, valueSize);
 
     int size = size();
     if (entryIndex < size - 1) {
@@ -460,8 +460,8 @@ public final class OSBTreeBonsaiBucket<K, V> extends OBonsaiBucketAbstract {
     addPageOperation(new OBonsaiBucketShrinkPageOperation(offset, removedEntries));
   }
 
-  boolean insertEntry(final int index, final SBTreeEntry<K, V> treeEntry, final OBinarySerializer<K> keySerializer,
-      final OBinarySerializer<V> valueSerializer) {
+  @SuppressWarnings("BooleanMethodIsAlwaysInverted")
+  boolean insertEntry(final int index, final SBTreeEntry<K, V> treeEntry, final OBinarySerializer<K> keySerializer, final OBinarySerializer<V> valueSerializer) {
     final byte[] key = keySerializer.serializeNativeAsWhole(treeEntry.key);
     if (isLeaf) {
       final byte[] value = valueSerializer.serializeNativeAsWhole(treeEntry.value);

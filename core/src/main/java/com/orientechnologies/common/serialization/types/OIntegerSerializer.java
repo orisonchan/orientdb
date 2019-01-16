@@ -22,7 +22,6 @@ package com.orientechnologies.common.serialization.types;
 
 import com.orientechnologies.common.serialization.OBinaryConverter;
 import com.orientechnologies.common.serialization.OBinaryConverterFactory;
-import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OWALChanges;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -34,7 +33,7 @@ import java.nio.ByteOrder;
  * @since 17.01.12
  */
 public class OIntegerSerializer implements OBinarySerializer<Integer> {
-  public static final  byte               ID        = 8;
+  private static final byte               ID        = 8;
   /**
    * size of int value in bytes
    */
@@ -47,14 +46,14 @@ public class OIntegerSerializer implements OBinarySerializer<Integer> {
   }
 
   public void serialize(final Integer object, final byte[] stream, final int startPosition, final Object... hints) {
-    serializeLiteral(object.intValue(), stream, startPosition);
+    serializeLiteral(object, stream, startPosition);
   }
 
-  public void serializeLiteral(final int value, final byte[] stream, final int startPosition) {
+  public static void serializeLiteral(final int value, final byte[] stream, final int startPosition) {
     stream[startPosition] = (byte) ((value >>> 24) & 0xFF);
     stream[startPosition + 1] = (byte) ((value >>> 16) & 0xFF);
     stream[startPosition + 2] = (byte) ((value >>> 8) & 0xFF);
-    stream[startPosition + 3] = (byte) ((value >>> 0) & 0xFF);
+    stream[startPosition + 3] = (byte) ((value) & 0xFF);
   }
 
   public Integer deserialize(final byte[] stream, final int startPosition) {
@@ -88,11 +87,11 @@ public class OIntegerSerializer implements OBinarySerializer<Integer> {
     return CONVERTER.getInt(stream, startPosition, ByteOrder.nativeOrder());
   }
 
-  public void serializeNative(int object, byte[] stream, int startPosition, Object... hints) {
+  public static void serializeNative(int object, byte[] stream, int startPosition, Object... hints) {
     CONVERTER.putInt(stream, startPosition, object, ByteOrder.nativeOrder());
   }
 
-  public int deserializeNative(final byte[] stream, final int startPosition) {
+  public static int deserializeNative(final byte[] stream, final int startPosition) {
     return CONVERTER.getInt(stream, startPosition, ByteOrder.nativeOrder());
   }
 
@@ -133,19 +132,4 @@ public class OIntegerSerializer implements OBinarySerializer<Integer> {
     return INT_SIZE;
   }
 
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  public Integer deserializeFromByteBufferObject(ByteBuffer buffer, OWALChanges walChanges, int offset) {
-    return walChanges.getIntValue(buffer, offset);
-  }
-
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  public int getObjectSizeInByteBuffer(ByteBuffer buffer, OWALChanges walChanges, int offset) {
-    return INT_SIZE;
-  }
 }

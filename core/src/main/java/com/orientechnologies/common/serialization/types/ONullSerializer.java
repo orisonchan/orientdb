@@ -20,8 +20,6 @@
 
 package com.orientechnologies.common.serialization.types;
 
-import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OWALChanges;
-
 import java.nio.ByteBuffer;
 
 /**
@@ -31,8 +29,8 @@ import java.nio.ByteBuffer;
  */
 public class ONullSerializer implements OBinarySerializer<Object> {
 
-  public static final byte            ID       = 11;
-  public static final ONullSerializer INSTANCE = new ONullSerializer();
+  private static final byte            ID       = 11;
+  public static final  ONullSerializer INSTANCE = new ONullSerializer();
 
   public int getObjectSize(final Object object, Object... hints) {
     return 0;
@@ -102,19 +100,4 @@ public class ONullSerializer implements OBinarySerializer<Object> {
     return 0;
   }
 
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  public Object deserializeFromByteBufferObject(ByteBuffer buffer, OWALChanges walChanges, int offset) {
-    return null;
-  }
-
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  public int getObjectSizeInByteBuffer(ByteBuffer buffer, OWALChanges walChanges, int offset) {
-    return 0;
-  }
 }
