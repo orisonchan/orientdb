@@ -220,7 +220,6 @@ public final class OSBTreeSingleValue<K> extends ODurableComponent {
     return update(key, value, validator);
   }
 
-  @SuppressWarnings("unchecked")
   private boolean update(K key, ORID value, final OBaseIndexEngine.Validator<K, ORID> validator) throws IOException {
     boolean rollback = false;
     final OAtomicOperation atomicOperation = startAtomicOperation(true);
@@ -1242,10 +1241,10 @@ public final class OSBTreeSingleValue<K> extends ODurableComponent {
         new OSBTreeBucketSingleValue.SBTreeEntry<>((int) leftBucketEntry.getPageIndex(), (int) rightBucketEntry.getPageIndex(),
             separationKey, null), true);
 
-    final ArrayList<Long> resultPath = new ArrayList<>();
+    final ArrayList<Long> resultPath = new ArrayList<>(8);
     resultPath.add(ROOT_INDEX);
 
-    final ArrayList<Integer> itemPointers = new ArrayList<>();
+    final ArrayList<Integer> itemPointers = new ArrayList<>(8);
 
     if (keyIndex <= indexToSplit) {
       itemPointers.add(-1);
@@ -1308,8 +1307,8 @@ public final class OSBTreeSingleValue<K> extends ODurableComponent {
   private UpdateBucketSearchResult findBucketForUpdate(final K key, final OAtomicOperation atomicOperation) throws IOException {
     long pageIndex = ROOT_INDEX;
 
-    final ArrayList<Long> path = new ArrayList<>();
-    final ArrayList<Integer> itemIndexes = new ArrayList<>();
+    final ArrayList<Long> path = new ArrayList<>(8);
+    final ArrayList<Integer> itemIndexes = new ArrayList<>(8);
 
     while (true) {
       if (path.size() > MAX_PATH_LENGTH) {
@@ -1405,11 +1404,10 @@ public final class OSBTreeSingleValue<K> extends ODurableComponent {
    * Indicates search behavior in case of {@link OCompositeKey} keys that have less amount of internal keys are used, whether
    * lowest or highest partially matched key should be used.
    */
-  private enum PartialSearchMode {
-    /**
-     * Any partially matched key will be used as search result.
-     */
-    NONE,
+  private enum PartialSearchMode {/**
+   * Any partially matched key will be used as search result.
+   */
+  NONE,
     /**
      * The biggest partially matched key will be used as search result.
      */
@@ -1418,8 +1416,7 @@ public final class OSBTreeSingleValue<K> extends ODurableComponent {
     /**
      * The smallest partially matched key will be used as search result.
      */
-    LOWEST_BOUNDARY
-  }
+    LOWEST_BOUNDARY}
 
   public interface OSBTreeCursor<K, V> {
     Map.Entry<K, V> next(int prefetchSize);
@@ -1524,16 +1521,20 @@ public final class OSBTreeSingleValue<K> extends ODurableComponent {
               final OSBTreeBucketSingleValue<K> bucket = new OSBTreeBucketSingleValue<>(cacheEntry, keySerializer, keyTypes,
                   encryption);
 
-              if (itemIndex >= bucket.size()) {
+              final int bucketSize = bucket.size();
+
+              if (itemIndex >= bucketSize) {
                 pageIndex = bucket.getRightSibling();
                 itemIndex = 0;
                 continue;
               }
 
-              final Map.Entry<K, ORID> entry = convertToMapEntry(bucket.getEntry(itemIndex));
-              itemIndex++;
+              while (itemIndex < bucketSize && keysCache.size() < prefetchSize) {
+                final Map.Entry<K, ORID> entry = convertToMapEntry(bucket.getEntry(itemIndex));
+                itemIndex++;
 
-              keysCache.add(entry.getKey());
+                keysCache.add(entry.getKey());
+              }
             } finally {
               releasePageFromRead(atomicOperation, cacheEntry);
             }
@@ -1631,6 +1632,7 @@ public final class OSBTreeSingleValue<K> extends ODurableComponent {
             itemIndex = -bucketSearchResult.itemIndex - 1;
           }
 
+          mainCycle:
           while (dataCache.size() < prefetchSize) {
             if (pageIndex == -1) {
               break;
@@ -1641,28 +1643,32 @@ public final class OSBTreeSingleValue<K> extends ODurableComponent {
               final OSBTreeBucketSingleValue<K> bucket = new OSBTreeBucketSingleValue<>(cacheEntry, keySerializer, keyTypes,
                   encryption);
 
-              if (itemIndex >= bucket.size()) {
+              final int bucketSize = bucket.size();
+              if (itemIndex >= bucketSize) {
                 pageIndex = bucket.getRightSibling();
                 itemIndex = 0;
                 continue;
               }
 
-              final Map.Entry<K, ORID> entry = convertToMapEntry(bucket.getEntry(itemIndex));
-              itemIndex++;
+              while (itemIndex < bucketSize && dataCache.size() < prefetchSize) {
+                final Map.Entry<K, ORID> entry = convertToMapEntry(bucket.getEntry(itemIndex));
+                itemIndex++;
 
-              if (fromKey != null && (fromKeyInclusive ?
-                  comparator.compare(entry.getKey(), fromKey) < 0 :
-                  comparator.compare(entry.getKey(), fromKey) <= 0)) {
-                continue;
+                if (fromKey != null && (fromKeyInclusive ?
+                    comparator.compare(entry.getKey(), fromKey) < 0 :
+                    comparator.compare(entry.getKey(), fromKey) <= 0)) {
+                  continue;
+                }
+
+                if (toKey != null && (toKeyInclusive ?
+                    comparator.compare(entry.getKey(), toKey) > 0 :
+                    comparator.compare(entry.getKey(), toKey) >= 0)) {
+                  break mainCycle;
+                }
+
+                dataCache.add(entry);
               }
 
-              if (toKey != null && (toKeyInclusive ?
-                  comparator.compare(entry.getKey(), toKey) > 0 :
-                  comparator.compare(entry.getKey(), toKey) >= 0)) {
-                break;
-              }
-
-              dataCache.add(entry);
             } finally {
               releasePageFromRead(atomicOperation, cacheEntry);
             }
@@ -1762,6 +1768,7 @@ public final class OSBTreeSingleValue<K> extends ODurableComponent {
             itemIndex = -bucketSearchResult.itemIndex - 2;
           }
 
+          mainCycle:
           while (dataCache.size() < prefetchSize) {
             if (pageIndex == -1) {
               break;
@@ -1782,22 +1789,25 @@ public final class OSBTreeSingleValue<K> extends ODurableComponent {
                 continue;
               }
 
-              final Map.Entry<K, ORID> entry = convertToMapEntry(bucket.getEntry(itemIndex));
-              itemIndex--;
+              while (itemIndex >= 0 && dataCache.size() < prefetchSize) {
+                final Map.Entry<K, ORID> entry = convertToMapEntry(bucket.getEntry(itemIndex));
+                itemIndex--;
 
-              if (toKey != null && (toKeyInclusive ?
-                  comparator.compare(entry.getKey(), toKey) > 0 :
-                  comparator.compare(entry.getKey(), toKey) >= 0)) {
-                continue;
+                if (toKey != null && (toKeyInclusive ?
+                    comparator.compare(entry.getKey(), toKey) > 0 :
+                    comparator.compare(entry.getKey(), toKey) >= 0)) {
+                  continue;
+                }
+
+                if (fromKey != null && (fromKeyInclusive ?
+                    comparator.compare(entry.getKey(), fromKey) < 0 :
+                    comparator.compare(entry.getKey(), fromKey) <= 0)) {
+                  break mainCycle;
+                }
+
+                dataCache.add(entry);
               }
 
-              if (fromKey != null && (fromKeyInclusive ?
-                  comparator.compare(entry.getKey(), fromKey) < 0 :
-                  comparator.compare(entry.getKey(), fromKey) <= 0)) {
-                break;
-              }
-
-              dataCache.add(entry);
             } finally {
               releasePageFromRead(atomicOperation, cacheEntry);
             }

@@ -47,8 +47,8 @@ import java.util.concurrent.ConcurrentSkipListMap;
  * @since 8/7/13
  */
 final class Bucket<K> extends ODurablePage {
-  private static final int RID_SIZE                       = OShortSerializer.SHORT_SIZE + OLongSerializer.LONG_SIZE;
-  private static final int SINGLE_ELEMNT_LINKED_ITEM_SIZE = OIntegerSerializer.INT_SIZE + RID_SIZE + OByteSerializer.BYTE_SIZE;
+  private static final int RID_SIZE                        = OShortSerializer.SHORT_SIZE + OLongSerializer.LONG_SIZE;
+  private static final int SINGLE_ELEMENT_LINKED_ITEM_SIZE = OIntegerSerializer.INT_SIZE + RID_SIZE + OByteSerializer.BYTE_SIZE;
 
   private static final int FREE_POINTER_OFFSET  = NEXT_FREE_POSITION;
   private static final int SIZE_OFFSET          = FREE_POINTER_OFFSET + OIntegerSerializer.INT_SIZE;
@@ -140,26 +140,27 @@ final class Bucket<K> extends ODurablePage {
       return 1;
     }
 
-    final List<Integer> itemsToRemove = new ArrayList<>();
-    final List<Integer> itemsToRemoveSize = new ArrayList<>();
+    final List<Integer> itemsToRemove = new ArrayList<>(8);
+    final List<Integer> itemsToRemoveSize = new ArrayList<>(8);
 
     final int entrySize = keySize + OIntegerSerializer.INT_SIZE + RID_SIZE;
     int totalSpace = entrySize;
 
     while (nextItem > 0) {
-      nextItem = getIntValue(nextItem);
-
       final int arraySize = 0xFF & getByteValue(nextItem + OIntegerSerializer.INT_SIZE);
       final int itemSize = arraySize * RID_SIZE + OIntegerSerializer.INT_SIZE + OByteSerializer.BYTE_SIZE;
       totalSpace += itemSize;
 
       itemsToRemove.add(nextItem);
       itemsToRemoveSize.add(itemSize);
+
+      nextItem = getIntValue(nextItem);
     }
 
     int size = getIntValue(SIZE_OFFSET);
 
     final TreeMap<Integer, Integer> entries = new TreeMap<>();
+    @SuppressWarnings("SpellCheckingInspection")
     final ConcurrentSkipListMap<Integer, Integer> nexts = new ConcurrentSkipListMap<>();
 
     int currentPositionOffset = POSITIONS_ARRAY_OFFSET;
@@ -229,8 +230,8 @@ final class Bucket<K> extends ODurablePage {
               final int prevEntryPosition = compositeEntryPosition & 0xFFFF;
 
               final int updatedEntryPosition =
-                  prevEntryPosition + itemsToRemoveSize.subList(prevCounter, counter + 1).stream().mapToInt(Integer::intValue)
-                      .sum();
+                  prevEntryPosition + itemsToRemoveSize.subList(prevCounter + 1, counter + 1).stream().mapToInt(Integer::intValue)
+                      .sum();//offset of removal of prevCounter item already taken into account
 
               setIntValue(updatedEntryPosition, first + diff);
             }
@@ -255,6 +256,7 @@ final class Bucket<K> extends ODurablePage {
     if (entryPosition > freeSpacePointer) {
       moveData(freeSpacePointer, freeSpacePointer + entrySize, entryPosition - freeSpacePointer);
 
+      @SuppressWarnings("UnnecessaryLocalVariable")
       final int diff = entrySize;
 
       final SortedMap<Integer, Integer> entriesRefToCorrect = entries.headMap(entryPosition);
@@ -292,7 +294,8 @@ final class Bucket<K> extends ODurablePage {
           final int prevEntryPosition = compositeEntryPosition & 0xFFFF;
 
           final int updatedEntryPosition =
-              entrySize + itemsToRemoveSize.subList(prevCounter, itemsToRemove.size()).stream().mapToInt(Integer::intValue).sum()
+              entrySize + itemsToRemoveSize.subList(prevCounter + 1, itemsToRemove.size()).stream().mapToInt(Integer::intValue)
+                  .sum()
                   + prevEntryPosition;
 
           setIntValue(updatedEntryPosition, first + diff);
@@ -425,7 +428,7 @@ final class Bucket<K> extends ODurablePage {
 
         if (nextItem > freePointer || nextItemSize > 1) {
           if (nextItemSize == 1) {
-            moveData(freePointer, freePointer + SINGLE_ELEMNT_LINKED_ITEM_SIZE, nextItem - freePointer);
+            moveData(freePointer, freePointer + SINGLE_ELEMENT_LINKED_ITEM_SIZE, nextItem - freePointer);
           } else {
             moveData(freePointer, freePointer + RID_SIZE,
                 nextItem + OIntegerSerializer.INT_SIZE + OByteSerializer.BYTE_SIZE - freePointer);
@@ -476,10 +479,10 @@ final class Bucket<K> extends ODurablePage {
               setIntValue(prevItem, nextNextItem);
 
               final int freePointer = getIntValue(FREE_POINTER_OFFSET);
-              setIntValue(FREE_POINTER_OFFSET, freePointer + SINGLE_ELEMNT_LINKED_ITEM_SIZE);
+              setIntValue(FREE_POINTER_OFFSET, freePointer + SINGLE_ELEMENT_LINKED_ITEM_SIZE);
 
               if (nextItem > freePointer) {
-                moveData(freePointer, freePointer + SINGLE_ELEMNT_LINKED_ITEM_SIZE, nextItem - freePointer);
+                moveData(freePointer, freePointer + SINGLE_ELEMENT_LINKED_ITEM_SIZE, nextItem - freePointer);
 
                 final int size = getIntValue(SIZE_OFFSET);
                 int currentPositionOffset = POSITIONS_ARRAY_OFFSET;
@@ -489,7 +492,7 @@ final class Bucket<K> extends ODurablePage {
                   final int updatedEntryPosition;
 
                   if (currentEntryPosition < nextItem) {
-                    updatedEntryPosition = currentEntryPosition + SINGLE_ELEMNT_LINKED_ITEM_SIZE;
+                    updatedEntryPosition = currentEntryPosition + SINGLE_ELEMENT_LINKED_ITEM_SIZE;
                     setIntValue(currentPositionOffset, updatedEntryPosition);
                   } else {
                     updatedEntryPosition = currentEntryPosition;
@@ -498,9 +501,9 @@ final class Bucket<K> extends ODurablePage {
                   final int currentNextItem = getIntValue(updatedEntryPosition);
                   if (currentNextItem > 0 && currentNextItem < nextItem) {
                     //update reference to the first item of linked list
-                    setIntValue(updatedEntryPosition, currentNextItem + SINGLE_ELEMNT_LINKED_ITEM_SIZE);
+                    setIntValue(updatedEntryPosition, currentNextItem + SINGLE_ELEMENT_LINKED_ITEM_SIZE);
 
-                    updateAllLinkedListReferences(currentNextItem, nextItem, SINGLE_ELEMNT_LINKED_ITEM_SIZE);
+                    updateAllLinkedListReferences(currentNextItem, nextItem, SINGLE_ELEMENT_LINKED_ITEM_SIZE);
                   }
 
                   currentPositionOffset += OIntegerSerializer.INT_SIZE;
@@ -619,7 +622,7 @@ final class Bucket<K> extends ODurablePage {
       entryPosition += encryptionSize + OIntegerSerializer.INT_SIZE;
     }
 
-    final List<ORID> values = new ArrayList<>();
+    final List<ORID> values = new ArrayList<>(8);
 
     int clusterId = getShortValue(entryPosition);
     entryPosition += OShortSerializer.SHORT_SIZE;
@@ -711,7 +714,7 @@ final class Bucket<K> extends ODurablePage {
     int clusterId = getShortValue(entryPosition);
     long clusterPosition = getLongValue(entryPosition + OShortSerializer.SHORT_SIZE);
 
-    final List<ORID> results = new ArrayList<>();
+    final List<ORID> results = new ArrayList<>(8);
     results.add(new ORecordId(clusterId, clusterPosition));
 
     while (nextItem > 0) {
@@ -847,8 +850,8 @@ final class Bucket<K> extends ODurablePage {
     assert size() == 1;
 
     final int entryPosition = getIntValue(POSITIONS_ARRAY_OFFSET);
-    final List<Integer> items = new ArrayList<>();
-    final List<Integer> itemSizes = new ArrayList<>();
+    final List<Integer> items = new ArrayList<>(8);
+    final List<Integer> itemSizes = new ArrayList<>(8);
 
     {
       int nextItem = getIntValue(entryPosition);

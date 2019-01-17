@@ -13,7 +13,6 @@ import com.orientechnologies.orient.core.storage.impl.local.OAbstractPaginatedSt
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.File;
@@ -28,16 +27,16 @@ import java.util.Set;
 import java.util.TreeMap;
 
 public class SBTreeMultiValueTestIT {
-  private   OSBTreeMultiValue<String> multiValueTree;
-  protected ODatabaseSession          databaseDocumentTx;
-  protected String                    buildDirectory;
-  protected OrientDB                  orientDB;
+  private OSBTreeMultiValue<String> multiValueTree;
+  private ODatabaseSession          databaseDocumentTx;
+  private OrientDB                  orientDB;
 
   private final String DB_NAME = "localMultiBTreeTest";
 
   @Before
   public void before() throws IOException {
-    buildDirectory = System.getProperty("buildDirectory", ".") + File.separator + SBTreeMultiValueTestIT.class.getSimpleName();
+    final String buildDirectory =
+        System.getProperty("buildDirectory", ".") + File.separator + SBTreeMultiValueTestIT.class.getSimpleName();
 
     final File dbDirectory = new File(buildDirectory, DB_NAME);
     OFileUtils.deleteRecursively(dbDirectory);
@@ -53,14 +52,13 @@ public class SBTreeMultiValueTestIT {
   }
 
   @After
-  public void afterMethod() throws Exception {
+  public void afterMethod() {
     orientDB.drop(DB_NAME);
     orientDB.close();
   }
 
   @Test
-  @Ignore
-  public void testRandom() throws IOException {
+  public void testInsertRandom() throws IOException {
     final int keysCount = 100_000_000;
     TreeMap<Integer, String> keys = new TreeMap<>();
 
@@ -498,7 +496,7 @@ public class SBTreeMultiValueTestIT {
 
   @Test
   public void testKeyPutRemoveWholeKey() throws IOException {
-    final int itemsCount = 256_000;
+    final int itemsCount = 1_000_000;
     final String key = "test_key";
 
     multiValueTree.put("test_ke", new ORecordId(12, 42));
@@ -530,7 +528,7 @@ public class SBTreeMultiValueTestIT {
 
   @Test
   public void testKeyPutRemoveWholeKeyTwo() throws Exception {
-    final int itemsCount = 256_000;
+    final int itemsCount = 1_000_000;
     final String key = "test_key";
 
     for (int i = 0; i < itemsCount; i++) {
@@ -562,7 +560,7 @@ public class SBTreeMultiValueTestIT {
 
   @Test
   public void testKeyPutRemoveWholeKeyThree() throws Exception {
-    final int itemsCount = 256_000;
+    final int itemsCount = 1_000_000;
     final String key = "test_key";
 
     multiValueTree.put("test_ke", new ORecordId(12, 42));
@@ -624,7 +622,7 @@ public class SBTreeMultiValueTestIT {
 
   @Test
   public void testKeyPutTwoSameKeysRemoveKey() throws Exception {
-    final int itemsCount = 500_000;
+    final int itemsCount = 1_000_000;
     final String keyOne = "test_key_one";
     final String keyTwo = "test_key_two";
 
@@ -650,7 +648,7 @@ public class SBTreeMultiValueTestIT {
 
   @Test
   public void testKeyPutTwoSameKeysRemoveKeyTwo() throws Exception {
-    final int itemsCount = 500_000;
+    final int itemsCount = 1_000_000;
     final String keyOne = "test_key_one";
     final String keyTwo = "test_key_two";
 
@@ -658,9 +656,6 @@ public class SBTreeMultiValueTestIT {
       multiValueTree.put(keyOne, new ORecordId(i % 32000, i));
       multiValueTree.put(keyTwo, new ORecordId(i % 32000, i));
     }
-
-    multiValueTree.get(keyOne);
-    multiValueTree.get(keyTwo);
 
     multiValueTree.remove(keyTwo);
 
@@ -679,7 +674,7 @@ public class SBTreeMultiValueTestIT {
 
   @Test
   public void testKeyPutRemoveTwoSameKey() throws Exception {
-    final int itemsCount = 256_000;
+    final int itemsCount = 1_000_000;
     final String keyOne = "test_key_1";
     final String keyTwo = "test_key_2";
 
@@ -751,7 +746,7 @@ public class SBTreeMultiValueTestIT {
 
   @Test
   public void testKeyPutTenSameKeysRemovedSecond() throws Exception {
-    final int itemsCount = 500_000;
+    final int itemsCount = 1_000_000;
 
     final String[] keys = new String[10];
     for (int i = 0; i < keys.length; i++) {
@@ -786,7 +781,7 @@ public class SBTreeMultiValueTestIT {
 
   @Test
   public void testKeyPutTenSameKeysRemovedSecondTwo() throws Exception {
-    final int itemsCount = 500_000;
+    final int itemsCount = 1_000_000;
 
     final String[] keys = new String[10];
     for (int i = 0; i < keys.length; i++) {
@@ -848,7 +843,7 @@ public class SBTreeMultiValueTestIT {
 
   @Test
   public void testKeyPutRemoveTenSameKeys() throws Exception {
-    final int itemsCount = 64_000;
+    final int itemsCount = 100_000;
 
     final String[] keys = new String[10];
     for (int i = 0; i < keys.length; i++) {
@@ -1373,6 +1368,7 @@ public class SBTreeMultiValueTestIT {
         }
       }
 
+      //noinspection ConstantConditions
       Assert.assertFalse(iterator.hasNext());
       Assert.assertNull(cursor.next(-1));
     }
@@ -1424,6 +1420,7 @@ public class SBTreeMultiValueTestIT {
         }
       }
 
+      //noinspection ConstantConditions
       Assert.assertFalse(iterator.hasNext());
       Assert.assertNull(cursor.next(-1));
     }
@@ -1492,6 +1489,7 @@ public class SBTreeMultiValueTestIT {
           Assert.assertEquals(expected, indexEntry.getValue());
         }
       }
+      //noinspection ConstantConditions
       Assert.assertFalse(iterator.hasNext());
       Assert.assertNull(cursor.next(-1));
     }
