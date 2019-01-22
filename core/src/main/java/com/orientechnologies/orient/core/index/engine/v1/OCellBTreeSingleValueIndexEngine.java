@@ -15,23 +15,23 @@ import com.orientechnologies.orient.core.iterator.OEmptyIterator;
 import com.orientechnologies.orient.core.metadata.schema.OType;
 import com.orientechnologies.orient.core.record.impl.ODocument;
 import com.orientechnologies.orient.core.storage.impl.local.OAbstractPaginatedStorage;
-import com.orientechnologies.orient.core.storage.index.sbtree.singlevalue.OSBTreeSingleValue;
+import com.orientechnologies.orient.core.storage.index.sbtree.singlevalue.OCellBTreeSingleValue;
 
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
-public final class OSBTreeSingleValueIndexEngine implements OSingleValueIndexEngine {
-  private static final String DATA_FILE_EXTENSION        = ".sbt";
+public final class OCellBTreeSingleValueIndexEngine implements OSingleValueIndexEngine {
+  private static final String DATA_FILE_EXTENSION        = ".cbt";
   private static final String NULL_BUCKET_FILE_EXTENSION = ".nbt";
 
-  private final OSBTreeSingleValue<Object> sbTree;
-  private final String                     name;
+  private final OCellBTreeSingleValue<Object> sbTree;
+  private final String                        name;
 
-  public OSBTreeSingleValueIndexEngine(String name, OAbstractPaginatedStorage storage) {
+  public OCellBTreeSingleValueIndexEngine(String name, OAbstractPaginatedStorage storage) {
     this.name = name;
-    this.sbTree = new OSBTreeSingleValue<>(name, DATA_FILE_EXTENSION, NULL_BUCKET_FILE_EXTENSION, storage);
+    this.sbTree = new OCellBTreeSingleValue<>(name, DATA_FILE_EXTENSION, NULL_BUCKET_FILE_EXTENSION, storage);
   }
 
   @Override
@@ -143,7 +143,7 @@ public final class OSBTreeSingleValueIndexEngine implements OSingleValueIndexEng
   @Override
   public OIndexKeyCursor keyCursor() {
     return new OIndexKeyCursor() {
-      private final OSBTreeSingleValue.OSBTreeKeyCursor<Object> sbTreeKeyCursor = sbTree.keyCursor();
+      private final OCellBTreeSingleValue.OSBTreeKeyCursor<Object> sbTreeKeyCursor = sbTree.keyCursor();
 
       @Override
       public Object next(int prefetchSize) {
@@ -161,7 +161,6 @@ public final class OSBTreeSingleValueIndexEngine implements OSingleValueIndexEng
     }
   }
 
-  @SuppressWarnings("unchecked")
   @Override
   public boolean validatedPut(Object key, ORID value, Validator<Object, ORID> validator) {
     try {
@@ -215,7 +214,7 @@ public final class OSBTreeSingleValueIndexEngine implements OSingleValueIndexEng
       final Object lastKey = sbTree.lastKey();
 
       if (firstKey != null && lastKey != null) {
-        final OSBTreeSingleValue.OSBTreeCursor<Object, ORID> cursor = sbTree
+        final OCellBTreeSingleValue.OSBTreeCursor<Object, ORID> cursor = sbTree
             .iterateEntriesBetween(firstKey, true, lastKey, true, true);
         Map.Entry<Object, ORID> entry = cursor.next(-1);
         while (entry != null) {
@@ -247,13 +246,13 @@ public final class OSBTreeSingleValueIndexEngine implements OSingleValueIndexEng
   }
 
   private static final class OSBTreeIndexCursor extends OIndexAbstractCursor {
-    private final OSBTreeSingleValue.OSBTreeCursor<Object, ORID> treeCursor;
-    private final ValuesTransformer                              valuesTransformer;
+    private final OCellBTreeSingleValue.OSBTreeCursor<Object, ORID> treeCursor;
+    private final ValuesTransformer                                 valuesTransformer;
 
     private Iterator<ORID> currentIterator = OEmptyIterator.IDENTIFIABLE_INSTANCE;
     private Object         currentKey      = null;
 
-    private OSBTreeIndexCursor(OSBTreeSingleValue.OSBTreeCursor<Object, ORID> treeCursor, ValuesTransformer valuesTransformer) {
+    private OSBTreeIndexCursor(OCellBTreeSingleValue.OSBTreeCursor<Object, ORID> treeCursor, ValuesTransformer valuesTransformer) {
       this.treeCursor = treeCursor;
       this.valuesTransformer = valuesTransformer;
     }

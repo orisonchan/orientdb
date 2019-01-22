@@ -17,8 +17,8 @@ package com.orientechnologies.orient.core.index;
 
 import com.orientechnologies.orient.core.exception.OConfigurationException;
 import com.orientechnologies.orient.core.index.engine.OBaseIndexEngine;
-import com.orientechnologies.orient.core.index.engine.v1.OSBTreeMultiValueIndexEngine;
-import com.orientechnologies.orient.core.index.engine.v1.OSBTreeSingleValueIndexEngine;
+import com.orientechnologies.orient.core.index.engine.v1.OCellBTreeMultiValueIndexEngine;
+import com.orientechnologies.orient.core.index.engine.v1.OCellBTreeSingleValueIndexEngine;
 import com.orientechnologies.orient.core.metadata.schema.OClass;
 import com.orientechnologies.orient.core.record.impl.ODocument;
 import com.orientechnologies.orient.core.storage.OStorage;
@@ -43,9 +43,10 @@ import java.util.Set;
  */
 public class ODefaultIndexFactory implements OIndexFactory {
 
-  static final        String SBTREE_ALGORITHM             = "SBTREE";
-  static final        String SBTREEBONSAI_VALUE_CONTAINER = "SBTREEBONSAISET";
-  public static final String NONE_VALUE_CONTAINER         = "NONE";
+  private static final String SBTREE_ALGORITHM              = "SBTREE";
+  static final         String SBTREE_BONSAI_VALUE_CONTAINER = "SBTREEBONSAISET";
+  public static final  String NONE_VALUE_CONTAINER          = "NONE";
+  static final         String CELL_BTREE_ALGORITHM          = "CELL_BTREE";
 
   private static final Set<String> TYPES;
   private static final Set<String> ALGORITHMS;
@@ -62,6 +63,7 @@ public class ODefaultIndexFactory implements OIndexFactory {
   static {
     final Set<String> algorithms = new HashSet<>();
     algorithms.add(SBTREE_ALGORITHM);
+    algorithms.add(CELL_BTREE_ALGORITHM);
 
     ALGORITHMS = Collections.unmodifiableSet(algorithms);
   }
@@ -105,16 +107,12 @@ public class ODefaultIndexFactory implements OIndexFactory {
       version = getLastVersion();
     }
 
-    if (SBTREE_ALGORITHM.equals(algorithm)) {
-      return createSBTreeIndex(name, indexType, valueContainerAlgorithm, metadata,
-          (OAbstractPaginatedStorage) storage.getUnderlying(), version, algorithm);
-    }
-
-    throw new OConfigurationException("Unsupported type: " + indexType);
+    return createSBTreeIndex(name, indexType, valueContainerAlgorithm, metadata,
+        (OAbstractPaginatedStorage) storage.getUnderlying(), version, algorithm);
   }
 
-  private OIndexInternal<?> createSBTreeIndex(String name, String indexType, String valueContainerAlgorithm, ODocument metadata,
-      OAbstractPaginatedStorage storage, int version, String algorithm) {
+  private static OIndexInternal<?> createSBTreeIndex(String name, String indexType, String valueContainerAlgorithm,
+      ODocument metadata, OAbstractPaginatedStorage storage, int version, String algorithm) {
 
     final int binaryFormatVersion = storage.getConfiguration().getBinaryFormatVersion();
 
@@ -141,26 +139,36 @@ public class ODefaultIndexFactory implements OIndexFactory {
 
   @Override
   public OBaseIndexEngine createIndexEngine(String algorithm, String name, Boolean durableInNonTxMode, OStorage storage,
-      int version, int apiVersion, boolean multivalue, Map<String, String> engineProperties) {
+      int version, int apiVersion, @SuppressWarnings("SpellCheckingInspection") boolean multivalue,
+      Map<String, String> engineProperties) {
 
+    if (algorithm == null) {
+      throw new OIndexException("Name of algorithm is not specified");
+    }
     final OBaseIndexEngine indexEngine;
-    final String storageType = storage.getType();
+    String storageType = storage.getType();
+
+    if (storageType.equals("distributed")) {
+      storage = storage.getUnderlying();
+      storageType = storage.getType();
+    }
 
     switch (storageType) {
-    case "distributed":
-      storage = storage.getUnderlying();
     case "memory":
     case "plocal":
-      if (apiVersion == 0) {
+      switch (algorithm) {
+      case SBTREE_ALGORITHM:
         indexEngine = new OSBTreeIndexEngine(name, (OAbstractPaginatedStorage) storage, version);
-      } else if (apiVersion == 1) {
+        break;
+      case CELL_BTREE_ALGORITHM:
         if (multivalue) {
-          indexEngine = new OSBTreeMultiValueIndexEngine(name, (OAbstractPaginatedStorage) storage);
+          indexEngine = new OCellBTreeMultiValueIndexEngine(name, (OAbstractPaginatedStorage) storage);
         } else {
-          indexEngine = new OSBTreeSingleValueIndexEngine(name, (OAbstractPaginatedStorage) storage);
+          indexEngine = new OCellBTreeSingleValueIndexEngine(name, (OAbstractPaginatedStorage) storage);
         }
-      } else {
-        throw new IllegalStateException("Invalid API version, " + apiVersion);
+        break;
+      default:
+        throw new IllegalStateException("Invalid name of algorithm :'" + "'");
       }
       break;
     case "remote":

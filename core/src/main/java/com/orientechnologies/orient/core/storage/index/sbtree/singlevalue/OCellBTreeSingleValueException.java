@@ -18,7 +18,7 @@
  *
  */
 
-package com.orientechnologies.orient.core.storage.index.sbtree.multivalue;
+package com.orientechnologies.orient.core.storage.index.sbtree.singlevalue;
 
 import com.orientechnologies.orient.core.exception.ODurableComponentException;
 
@@ -26,14 +26,14 @@ import com.orientechnologies.orient.core.exception.ODurableComponentException;
  * @author Andrey Lomakin (a.lomakin-at-orientdb.com)
  * @since 8/30/13
  */
-public final class OSBTreeMultiValueException extends ODurableComponentException {
+public final class OCellBTreeSingleValueException extends ODurableComponentException {
 
   @SuppressWarnings("unused")
-  public OSBTreeMultiValueException(final OSBTreeMultiValueException exception) {
+  public OCellBTreeSingleValueException(final OCellBTreeSingleValueException exception) {
     super(exception);
   }
 
-  OSBTreeMultiValueException(final String message, final OSBTreeMultiValue component) {
+  OCellBTreeSingleValueException(final String message, final OCellBTreeSingleValue component) {
     super(message, component);
   }
 }

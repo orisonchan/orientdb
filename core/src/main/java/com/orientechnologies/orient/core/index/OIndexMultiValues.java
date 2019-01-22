@@ -143,7 +143,7 @@ public abstract class OIndexMultiValues extends OIndexAbstract<Collection<ORID>>
       @SuppressWarnings("unchecked")
       Set<OIdentifiable> toUpdate = (Set<OIdentifiable>) oldValue;
       if (toUpdate == null) {
-        if (ODefaultIndexFactory.SBTREEBONSAI_VALUE_CONTAINER.equals(valueContainerAlgorithm)) {
+        if (ODefaultIndexFactory.SBTREE_BONSAI_VALUE_CONTAINER.equals(valueContainerAlgorithm)) {
           if (binaryFormatVersion >= 13) {
             toUpdate = new OMixedIndexRIDContainer(getName(), bonsayFileId);
           } else {

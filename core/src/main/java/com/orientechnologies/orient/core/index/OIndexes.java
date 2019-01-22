@@ -26,6 +26,7 @@ import com.orientechnologies.orient.core.storage.index.hashindex.local.OHashInde
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -39,7 +40,7 @@ import static com.orientechnologies.common.util.OClassLoaderHelper.lookupProvide
  * </p>
  * <p/>
  * <p>
- * In addition to implementing this interface datasouces should have a services file:<br>
+ * In addition to implementing this interface datasources should have a services file:<br>
  * <code>META-INF/services/com.orientechnologies.orient.core.index.OIndexFactory</code>
  * </p>
  * <p/>
@@ -57,7 +58,7 @@ import static com.orientechnologies.common.util.OClassLoaderHelper.lookupProvide
 public final class OIndexes {
 
   private static       Set<OIndexFactory> FACTORIES         = null;
-  private static final Set<OIndexFactory> DYNAMIC_FACTORIES = Collections.synchronizedSet(new HashSet<OIndexFactory>());
+  private static final Set<OIndexFactory> DYNAMIC_FACTORIES = Collections.synchronizedSet(new HashSet<>());
   private static       ClassLoader        orientClassLoader = OIndexes.class.getClassLoader();
 
   private OIndexes() {
@@ -73,7 +74,7 @@ public final class OIndexes {
 
       final Iterator<OIndexFactory> ite = lookupProviderWithOrientClassLoader(OIndexFactory.class, orientClassLoader);
 
-      final Set<OIndexFactory> factories = new HashSet<OIndexFactory>();
+      final Set<OIndexFactory> factories = new HashSet<>();
       while (ite.hasNext()) {
         factories.add(ite.next());
       }
@@ -95,8 +96,8 @@ public final class OIndexes {
    *
    * @return Set of all index types.
    */
-  public static Set<String> getIndexTypes() {
-    final Set<String> types = new HashSet<String>();
+  private static Set<String> getIndexTypes() {
+    final Set<String> types = new HashSet<>();
     final Iterator<OIndexFactory> ite = getAllFactories();
     while (ite.hasNext()) {
       types.addAll(ite.next().getTypes());
@@ -110,7 +111,7 @@ public final class OIndexes {
    * @return Set of all index engines.
    */
   public static Set<String> getIndexEngines() {
-    final Set<String> engines = new HashSet<String>();
+    final Set<String> engines = new HashSet<>();
     final Iterator<OIndexFactory> ite = getAllFactories();
     while (ite.hasNext()) {
       engines.addAll(ite.next().getAlgorithms());
@@ -119,9 +120,11 @@ public final class OIndexes {
   }
 
   public static OIndexFactory getFactory(String indexType, String algorithm) {
-    if (algorithm == null)
+    if (algorithm == null) {
       algorithm = chooseDefaultIndexAlgorithm(indexType);
+    }
 
+    algorithm = algorithm.toUpperCase(Locale.ENGLISH);
     final Iterator<OIndexFactory> ite = getAllFactories();
 
     while (ite.hasNext()) {
@@ -158,7 +161,7 @@ public final class OIndexes {
 
   }
 
-  public static OIndexFactory findFactoryByAlgorithmAndType(String algorithm, String indexType) {
+  private static OIndexFactory findFactoryByAlgorithmAndType(String algorithm, String indexType) {
 
     for (OIndexFactory factory : getFactories()) {
       if (indexType == null || indexType.isEmpty() || (factory.getTypes().contains(indexType)) && factory.getAlgorithms()
@@ -186,7 +189,7 @@ public final class OIndexes {
 
     if (OClass.INDEX_TYPE.DICTIONARY.name().equalsIgnoreCase(type) || OClass.INDEX_TYPE.FULLTEXT.name().equalsIgnoreCase(type)
         || OClass.INDEX_TYPE.NOTUNIQUE.name().equalsIgnoreCase(type) || OClass.INDEX_TYPE.UNIQUE.name().equalsIgnoreCase(type)) {
-      algorithm = ODefaultIndexFactory.SBTREE_ALGORITHM;
+      algorithm = ODefaultIndexFactory.CELL_BTREE_ALGORITHM;
     } else if (OClass.INDEX_TYPE.DICTIONARY_HASH_INDEX.name().equalsIgnoreCase(type) || OClass.INDEX_TYPE.FULLTEXT_HASH_INDEX.name()
         .equalsIgnoreCase(type) || OClass.INDEX_TYPE.NOTUNIQUE_HASH_INDEX.name().equalsIgnoreCase(type)
         || OClass.INDEX_TYPE.UNIQUE_HASH_INDEX.name().equalsIgnoreCase(type)) {
@@ -202,7 +205,7 @@ public final class OIndexes {
    * re-scan. Thus this method need only be invoked by sophisticated applications which dynamically make new plug-ins available at
    * runtime.
    */
-  public static synchronized void scanForPlugins() {
+  private static synchronized void scanForPlugins() {
     // clear cache, will cause a rescan on next getFactories call
     FACTORIES = null;
   }

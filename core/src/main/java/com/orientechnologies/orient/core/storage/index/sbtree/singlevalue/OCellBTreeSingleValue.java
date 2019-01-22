@@ -45,6 +45,7 @@ import com.orientechnologies.orient.core.storage.impl.local.OAbstractPaginatedSt
 import com.orientechnologies.orient.core.storage.impl.local.paginated.atomicoperations.OAtomicOperation;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.atomicoperations.OAtomicOperationsManager;
 import com.orientechnologies.orient.core.storage.impl.local.paginated.base.ODurableComponent;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -79,7 +80,8 @@ import java.util.Map;
  * @author Andrey Lomakin (a.lomakin-at-orientdb.com)
  * @since 8/7/13
  */
-public final class OSBTreeSingleValue<K> extends ODurableComponent {
+@SuppressFBWarnings("DLS_DEAD_LOCAL_STORE")
+public final class OCellBTreeSingleValue<K> extends ODurableComponent {
   private static final int               MAX_KEY_SIZE       = OGlobalConfiguration.SBTREE_MAX_KEY_SIZE.getValueAsInteger();
   private static final OAlwaysLessKey    ALWAYS_LESS_KEY    = new OAlwaysLessKey();
   private static final OAlwaysGreaterKey ALWAYS_GREATER_KEY = new OAlwaysGreaterKey();
@@ -98,7 +100,7 @@ public final class OSBTreeSingleValue<K> extends ODurableComponent {
   private       OType[]              keyTypes;
   private       OEncryption          encryption;
 
-  public OSBTreeSingleValue(final String name, final String dataFileExtension, final String nullFileExtension,
+  public OCellBTreeSingleValue(final String name, final String dataFileExtension, final String nullFileExtension,
       final OAbstractPaginatedStorage storage) {
     super(storage, name, dataFileExtension, name + dataFileExtension);
     acquireExclusiveLock();
@@ -205,7 +207,7 @@ public final class OSBTreeSingleValue<K> extends ODurableComponent {
       }
     } catch (final IOException e) {
       throw OException
-          .wrapException(new OSBTreeSingleValueException("Error during retrieving  of sbtree with name " + getName(), this), e);
+          .wrapException(new OCellBTreeSingleValueException("Error during retrieving  of sbtree with name " + getName(), this), e);
     } finally {
       atomicOperationsManager.releaseReadLock(this);
     }
@@ -504,7 +506,7 @@ public final class OSBTreeSingleValue<K> extends ODurableComponent {
       //noinspection unchecked
       this.keySerializer = (OBinarySerializer<K>) OBinarySerializerFactory.getInstance().getObjectSerializer(keySerializerId);
     } catch (final IOException e) {
-      throw OException.wrapException(new OSBTreeSingleValueException("Exception during loading of sbtree " + name, this), e);
+      throw OException.wrapException(new OCellBTreeSingleValueException("Exception during loading of sbtree " + name, this), e);
     } finally {
       releaseExclusiveLock();
     }
@@ -529,7 +531,7 @@ public final class OSBTreeSingleValue<K> extends ODurableComponent {
       }
     } catch (final IOException e) {
       throw OException
-          .wrapException(new OSBTreeSingleValueException("Error during retrieving of size of index " + getName(), this), e);
+          .wrapException(new OCellBTreeSingleValueException("Error during retrieving of size of index " + getName(), this), e);
     } finally {
       atomicOperationsManager.releaseReadLock(this);
     }
@@ -669,7 +671,8 @@ public final class OSBTreeSingleValue<K> extends ODurableComponent {
       }
     } catch (final IOException e) {
       throw OException
-          .wrapException(new OSBTreeSingleValueException("Error during finding first key in sbtree [" + getName() + "]", this), e);
+          .wrapException(new OCellBTreeSingleValueException("Error during finding first key in sbtree [" + getName() + "]", this),
+              e);
     } finally {
       atomicOperationsManager.releaseReadLock(this);
     }
@@ -700,7 +703,8 @@ public final class OSBTreeSingleValue<K> extends ODurableComponent {
       }
     } catch (final IOException e) {
       throw OException
-          .wrapException(new OSBTreeSingleValueException("Error during finding last key in sbtree [" + getName() + "]", this), e);
+          .wrapException(new OCellBTreeSingleValueException("Error during finding last key in sbtree [" + getName() + "]", this),
+              e);
     } finally {
       atomicOperationsManager.releaseReadLock(this);
     }
@@ -723,7 +727,8 @@ public final class OSBTreeSingleValue<K> extends ODurableComponent {
       }
     } catch (final IOException e) {
       throw OException
-          .wrapException(new OSBTreeSingleValueException("Error during finding first key in sbtree [" + getName() + "]", this), e);
+          .wrapException(new OCellBTreeSingleValueException("Error during finding first key in sbtree [" + getName() + "]", this),
+              e);
     } finally {
       atomicOperationsManager.releaseReadLock(this);
     }
@@ -1273,7 +1278,7 @@ public final class OSBTreeSingleValue<K> extends ODurableComponent {
     while (true) {
       depth++;
       if (depth > MAX_PATH_LENGTH) {
-        throw new OSBTreeSingleValueException(
+        throw new OCellBTreeSingleValueException(
             "We reached max level of depth of SBTree but still found nothing, seems like tree is in corrupted state. You should rebuild index related to given query.",
             this);
       }
@@ -1312,7 +1317,7 @@ public final class OSBTreeSingleValue<K> extends ODurableComponent {
 
     while (true) {
       if (path.size() > MAX_PATH_LENGTH) {
-        throw new OSBTreeSingleValueException(
+        throw new OCellBTreeSingleValueException(
             "We reached max level of depth of SBTree but still found nothing, seems like tree is in corrupted state. You should rebuild index related to given query.",
             this);
       }
@@ -1494,7 +1499,7 @@ public final class OSBTreeSingleValue<K> extends ODurableComponent {
         prefetchSize = 1;
       }
 
-      atomicOperationsManager.acquireReadLock(OSBTreeSingleValue.this);
+      atomicOperationsManager.acquireReadLock(OCellBTreeSingleValue.this);
       try {
         acquireSharedLock();
         try {
@@ -1544,9 +1549,9 @@ public final class OSBTreeSingleValue<K> extends ODurableComponent {
         }
       } catch (final IOException e) {
         throw OException
-            .wrapException(new OSBTreeSingleValueException("Error during element iteration", OSBTreeSingleValue.this), e);
+            .wrapException(new OCellBTreeSingleValueException("Error during element iteration", OCellBTreeSingleValue.this), e);
       } finally {
-        atomicOperationsManager.releaseReadLock(OSBTreeSingleValue.this);
+        atomicOperationsManager.releaseReadLock(OCellBTreeSingleValue.this);
       }
 
       if (keysCache.isEmpty()) {
@@ -1604,7 +1609,7 @@ public final class OSBTreeSingleValue<K> extends ODurableComponent {
         prefetchSize = 1;
       }
 
-      atomicOperationsManager.acquireReadLock(OSBTreeSingleValue.this);
+      atomicOperationsManager.acquireReadLock(OCellBTreeSingleValue.this);
       try {
         acquireSharedLock();
         try {
@@ -1678,9 +1683,9 @@ public final class OSBTreeSingleValue<K> extends ODurableComponent {
         }
       } catch (final IOException e) {
         throw OException
-            .wrapException(new OSBTreeSingleValueException("Error during element iteration", OSBTreeSingleValue.this), e);
+            .wrapException(new OCellBTreeSingleValueException("Error during element iteration", OCellBTreeSingleValue.this), e);
       } finally {
-        atomicOperationsManager.releaseReadLock(OSBTreeSingleValue.this);
+        atomicOperationsManager.releaseReadLock(OCellBTreeSingleValue.this);
       }
 
       if (dataCache.isEmpty()) {
@@ -1740,7 +1745,7 @@ public final class OSBTreeSingleValue<K> extends ODurableComponent {
         prefetchSize = OGlobalConfiguration.INDEX_CURSOR_PREFETCH_SIZE.getValueAsInteger();
       }
 
-      atomicOperationsManager.acquireReadLock(OSBTreeSingleValue.this);
+      atomicOperationsManager.acquireReadLock(OCellBTreeSingleValue.this);
       try {
         acquireSharedLock();
         try {
@@ -1817,9 +1822,9 @@ public final class OSBTreeSingleValue<K> extends ODurableComponent {
         }
       } catch (final IOException e) {
         throw OException
-            .wrapException(new OSBTreeSingleValueException("Error during element iteration", OSBTreeSingleValue.this), e);
+            .wrapException(new OCellBTreeSingleValueException("Error during element iteration", OCellBTreeSingleValue.this), e);
       } finally {
-        atomicOperationsManager.releaseReadLock(OSBTreeSingleValue.this);
+        atomicOperationsManager.releaseReadLock(OCellBTreeSingleValue.this);
       }
 
       if (dataCache.isEmpty()) {

@@ -128,7 +128,7 @@ public class OIndexFullText extends OIndexMultiValues {
 
           if (refsc == null) {
             // WORD NOT EXISTS: CREATE THE KEYWORD CONTAINER THE FIRST TIME THE WORD IS FOUND
-            if (ODefaultIndexFactory.SBTREEBONSAI_VALUE_CONTAINER.equals(valueContainerAlgorithm)) {
+            if (ODefaultIndexFactory.SBTREE_BONSAI_VALUE_CONTAINER.equals(valueContainerAlgorithm)) {
               if (binaryFormatVersion >= 13) {
                 result = new OMixedIndexRIDContainer(getName(), bonsayFileId);
               } else {
@@ -305,12 +305,11 @@ public class OIndexFullText extends OIndexMultiValues {
 
   }
 
-  protected void config() {
+  private void config() {
     ignoreChars = DEF_IGNORE_CHARS;
     indexRadix = DEF_INDEX_RADIX;
     separatorChars = DEF_SEPARATOR_CHARS;
-    int DEF_MIN_WORD_LENGTH = 3;
-    minWordLength = DEF_MIN_WORD_LENGTH;
+    minWordLength = 3;
     stopWords = new HashSet<>(OStringSerializerHelper.split(DEF_STOP_WORDS, ' '));
   }
 

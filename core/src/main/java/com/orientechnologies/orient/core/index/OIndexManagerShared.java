@@ -62,8 +62,6 @@ import java.util.Set;
  */
 @SuppressFBWarnings("EQ_DOESNT_OVERRIDE_EQUALS")
 public class OIndexManagerShared extends OIndexManagerAbstract {
-  private static final long serialVersionUID = 1L;
-
   private volatile transient Thread   recreateIndexesThread = null;
   private volatile           boolean  rebuildCompleted      = false;
   private final              OStorage storage;
@@ -186,7 +184,7 @@ public class OIndexManagerShared extends OIndexManagerAbstract {
     return preProcessBeforeReturn(database, index);
   }
 
-  private void notifyInvolvedClasses(int[] clusterIdsToIndex) {
+  private static void notifyInvolvedClasses(int[] clusterIdsToIndex) {
     if (clusterIdsToIndex == null || clusterIdsToIndex.length == 0)
       return;
 
@@ -203,7 +201,7 @@ public class OIndexManagerShared extends OIndexManagerAbstract {
     }
   }
 
-  private Set<String> findClustersByIds(int[] clusterIdsToIndex, ODatabase database) {
+  private static Set<String> findClustersByIds(int[] clusterIdsToIndex, ODatabase database) {
     Set<String> clustersToIndex = new HashSet<>();
     if (clusterIdsToIndex != null) {
       for (int clusterId : clusterIdsToIndex) {
@@ -217,11 +215,11 @@ public class OIndexManagerShared extends OIndexManagerAbstract {
     return clustersToIndex;
   }
 
-  private String chooseContainerAlgorithm(String type) {
+  private static String chooseContainerAlgorithm(String type) {
     final String valueContainerAlgorithm;
     if (OClass.INDEX_TYPE.NOTUNIQUE.toString().equals(type) || OClass.INDEX_TYPE.NOTUNIQUE_HASH_INDEX.toString().equals(type)
         || OClass.INDEX_TYPE.FULLTEXT_HASH_INDEX.toString().equals(type) || OClass.INDEX_TYPE.FULLTEXT.toString().equals(type)) {
-      valueContainerAlgorithm = ODefaultIndexFactory.SBTREEBONSAI_VALUE_CONTAINER;
+      valueContainerAlgorithm = ODefaultIndexFactory.SBTREE_BONSAI_VALUE_CONTAINER;
     } else {
       valueContainerAlgorithm = ODefaultIndexFactory.NONE_VALUE_CONTAINER;
     }
@@ -459,7 +457,7 @@ public class OIndexManagerShared extends OIndexManagerAbstract {
       final int paramCount = indexDefinition.getParamCount();
 
       for (int i = 1; i <= paramCount; i++) {
-        final List<String> fields = normalizeFieldNames(indexDefinition.getFields().subList(0, i));
+        final List<String> fields = indexDefinition.getFields().subList(0, i);
         final OMultiKey multiKey = new OMultiKey(fields);
 
         Set<OIndex<?>> indexSet = map.get(multiKey);
@@ -630,7 +628,8 @@ public class OIndexManagerShared extends OIndexManagerAbstract {
           try {
             final OIndexFactory indexFactory = it.next();
             final OBaseIndexEngine engine = indexFactory
-                .createIndexEngine(null, index.getName(), false, storage, 0, 1, indexDefinition.getTypes().length > 1, null);
+                .createIndexEngine(index.getAlgorithm(), index.getName(), false, storage, 0, 1,
+                    indexDefinition.getTypes().length > 1, null);
 
             engine.deleteWithoutLoad(index.getName());
           } catch (Exception e2) {
@@ -715,7 +714,7 @@ public class OIndexManagerShared extends OIndexManagerAbstract {
     return index;
   }
 
-  public OStorage getStorage() {
+  protected OStorage getStorage() {
     return storage;
   }
 }

@@ -24,17 +24,16 @@ import java.util.Random;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
-public class SBTreeSingleValueTestIT {
-  private   OSBTreeSingleValue<String> singleValueTree;
-  protected ODatabaseSession           databaseDocumentTx;
-  protected String                     buildDirectory;
-  protected OrientDB                   orientDB;
+public class OCellBTreeSingleValueTestIT {
+  private OCellBTreeSingleValue<String> singleValueTree;
+  private OrientDB                      orientDB;
 
   private String dbName;
 
   @Before
   public void before() throws Exception {
-    buildDirectory = System.getProperty("buildDirectory", ".") + File.separator + SBTreeSingleValueTestIT.class.getSimpleName();
+    final String buildDirectory =
+        System.getProperty("buildDirectory", ".") + File.separator + OCellBTreeSingleValueTestIT.class.getSimpleName();
 
     dbName = "localSingleBTreeTest";
     final File dbDirectory = new File(buildDirectory, dbName);
@@ -43,15 +42,15 @@ public class SBTreeSingleValueTestIT {
     orientDB = new OrientDB("plocal:" + buildDirectory, OrientDBConfig.defaultConfig());
     orientDB.create(dbName, ODatabaseType.PLOCAL);
 
-    databaseDocumentTx = orientDB.open(dbName, "admin", "admin");
+    final ODatabaseSession databaseDocumentTx = orientDB.open(dbName, "admin", "admin");
 
-    singleValueTree = new OSBTreeSingleValue<>("singleBTree", ".sbt", ".nbt",
+    singleValueTree = new OCellBTreeSingleValue<>("singleBTree", ".sbt", ".nbt",
         (OAbstractPaginatedStorage) ((ODatabaseInternal) databaseDocumentTx).getStorage());
     singleValueTree.create(OUTF8Serializer.INSTANCE, null, 1, null);
   }
 
   @After
-  public void afterMethod() throws Exception {
+  public void afterMethod() {
     orientDB.drop(dbName);
     orientDB.close();
   }
@@ -67,7 +66,7 @@ public class SBTreeSingleValueTestIT {
 
       singleValueTree.put(key, new ORecordId(i % 32000, i));
       if (i % 100_000 == 0) {
-        System.out.printf("%d items loaded out of %d\n", i, keysCount);
+        System.out.printf("%d items loaded out of %d%n", i, keysCount);
       }
 
       if (lastKey == null) {
@@ -83,7 +82,7 @@ public class SBTreeSingleValueTestIT {
     for (int i = 0; i < keysCount; i++) {
       Assert.assertEquals(i + " key is absent", singleValueTree.get(Integer.toString(i)), new ORecordId(i % 32000, i));
       if (i % 100_000 == 0) {
-        System.out.printf("%d items tested out of %d\n", i, keysCount);
+        System.out.printf("%d items tested out of %d%n", i, keysCount);
       }
     }
 
@@ -308,7 +307,7 @@ public class SBTreeSingleValueTestIT {
     Assert.assertEquals(singleValueTree.firstKey(), keyValues.firstKey());
     Assert.assertEquals(singleValueTree.lastKey(), keyValues.lastKey());
 
-    final OSBTreeSingleValue.OSBTreeKeyCursor<String> cursor = singleValueTree.keyCursor();
+    final OCellBTreeSingleValue.OSBTreeKeyCursor<String> cursor = singleValueTree.keyCursor();
 
     for (String entryKey : keyValues.keySet()) {
       final String indexKey = cursor.next(-1);
@@ -418,7 +417,7 @@ public class SBTreeSingleValueTestIT {
         fromKey = fromKey.substring(0, fromKey.length() - 2) + (fromKey.charAt(fromKey.length() - 1) - 1);
       }
 
-      final OSBTreeSingleValue.OSBTreeCursor<String, ORID> cursor = singleValueTree
+      final OCellBTreeSingleValue.OSBTreeCursor<String, ORID> cursor = singleValueTree
           .iterateEntriesMajor(fromKey, keyInclusive, ascSortOrder);
 
       Iterator<Map.Entry<String, ORID>> iterator;
@@ -436,6 +435,7 @@ public class SBTreeSingleValueTestIT {
         Assert.assertEquals(indexEntry.getValue(), entry.getValue());
       }
 
+      //noinspection ConstantConditions
       Assert.assertFalse(iterator.hasNext());
       Assert.assertNull(cursor.next(-1));
     }
@@ -458,7 +458,7 @@ public class SBTreeSingleValueTestIT {
         toKey = toKey.substring(0, toKey.length() - 2) + (toKey.charAt(toKey.length() - 1) + 1);
       }
 
-      final OSBTreeSingleValue.OSBTreeCursor<String, ORID> cursor = singleValueTree
+      final OCellBTreeSingleValue.OSBTreeCursor<String, ORID> cursor = singleValueTree
           .iterateEntriesMinor(toKey, keyInclusive, ascSortOrder);
 
       Iterator<Map.Entry<String, ORID>> iterator;
@@ -476,6 +476,7 @@ public class SBTreeSingleValueTestIT {
         Assert.assertEquals(indexEntry.getValue(), entry.getValue());
       }
 
+      //noinspection ConstantConditions
       Assert.assertFalse(iterator.hasNext());
       Assert.assertNull(cursor.next(-1));
     }
@@ -514,7 +515,7 @@ public class SBTreeSingleValueTestIT {
         fromKey = toKey;
       }
 
-      OSBTreeSingleValue.OSBTreeCursor<String, ORID> cursor = singleValueTree
+      OCellBTreeSingleValue.OSBTreeCursor<String, ORID> cursor = singleValueTree
           .iterateEntriesBetween(fromKey, fromInclusive, toKey, toInclusive, ascSortOrder);
 
       Iterator<Map.Entry<String, ORID>> iterator;
@@ -532,6 +533,7 @@ public class SBTreeSingleValueTestIT {
         Assert.assertEquals(indexEntry.getKey(), mapEntry.getKey());
         Assert.assertEquals(indexEntry.getValue(), mapEntry.getValue());
       }
+      //noinspection ConstantConditions
       Assert.assertFalse(iterator.hasNext());
       Assert.assertNull(cursor.next(-1));
     }

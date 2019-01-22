@@ -14,23 +14,23 @@ import com.orientechnologies.orient.core.index.engine.OMultiValueIndexEngine;
 import com.orientechnologies.orient.core.metadata.schema.OType;
 import com.orientechnologies.orient.core.record.impl.ODocument;
 import com.orientechnologies.orient.core.storage.impl.local.OAbstractPaginatedStorage;
-import com.orientechnologies.orient.core.storage.index.sbtree.multivalue.OSBTreeMultiValue;
+import com.orientechnologies.orient.core.storage.index.sbtree.multivalue.OCellBTreeMultiValue;
 
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public final class OSBTreeMultiValueIndexEngine implements OMultiValueIndexEngine {
-  private static final String DATA_FILE_EXTENSION        = ".sbt";
+public final class OCellBTreeMultiValueIndexEngine implements OMultiValueIndexEngine {
+  private static final String DATA_FILE_EXTENSION        = ".cbt";
   private static final String NULL_BUCKET_FILE_EXTENSION = ".nbt";
 
-  private final OSBTreeMultiValue<Object> sbTree;
-  private final String                    name;
+  private final OCellBTreeMultiValue<Object> sbTree;
+  private final String                       name;
 
-  public OSBTreeMultiValueIndexEngine(String name, OAbstractPaginatedStorage storage) {
+  public OCellBTreeMultiValueIndexEngine(String name, OAbstractPaginatedStorage storage) {
     this.name = name;
-    this.sbTree = new OSBTreeMultiValue<>(name, DATA_FILE_EXTENSION, NULL_BUCKET_FILE_EXTENSION, storage);
+    this.sbTree = new OCellBTreeMultiValue<>(name, DATA_FILE_EXTENSION, NULL_BUCKET_FILE_EXTENSION, storage);
   }
 
   @Override
@@ -152,7 +152,7 @@ public final class OSBTreeMultiValueIndexEngine implements OMultiValueIndexEngin
   @Override
   public OIndexKeyCursor keyCursor() {
     return new OIndexKeyCursor() {
-      private final OSBTreeMultiValue.OSBTreeKeyCursor<Object> sbTreeKeyCursor = sbTree.keyCursor();
+      private final OCellBTreeMultiValue.OSBTreeKeyCursor<Object> sbTreeKeyCursor = sbTree.keyCursor();
 
       @Override
       public Object next(int prefetchSize) {
@@ -212,7 +212,7 @@ public final class OSBTreeMultiValueIndexEngine implements OMultiValueIndexEngin
       }
 
       if (firstKey != null && lastKey != null) {
-        final OSBTreeMultiValue.OSBTreeCursor<Object, ORID> cursor = sbTree
+        final OCellBTreeMultiValue.OSBTreeCursor<Object, ORID> cursor = sbTree
             .iterateEntriesBetween(firstKey, true, lastKey, true, true);
 
         Object prevKey = new Object();
@@ -253,9 +253,9 @@ public final class OSBTreeMultiValueIndexEngine implements OMultiValueIndexEngin
   }
 
   private static final class OSBTreeIndexCursor extends OIndexAbstractCursor {
-    private final OSBTreeMultiValue.OSBTreeCursor<Object, ORID> treeCursor;
+    private final OCellBTreeMultiValue.OSBTreeCursor<Object, ORID> treeCursor;
 
-    private OSBTreeIndexCursor(OSBTreeMultiValue.OSBTreeCursor<Object, ORID> treeCursor) {
+    private OSBTreeIndexCursor(OCellBTreeMultiValue.OSBTreeCursor<Object, ORID> treeCursor) {
       this.treeCursor = treeCursor;
     }
 
