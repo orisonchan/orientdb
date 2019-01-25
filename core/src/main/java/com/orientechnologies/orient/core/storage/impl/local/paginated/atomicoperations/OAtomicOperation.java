@@ -79,7 +79,7 @@ public final class OAtomicOperation {
     this.readCache = readCache;
     this.writeCache = writeCache;
 
-    keepOnlyRids = false;
+    keepOnlyRids = writeAheadLog != null;
   }
 
   OLogSequenceNumber getStartLSN() {
