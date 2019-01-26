@@ -59,6 +59,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * @author Andrey Lomakin (a.lomakin-at-orientdb.com)
@@ -113,7 +114,7 @@ public final class O2QCache implements OReadCache {
   private final LongAdder cacheRequests = new LongAdder();
   private final LongAdder cacheHits     = new LongAdder();
 
-  private final Object                                 evictionLock    = new Object();
+  private final Lock                                   evictionLock    = new ReentrantLock();
   private final OReadersWriterSpinLock                 cacheLock       = new OReadersWriterSpinLock();
   private final OPartitionedLockManager<PageKey>       pageLockManager = new OPartitionedLockManager<>();
   private final ConcurrentMap<PinnedPage, OCacheEntry> pinnedPages     = new ConcurrentHashMap<>();
@@ -982,26 +983,38 @@ public final class O2QCache implements OReadCache {
   }
 
   private void removeColdestPagesIfNeeded(final OWriteCache writeCache) {
-    synchronized (evictionLock) {
-      final MemoryData memoryData = this.memoryDataContainer.get();
-      if (am.size() + a1in.size() > memoryData.get2QCacheSize()) {
+    final MemoryData memoryData = this.memoryDataContainer.get();
+    final int cacheMaxSize = memoryData.get2QCacheSize();
+    final int diff = am.size() + a1in.size() - cacheMaxSize;
+
+    if (diff <= 0) {
+      return;
+    }
+
+    if (diff < 0.05 * cacheMaxSize) {
+      if (!evictionLock.tryLock()) {
+        return;
+      }
+    } else {
+      evictionLock.lock();
+    }
+    try {
+      //remove at once 5% of staled pages to decrease contention
+      while (am.size() + a1in.size() > 0.95 * cacheMaxSize) {
         try {
           writeCache.checkCacheOverflow();
         } catch (final InterruptedException e) {
           throw OException.wrapException(new OInterruptedException("Check of write cache overflow was interrupted"), e);
         }
-      }
 
-      while (am.size() + a1in.size() > memoryData.get2QCacheSize()) {
-        if (a1in.size() > memoryData.K_IN) {
+        if (a1in.size() > memoryData.K_IN * 0.95) {
           OCacheEntry removedFromAInEntry = a1in.getLRU();
           if (removedFromAInEntry == null) {
             throw new OAllCacheEntriesAreUsedException("All records in aIn queue in 2q cache are used!");
           }
 
           {
-            final Lock lock = pageLockManager
-                .acquireExclusiveLock(new PageKey(removedFromAInEntry.getFileId(), removedFromAInEntry.getPageIndex()));
+            final Lock lock = pageLockManager.acquireExclusiveLock(new PageKey(removedFromAInEntry.getFileId(), removedFromAInEntry.getPageIndex()));
             try {
               removedFromAInEntry = a1in.get(removedFromAInEntry.getFileId(), removedFromAInEntry.getPageIndex());
               if (removedFromAInEntry != null && removedFromAInEntry.getUsagesCount() == 0) {
@@ -1021,8 +1034,7 @@ public final class O2QCache implements OReadCache {
           while (a1out.size() > memoryData.K_OUT) {
             OCacheEntry removedEntry = a1out.getLRU();
             if (removedEntry != null) {
-              final Lock lock = pageLockManager
-                  .acquireExclusiveLock(new PageKey(removedEntry.getFileId(), removedEntry.getPageIndex()));
+              final Lock lock = pageLockManager.acquireExclusiveLock(new PageKey(removedEntry.getFileId(), removedEntry.getPageIndex()));
               try {
                 removedEntry = a1out.get(removedEntry.getFileId(), removedEntry.getPageIndex());
                 if (removedEntry != null && removedEntry.getUsagesCount() == 0) {
@@ -1039,8 +1051,7 @@ public final class O2QCache implements OReadCache {
             throw new OAllCacheEntriesAreUsedException("All records in aIn queue in 2q cache are used!");
           }
 
-          final Lock lock = pageLockManager
-              .acquireExclusiveLock(new PageKey(removedEntry.getFileId(), removedEntry.getPageIndex()));
+          final Lock lock = pageLockManager.acquireExclusiveLock(new PageKey(removedEntry.getFileId(), removedEntry.getPageIndex()));
           try {
             removedEntry = am.get(removedEntry.getFileId(), removedEntry.getPageIndex());
             if (removedEntry != null && removedEntry.getUsagesCount() == 0) {
@@ -1056,6 +1067,8 @@ public final class O2QCache implements OReadCache {
           }
         }
       }
+    } finally {
+      evictionLock.unlock();
     }
   }
 
