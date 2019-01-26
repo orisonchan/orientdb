@@ -990,7 +990,7 @@ public class ReadWriteDiskCacheTest {
 
     // Set the file content to random.
 
-    final OCachePointer cachePointer = writeBuffer.load(fileId, 0, 1, true, new OModifiableBoolean(), true)[0];
+    final OCachePointer cachePointer = writeBuffer.load(fileId, 0, 1, new OModifiableBoolean(), true)[0];
     cachePointer.acquireExclusiveLock();
     final Random random = new Random(seed);
     final ByteBuffer buffer = cachePointer.getBufferDuplicate();
@@ -1022,7 +1022,7 @@ public class ReadWriteDiskCacheTest {
 
     // Verify the content.
 
-    final OCachePointer verificationCachePointer = writeBuffer.load(fileId, 0, 1, false, new OModifiableBoolean(), true)[0];
+    final OCachePointer verificationCachePointer = writeBuffer.load(fileId, 0, 1, new OModifiableBoolean(), true)[0];
     verificationCachePointer.acquireSharedLock();
     final Random verificationRandom = new Random(seed);
     final ByteBuffer verificationBuffer = verificationCachePointer.getBufferDuplicate();

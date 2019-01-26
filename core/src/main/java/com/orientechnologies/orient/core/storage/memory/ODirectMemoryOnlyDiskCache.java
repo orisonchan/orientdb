@@ -40,6 +40,7 @@ import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OLogSe
 import com.orientechnologies.orient.core.storage.impl.local.statistic.OPerformanceStatisticManager;
 import com.orientechnologies.orient.core.storage.impl.local.statistic.OSessionStoragePerformanceStatistic;
 
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
@@ -274,6 +275,11 @@ public final class ODirectMemoryOnlyDiskCache extends OAbstractWriteCache implem
         sessionStoragePerformanceStatistic.stopPageReadFromCacheTimer();
       }
     }
+  }
+
+  @Override
+  public int allocateNewPage(final long fileId) throws IOException {
+    throw new UnsupportedOperationException();
   }
 
   private MemoryFile getFile(final int fileId) {
@@ -679,7 +685,7 @@ public final class ODirectMemoryOnlyDiskCache extends OAbstractWriteCache implem
   }
 
   @Override
-  public final OCachePointer[] load(final long fileId, final long startPageIndex, final int pageCount, final boolean addNewPages,
+  public final OCachePointer[] load(final long fileId, final long startPageIndex, final int pageCount,
       final OModifiableBoolean cacheHit, final boolean verifyChecksums) {
     throw new UnsupportedOperationException();
   }
