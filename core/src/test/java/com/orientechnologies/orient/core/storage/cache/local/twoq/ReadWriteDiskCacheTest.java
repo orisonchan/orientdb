@@ -990,6 +990,7 @@ public class ReadWriteDiskCacheTest {
 
     // Set the file content to random.
 
+    writeBuffer.allocateNewPage(fileId);
     final OCachePointer cachePointer = writeBuffer.load(fileId, 0, 1, new OModifiableBoolean(), true)[0];
     cachePointer.acquireExclusiveLock();
     final Random random = new Random(seed);
