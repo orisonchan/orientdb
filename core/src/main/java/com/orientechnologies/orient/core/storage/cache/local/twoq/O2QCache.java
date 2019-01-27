@@ -999,8 +999,9 @@ public final class O2QCache implements OReadCache {
       evictionLock.lock();
     }
     try {
+      int counter = 0;
       //remove at once 5% of staled pages to decrease contention
-      while (am.size() + a1in.size() > 0.95 * cacheMaxSize) {
+      while (counter < diff) {
         try {
           writeCache.checkCacheOverflow();
         } catch (final InterruptedException e) {
@@ -1014,7 +1015,8 @@ public final class O2QCache implements OReadCache {
           }
 
           {
-            final Lock lock = pageLockManager.acquireExclusiveLock(new PageKey(removedFromAInEntry.getFileId(), removedFromAInEntry.getPageIndex()));
+            final Lock lock = pageLockManager
+                .acquireExclusiveLock(new PageKey(removedFromAInEntry.getFileId(), removedFromAInEntry.getPageIndex()));
             try {
               removedFromAInEntry = a1in.get(removedFromAInEntry.getFileId(), removedFromAInEntry.getPageIndex());
               if (removedFromAInEntry != null && removedFromAInEntry.getUsagesCount() == 0) {
@@ -1023,6 +1025,8 @@ public final class O2QCache implements OReadCache {
                 cachePointer.decrementReadersReferrer();
                 removedFromAInEntry.clearCachePointer();
                 a1out.putToMRU(removedFromAInEntry);
+
+                counter++;
               } else {
                 continue;
               }
@@ -1034,7 +1038,8 @@ public final class O2QCache implements OReadCache {
           while (a1out.size() > memoryData.K_OUT) {
             OCacheEntry removedEntry = a1out.getLRU();
             if (removedEntry != null) {
-              final Lock lock = pageLockManager.acquireExclusiveLock(new PageKey(removedEntry.getFileId(), removedEntry.getPageIndex()));
+              final Lock lock = pageLockManager
+                  .acquireExclusiveLock(new PageKey(removedEntry.getFileId(), removedEntry.getPageIndex()));
               try {
                 removedEntry = a1out.get(removedEntry.getFileId(), removedEntry.getPageIndex());
                 if (removedEntry != null && removedEntry.getUsagesCount() == 0) {
@@ -1051,7 +1056,8 @@ public final class O2QCache implements OReadCache {
             throw new OAllCacheEntriesAreUsedException("All records in aIn queue in 2q cache are used!");
           }
 
-          final Lock lock = pageLockManager.acquireExclusiveLock(new PageKey(removedEntry.getFileId(), removedEntry.getPageIndex()));
+          final Lock lock = pageLockManager
+              .acquireExclusiveLock(new PageKey(removedEntry.getFileId(), removedEntry.getPageIndex()));
           try {
             removedEntry = am.get(removedEntry.getFileId(), removedEntry.getPageIndex());
             if (removedEntry != null && removedEntry.getUsagesCount() == 0) {
@@ -1061,6 +1067,8 @@ public final class O2QCache implements OReadCache {
 
               cachePointer.decrementReadersReferrer();
               removedEntry.clearCachePointer();
+
+              counter++;
             }
           } finally {
             lock.unlock();
