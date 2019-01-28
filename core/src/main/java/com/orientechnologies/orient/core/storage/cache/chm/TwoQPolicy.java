@@ -106,6 +106,8 @@ public class TwoQPolicy {
 
             data.remove(pageKey, cacheEntry);
             cacheEntry.makeDead();
+          } else {
+            am.moveToTheTail(cacheEntry);
           }
         }
       }
