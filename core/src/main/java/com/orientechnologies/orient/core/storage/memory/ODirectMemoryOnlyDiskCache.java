@@ -40,7 +40,6 @@ import com.orientechnologies.orient.core.storage.impl.local.paginated.wal.OLogSe
 import com.orientechnologies.orient.core.storage.impl.local.statistic.OPerformanceStatisticManager;
 import com.orientechnologies.orient.core.storage.impl.local.statistic.OSessionStoragePerformanceStatistic;
 
-import java.io.IOException;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
@@ -278,7 +277,7 @@ public final class ODirectMemoryOnlyDiskCache extends OAbstractWriteCache implem
   }
 
   @Override
-  public int allocateNewPage(final long fileId) throws IOException {
+  public int allocateNewPage(final long fileId) {
     throw new UnsupportedOperationException();
   }
 
@@ -442,6 +441,10 @@ public final class ODirectMemoryOnlyDiskCache extends OAbstractWriteCache implem
    */
   @Override
   public final void storeCacheState(final OWriteCache writeCache) {
+  }
+
+  @Override
+  public void changeMaximumAmountOfMemory(final long calculateReadCacheMaxMemory) {
   }
 
   @Override
@@ -707,7 +710,7 @@ public final class ODirectMemoryOnlyDiskCache extends OAbstractWriteCache implem
 
   @Override
   public final Map<String, Long> files() {
-    final Map<String, Long> result = new HashMap<>();
+    final Map<String, Long> result = new HashMap<>(1024);
 
     metadataLock.lock();
     try {

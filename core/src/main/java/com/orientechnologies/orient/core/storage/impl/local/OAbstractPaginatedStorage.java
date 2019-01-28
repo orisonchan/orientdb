@@ -692,23 +692,9 @@ public abstract class OAbstractPaginatedStorage extends OStorageAbstract
 
       stateLock.acquireWriteLock();
       try {
-        try {
-          // CLOSE THE DATABASE BY REMOVING THE CURRENT USER
-          close(true, true);
-
-          if (writeCache != null) {
-            if (readCache != null) {
-              readCache.deleteStorage(writeCache);
-            } else {
-              writeCache.delete();
-            }
-          }
-
-          postDeleteSteps();
-
-        } catch (final IOException e) {
-          throw OException.wrapException(new OStorageException("Cannot delete database '" + name + "'"), e);
-        }
+        // CLOSE THE DATABASE BY REMOVING THE CURRENT USER
+        close(true, true);
+        postDeleteSteps();
       } finally {
         stateLock.releaseWriteLock();
         //noinspection ResultOfMethodCallIgnored

@@ -194,6 +194,7 @@ public class ODurablePage {
       changes.setIntValue(buffer, value, pageOffset);
     } else {
       buffer.putInt(pageOffset, value);
+      cacheEntry.markDirty();
     }
 
     return OIntegerSerializer.INT_SIZE;
@@ -205,6 +206,7 @@ public class ODurablePage {
       changes.setIntValue(buffer, value, pageOffset);
     } else {
       buffer.putShort(pageOffset, value);
+      cacheEntry.markDirty();
     }
 
     return OShortSerializer.SHORT_SIZE;
@@ -217,6 +219,7 @@ public class ODurablePage {
       changes.setByteValue(buffer, value, pageOffset);
     } else {
       buffer.put(pageOffset, value);
+      cacheEntry.markDirty();
     }
 
     return OByteSerializer.BYTE_SIZE;
@@ -229,6 +232,7 @@ public class ODurablePage {
       changes.setLongValue(buffer, value, pageOffset);
     } else {
       buffer.putLong(pageOffset, value);
+      cacheEntry.markDirty();
     }
 
     return OLongSerializer.LONG_SIZE;
@@ -245,6 +249,7 @@ public class ODurablePage {
     } else {
       buffer.position(pageOffset);
       buffer.put(value);
+      cacheEntry.markDirty();
     }
 
     return value.length;
@@ -265,6 +270,7 @@ public class ODurablePage {
 
       buffer.position(to);
       buffer.put(rb);
+      cacheEntry.markDirty();
     }
   }
 
@@ -277,6 +283,7 @@ public class ODurablePage {
 
     buffer.position(0);
     changes.applyChanges(buffer);
+    cacheEntry.markDirty();
   }
 
   public void setLsn(OLogSequenceNumber lsn) {
@@ -285,6 +292,7 @@ public class ODurablePage {
 
     buffer.putLong(lsn.getSegment());
     buffer.putLong(lsn.getPosition());
+    cacheEntry.markDirty();
   }
 
   @Override
